@@ -5,7 +5,7 @@ function [v,v1,v2,varx,vary,cov] = stochastic_simulation_two_traits(N,s1,u1,s2,u
 % 
 % https://datadryad.org/resource/doi:10.5061/dryad.f36v6 
 %
-% Stochastic simulation for two chromosome model. 
+% Stochastic simulation for two trait model, with relative vs absolute fitness. 
 % Each step is one generation. Rates (such as s,u,r) are per generation. 
 % The expected size of each subpop after selection, mutation, and mating is computed.
 % If expected size < :cutoff: then the size is drawn from Poisson
@@ -16,12 +16,12 @@ function [v,v1,v2,varx,vary,cov] = stochastic_simulation_two_traits(N,s1,u1,s2,u
 % output :varx, vary, cov:  time averaged variances and covariance in traits 1 and 2.
 
 % input :N: population size
-% input :s1: effect size of beneficial mutation in trait 1. 
-% input :u1: mutation rate per locus of trait 1.
-% input :s2: effect size of beneficial mutation in trait 2. 
-% input :u2: mutation rate per locus of trait 2.
-% input :ud1: deleterious mutation rate per locus of trait 1.
-% input :ud2: deleterious mutation rate per locus of trait 2.
+% input :s1: effect size of beneficial mutation in trait 1 (absolute fitness), reduces the death rate of an individual. 
+% input :u1: mutation rate per locus of trait 1 (absolute fitness).
+% input :s2: effect size of beneficial mutation in trait 2 (relative fitness), increases the competitive ability of an individual. 
+% input :u2: mutation rate per locus of trait 2 (relative fitness).
+% input :ud1: deleterious mutation rate per locus of trait 1 (absolute fitness).
+% input :ud2: deleterious mutation rate per locus of trait 2 (relative fitness).
 % input :steps: number of steps for simulation.
 % input :collect_data: true/false - collect detailed data on 2d distr. per generation
 % input :start_time: start time for collecting detailed data on 2d distribution
@@ -34,15 +34,15 @@ digits(16);
 pop=N;                      % abundances of a classes
 Na = 0;                     % actual population size
 fit=0;                      % total fitness of a class
-fitx=0;                     % fitness in trait 1 of a class
-fity=0;                     % fitness in trait 2 of a class
+fitx=0;                     % fitness in trait 1 of a class (absolute fitness trait)
+fity=0;                     % fitness in trait 2 of a class (relative fitness trait)
 nosefitness = 0;            % total fitness of the front
-meanfitness = 0;            % mean fitness of the population
-meanfitx = 0;               % mean fitness in x 
-meanfity = 0;               % mean fitness in y
-meanfit_s = 0;              % mean fitness of the population
-meanfitx_s = 0;             % mean fitness in x 
-meanfity_s = 0;             % mean fitness in y
+meanfitness = 0;            % mean absolute fitness of the population
+meanfitx = 0;               % mean absolute fitness (may not use)
+meanfity = 0;               % mean relative fitness
+meanfit_s = 0;              % mean absolute fitness of the population
+meanfitx_s = 0;             % mean absolute fitness (may not use)
+meanfity_s = 0;             % mean relative fitness 
 varx = 0;                   % variance in trait 1
 vary = 0;                   % variance in trait 2
 cov = 0;                    % covariance between trait 1 and 2
@@ -100,7 +100,7 @@ for timestep=1:steps
     fit = fitx_arry + fity_arry;                   % total fitness
     meanfitness = sum(sum(times(freq,fit)));
     
-    newfreq=times(exp(fit-meanfitness),freq);  % after selection
+    newfreq=times(exp(fit-meanfitness),freq);  % SELECTION STEP HERE
     newfreq=newfreq/sum(sum(newfreq));          % make sure frequencies still add to one.
     
     % calculate changes in abundances due to mutations
@@ -209,4 +209,18 @@ if(collect_data)
     fclose(fileID3);
 end
 
+end
+
+function new_expect_freq = Abs_Rel_Fitness_function(fitness,freq,popsize,birth_rate)
+    % Abs_Rel_Fitness calcualtes the expected frequencies due to selection
+    % in absolute and relative fitness. Selection occurs according to the
+    % formulation given in Bertram and Masel's (2019), varying density
+    % lottery model
+    
+    % parameters and variables involved in selection
+    
+    delta
+    
+    new_expect_freq = popsize;
+    
 end

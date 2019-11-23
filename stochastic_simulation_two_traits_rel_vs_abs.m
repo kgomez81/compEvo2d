@@ -211,15 +211,16 @@ end
 
 end
 
-function new_expect_freq = Abs_Rel_Fitness_function(fitness,freq,popsize,birth_rate)
+function new_expect_freq = Abs_Rel_Fitness_function(fitness,freq,popsize,birth_rate,T)
     % Abs_Rel_Fitness calcualtes the expected frequencies due to selection
     % in absolute and relative fitness. Selection occurs according to the
     % formulation given in Bertram and Masel's (2019), varying density
     % lottery model
     
-    % parameters and variables involved in selection
+    L = 
     
-    delta
+    % parameters and variables involved in selection
+    delta_n = 
     
     new_expect_freq = popsize;
     

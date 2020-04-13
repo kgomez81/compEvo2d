@@ -1,6 +1,6 @@
 function ext_time = stochastic_simulation_two_traits_rel_vs_abs( ...
                                 T,init_pop,init_fit_a,init_fit_r,b,d,sa,ua,uad, ...
-                                sr,ur,urd,E,steps,collect_data,start_time,end_time,outputfile)
+                                sr,ur,urd,E,steps,collect_data,outputfile)
 % The code below has been modified from the source code made
 % availabe by Pearce MT and Fisher DS, obtained from:
 % 
@@ -61,9 +61,9 @@ fit_r=init_fit_r;                    % trait 2 beneficial mutations (relative fi
 cutoff = 10/sr;       % population cutoff for stochasticity
 
 if (collect_data)           % store parameters used in simulation
-    fileID = fopen([outputfile '-0.txt'],'w');
-    fprintf(fileID,'%.16f,%.16f,%.16f,%.16f,%.16f,%.16f,%.16f,%.16f,%.16f',T,sa,ua,uad,sr,ur,urd,E,steps);
-    fclose(fileID);
+    fileID0 = fopen([outputfile '-0.txt'],'w');
+    fprintf(fileID0,'%.16f,%.16f,%.16f,%.16f,%.16f,%.16f,%.16f,%.16f,%.16f',T,sa,ua,uad,sr,ur,urd,E,steps);
+    fclose(fileID0);
     fileID1 = fopen([outputfile '-1.txt'],'w'); %file for extinction time versus mean time between env changes
     fileID2 = fopen([outputfile '-2.txt'],'w'); %file for classes
     fileID3 = fopen([outputfile '-3.txt'],'w'); %file for abundances

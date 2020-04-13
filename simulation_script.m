@@ -51,21 +51,17 @@ cutoff = 10/sr;
 
 steps = 100000;
 collect_data = 1;
-start_time = steps;
-end_time = steps;
-outputfile = '~/Documents/compEvo2d/data/compEvo2d_data_ml-001'; ;
+outputfile = 'data/compEvo2d_data_ml-001'; ;
 
 % initial population and fitness data
 init_pop = [1e7; 1e6];
 init_fit_a = [-15 -14];
 init_fit_r = [1];
 
-
 for i = 1:90
     tExt(i) = stochastic_simulation_two_traits_rel_vs_abs( ...
-                                    T,init_pop,init_fit_a,init_fit_r,b,d,sa,ua,uad,sr,ur,urd,E, ...
-                                    steps,collect_data,start_time,end_time,outputfile);
+                                    T,init_pop,init_fit_a,init_fit_r,b,d,sa,ua,uad,sr,ur,urd,EnvR(i), ...
+                                    steps,collect_data,[outputfile '-' num2str(i)]);
 end
 
-
-dlmwrite('~/Documents/compEvo2d/data/compEvo2d_data_ext_times_ml-001.dat',[tEnv' tExt'],'delimiter',',','precision',16);
+dlmwrite('data/compEvo2d_data_ext_times_ml-001.dat',[tEnv' tExt'],'delimiter',',','precision',16);

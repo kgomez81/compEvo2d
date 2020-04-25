@@ -1,4 +1,4 @@
-function [newpop,delta_ni, Wi,W_bar,wi,c_bar] = BM_lottery_model(pop,fit_a,fit_r,T,b,d,sa,sc)
+function [newpop,delta_ni, Wi,W_bar,wi,c_bar] = BM_lottery_model(pop,fit_a,fit_r,T,b,d,sa,sr)
 % BM_lottery_model takes in the set of population abundances for each class
 % and the fitness array to calculate the the new expected abundances. The
 % model is specified in Bertram and Masel 2019 - "Density-dependent 
@@ -15,7 +15,7 @@ function [newpop,delta_ni, Wi,W_bar,wi,c_bar] = BM_lottery_model(pop,fit_a,fit_r
 % b = base birth rate 
 % d = base death rate 
 % sd = selection coefficient for beneficial mutation descreasing death rate
-% sc = selection coefficient for beneficial mutation increasing competitive ability 
+% sr = selection coefficient for beneficial mutation increasing competitive ability 
 % 
 % 
 % outputs:
@@ -42,7 +42,7 @@ mi= pop.*(b.*U./T);     % array of avg propagules dispersed per class
 li= pop.*(b./T);
 
 L = sum(sum(li));
-ci = ones(ka,1)*(1+sc*fit_r);       % relative fitness is 1 + #mut x sc
+ci = ones(ka,1)*(1+sr*fit_r);       % relative fitness is 1 + #mut x sc
 c_bar = sum(sum(mi.*ci))./(sum(sum(mi)));
 
 inv_di = (((1+sa.*d.*fit_a)./d)').*ones(1,kr);  % calculate inverse because can't have di-->inf
@@ -50,8 +50,8 @@ inv_di(inv_di<0) = 0;                           % inverse of death rate should n
 
 % NOTE: with inv_di defined above, 1/d_i-1 -1/di = sa, 0<= 1/di <= 1/d, 1 <= di < inf;
 if (length(fit_r)==1)
-    Ri = zeros(size(pop));
-    Ai = zeros(size(pop));
+    Ri = (exp(-li)-exp(-L)).*(1-(1+L).*exp(-L))./(L.*(1-exp(-L)));
+    Ai = (1-exp(-li)).*(1-(1+L).*exp(-L))./(L.*(1-exp(-L)));
 
     births = ( exp(-L) + (Ri + Ai).*ci./c_bar ).*li.*U;   % new individuals
 else

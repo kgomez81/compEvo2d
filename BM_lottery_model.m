@@ -65,8 +65,10 @@ else
     births = ( exp(-L) + (Ri + Ai).*ci./c_bar ).*li.*U;   % new individuals
 end
 
-newpop = (inv_di).*pop;
-delta_ni = (inv_di).*births;
+newpop = (inv_di).*pop;             % left over adults after death
+delta_ni = (inv_di).*births;        % juviniles that make it to be adults
+% NOTE!!! the total population is newpop+delta_ni, but here I keep them
+% seperate becuase only the delta_ni portion experiences mutations.
 
 Wi = (newpop + delta_ni)./pop;
 W_bar = sum(sum(newpop + delta_ni))/Na;

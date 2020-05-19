@@ -70,7 +70,7 @@ if (collect_data)           % store parameters used in simulation
 end
 
 % Sample time of first ENVIRONMENTAL CHANGE
-te = round(exprnd(1/E));
+te = max([round(exprnd(1/E)) 1]);
 
 % Main loop for simulation of each generation
 while ( (sum(sum(pop))>0) && (ext_time <= steps) )

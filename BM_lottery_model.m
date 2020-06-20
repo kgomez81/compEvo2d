@@ -57,7 +57,7 @@ c_bar = sum(sum(mi.*ci))./(sum(sum(mi)));
 % trait --- I include in the mutation function
 % two_dim_abs_vs_rel_mutations function --- and "sr > 1."
 
-inv_di = (((1+sa.*d.*fit_a)./d)').*ones(1,kr);  % calculate inverse because can't have di-->inf
+inv_di = ((1./(d.*(1+sa).^(-fit_a)))').*ones(1,kr);  % calculate inverse because can't have di-->inf
 inv_di(inv_di<0) = 0;                           % inverse of death rate should not be negative, set these values to zero 
 
 % NOTE: with inv_di defined above, 1/d_i-1 -1/di = sa, 0<= 1/di <= 1/d, 1 <= di < inf;

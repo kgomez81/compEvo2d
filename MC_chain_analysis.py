@@ -28,7 +28,7 @@ Ur=1e-5         # beneficial mutation rate in trait "c"
 Urd=1e-5        # deleterious mutation rate in trait "c"
 sr = 0.175     # multiplicative increment to "c" is (1+sr)
 
-yi_option = 1   # select option to get equilibrium population density (=1,2,3)
+yi_option = 3   # select option to get equilibrium population density (=1,2,3)
 
 abs_fit_clss = []   # absolute fitness classes
 Ua_i = []       # absolute fitness mutation rate
@@ -50,9 +50,9 @@ for i in range(-i_ext+1,0):
     # absolute fitness mutation rate, equilb.-density,equilb.-popsize,eff_sr
     Uai = -i*Ua
     eqyi = myfun.get_eq_pop_density(b,d,sa,-i,yi_option)
-    eqNi = T*eqyi
+    eqNi = np.log(T*eqyi)
     effsri = myfun.get_c_selection_coefficient(b,eqyi,sr)
-    effsai = sa*myfun.get_class_death_rate(d,sa,-i+1)
+    effsai = sa
     
     # rates of fitness change (relative scale)
     vai = myfun.get_vDF(eqNi,effsai,Uai)

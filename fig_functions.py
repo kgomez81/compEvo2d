@@ -2,7 +2,7 @@
 """
 Created on Sat Feb 02 11:25:45 2019
 Masel Lab
-Project: Mutation-driven Adaptation
+Project: Two trait adaptation: Relative versus absolute fitness 
 @author: Kevin Gomez
 
 Description:

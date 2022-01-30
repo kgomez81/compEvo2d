@@ -9,9 +9,13 @@ Description:
 Defines the basics functions used in all scripts that process matlab
 data and create figures in the mutation-driven adaptation manuscript.
 """
+# *****************************************************************************
 # libraries
+# *****************************************************************************
+
 import numpy as np
 import scipy.optimize as opt
+import csv
 
 # *****************************************************************************
 # FUNCTIONS TO GET QUANTITIES FROM DESAI AND FISHER 2007
@@ -55,7 +59,7 @@ def get_qDF(N,s,U):
 
 #------------------------------------------------------------------------------
 
-def get_vDF_pfix(N,s,U,pFix):
+def get_vDF_pFix(N,s,U,pFix):
     # Calculates the rate of adaptation v, using a heuristic version of Desai 
     # and Fisher 2007 argument, but without the asumption that p_fix ~ s, i.e. 
     # for a given population size (N), selection coefficient (s) and beneficial
@@ -95,7 +99,7 @@ def get_vSucc_pFix(N,s,U,pFix):
 
 #------------------------------------------------------------------------------
 
-def get_rateOfAdapt_v(N,s,U,pFix):
+def get_rateOfAdapt(N,s,U,pFix):
     # Calculates the rate of adaptation v, but checks which regime applies.
     #
     # Inputs:
@@ -108,41 +112,41 @@ def get_rateOfAdapt_v(N,s,U,pFix):
     # v - rate of adaptation
     #
     
-    # Calculate mean time between establishments
-    Test = N*U*pFix
-    
-    # Calculate mean time of sweep
-    Tswp = (1/s)*np.log(N*pFix)
-    
-    # calculate rate of adaptation based on regime
-    if (Test < Tswp):
-        v = get_vSucc_pFix(N,s,U,pFix)
-    else:
-        # this needs to be divided into multiple mutations and diffusion regime
-        v = get_vDF_pFix(N,s,U,pFix)
+    # check that selection coefficient, pop size and beneficial mutation rate 
+    # are valid parameters
+    if (s <= 0) or (N <= 0) or (U <= 0) or (pFix <= 0):
+        v = 0
+    else:    
+        # Calculate mean time between establishments
+        Test = 1/N*U*pFix
+        
+        # Calculate mean time of sweep
+        Tswp = (1/s)*np.log(N*pFix)
+        
+        # calculate rate of adaptation based on regime
+        if (Test >= Tswp):
+            v = get_vSucc_pFix(N,s,U,pFix)
+        else:
+            # this needs to be divided into multiple mutations and diffusion regime
+            v = get_vDF_pFix(N,s,U,pFix)
     
     return v
 
 #------------------------------------------------------------------------------
 
-def get_eq_pop_density(b,d,sa,i,option):
+def get_eqPopDensity(b,di,option):
     # Calculate the equilibrium population size for the Bertram & Masel
-    # variable density lottery model, single class case.
+    # variable density lottery model, single abs-fitness class case. For 
+    # multiple abs-fitness classes, used dHar = harmonic mean of di weighted 
+    # by frequency.
     #
     # Inputs:
-    # b - juvenile birth rate
-    # d - death rate
-    # i - absolute fitness class (i beneficial mutations from optimal)
-    # sa - absolute fitness selection coefficient
+    # b - juvenile birth term
+    # di - death term of abs-fitness class i
     #
     # Output: 
     # eq_density - equilibrium population density
     #
-    # Remark: must have 1/sa*d > i >= 0 in general but for i = (1-d/(b+1))/sd
-    # the population is in decline, unless it is rescued. Also, returns zero 
-    # if formula gives negative density.
-    
-    di = get_class_death_rate(d,sa,i)
     
     def eq_popsize_err(y):    
         # used in numerical approach to obtain equilibrium population density    
@@ -150,27 +154,29 @@ def get_eq_pop_density(b,d,sa,i,option):
 
     if option == 1:
         # approximation near optimal gentotype
-        eq_density = (1-np.exp(-b))/(di-np.exp(-b))+(di-1)/(di-np.exp(-b))*(np.exp(-b)-np.exp(-b*(1-np.exp(-b))/(di-np.exp(-b))))/(di-np.exp(-b*(1-np.exp(-b))/(di-np.exp(-b))))
+        eq_density = (1-np.exp(-b))/(di-np.exp(-b))+(di-1)/(di-np.exp(-b))* \
+                        (np.exp(-b)-np.exp(-b*(1-np.exp(-b))/(di-np.exp(-b))))/ \
+                                (di-np.exp(-b*(1-np.exp(-b))/(di-np.exp(-b))))
         
-        eq_density = np.max([eq_density,0]) # formula should 
+        eq_density = np.max([eq_density,0]) # ensure density >= 0
         
     elif option == 2:
         # approximation near extinction genotype
         eq_density = (b+2)/(2*b)*(1-np.sqrt(1-8*(b-di+1)/(b+2)**2))
         
-        eq_density = np.max([eq_density,0])
+        eq_density = np.max([eq_density,0]) # ensure density >= 0
         
     else:
         # numerical solution to steady state population size equation
         eq_density = opt.broyden1(eq_popsize_err,[1], f_tol=1e-14)
         
-        eq_density = np.max([eq_density,0])
+        eq_density = np.max([eq_density[0],0]) # ensure density >= 0
         
     return eq_density
 
 #------------------------------------------------------------------------------
     
-def get_extinction_classes(b,dOpt,sa):
+def get_absoluteFitnessClasses(b,dOpt,sa):
     # function calculates the class for which population size has a negative 
     # growth rate in the Bertram & Masel 2019 lottery model
     #
@@ -180,7 +186,6 @@ def get_extinction_classes(b,dOpt,sa):
     # sa - selection coefficient of beneficial mutations in "d" trait
     #
     # Output: 
-    # iExt - largest fitness class after which there is negative growth in pop size
     # dMax - largest death term after which there is negative growth in pop size
     # di - list of death terms corresponding to the discrete absolute fit classes
     
@@ -190,19 +195,18 @@ def get_extinction_classes(b,dOpt,sa):
     
     # Recursively calculate set of absolute fitness classes 
     di = [dOpt]
-    iMax = 0                            
+    ii = 0
     while (di[-1] < dMax):
         # loop until stop at dMax or greater reached
-        di = di+[di[i-1]*(1+sa*(d[i-1]-1))]
-        iMax = iMax + 1
+        di = di+[di[ii-1]*(1+sa*(di[ii-1]-1))]
     
     di = np.asarray(di)
 
-    return [iExt,dMax,di]
+    return [dMax,di]
 
 #------------------------------------------------------------------------------
     
-def get_c_selection_coefficient(b,y,cr,d_i):
+def get_c_SelectionCoeff(b,y,cr,d_i):
     # Calculate the "c" selection coefficient for the Bertram & Masel variable 
     # density lottery model for choice of ci = (1+sr)^i
     #
@@ -215,12 +219,18 @@ def get_c_selection_coefficient(b,y,cr,d_i):
     # Output: 
     # sr - selection coefficient of beneficial mutation in "c" trait
     #
-
+    
+    # check that population density is a positive number, otherwise there is
+    # no evolution
+    if (y <= 0):
+        return 0
+        
     # calculate rate of increase in frequency per iteration
-    r_rel = cr*(1-y)*(1-(1+b*y)*np.exp(-b*y))/(y+(1-y)*(1-np.exp(-b)))*(b*y-1+np.exp(-b*y))/(b*y*(1-np.exp(-b*y))+cr*(1-(1+b*y)*np.exp(-b*y)))
+    r_rel = cr*(1-y)*(1-(1+b*y)*np.exp(-b*y))/(y+(1-y)*(1-np.exp(-b)))*\
+                    (b*y-1+np.exp(-b*y))/(b*y*(1-np.exp(-b*y))+cr*(1-(1+b*y)*np.exp(-b*y)))
     
     # re-scale time to get rate of increase in frequency per generation
-    tau_i = myfun.get_iterationsPerGeneration(d_i)
+    tau_i = get_iterationsPerGenotypeGeneration(d_i)
     
     sr = r_rel*tau_i
     
@@ -228,7 +238,7 @@ def get_c_selection_coefficient(b,y,cr,d_i):
 
 #------------------------------------------------------------------------------
     
-def get_iterationsPerGeneration(d_i):
+def get_iterationsPerGenotypeGeneration(d_i):
     # Calculate the "c" selection coefficient for the Bertram & Masel variable 
     # density lottery model for choice of ci = (1+cr)^i
     #
@@ -259,7 +269,7 @@ def read_parameterFile(readFile,paramList):
             paramValue[line] = float(row[0])
     
     # create dictionary with values
-    paramDict = dict([[paramList[i],paramValue[i]] for i in len(paramValue)])
+    paramDict = dict([[paramList[i],paramValue[i][0]] for i in range(len(paramValue))])
     
     return paramDict
 
@@ -291,3 +301,9 @@ def read_pFixOutputs(readFile,nStates):
             pFixValues[line] = float(row[0])
     
     return pFixValues
+
+#------------------------------------------------------------------------------
+    
+
+
+#------------------------------------------------------------------------------

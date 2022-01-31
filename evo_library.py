@@ -303,7 +303,240 @@ def read_pFixOutputs(readFile,nStates):
     return pFixValues
 
 #------------------------------------------------------------------------------
+#                       Simulation functions
+#------------------------------------------------------------------------------
     
+def deltnplussim(m,c,U): 
+    # This function 
+    #
+    # Inputs:
+    # m - array with number of new propogules (unoccupied territories) per class
+    # c - array with set of relative fitness class values
+    # U - Number of unoccupied territories
+    #
+    # Outputs:    
+    # 
+    
+    # get array with the total number of propogules per class
+    l = m/float(U)      
 
+    # 
+    prob_neq_0 = st.poisson.sf(0, mu=l[1])
+    comp_U = np.random.binomial(U,prob_neq_0)
+    
+    rng = np.arange(1,int(4*math.ceil(l[1]))+1)
+    zt_poiss_prbs = (l[1]**rng)/((scipy.special.factorial(rng)*(np.exp(l[1]) - 1)))
+    
+    comp_mut = np.random.choice(rng,p=zt_poiss_prbs/sum(zt_poiss_prbs),size=[comp_U,1])
+    comp_wld =np.random.poisson(lam=l[0],size=[comp_U,1])
+    
+    scatter = np.hstack([comp_wld,comp_mut])
+    Up = len(scatter)
+    
+    wins = np.zeros(len(m))
+    comp=np.zeros(Up);
+    for i in range(int(Up)):
+        comp[i]=sum(scatter[i]) #total number competing per territory
+        if comp[i]>0:            
+            lotterycmf=np.cumsum(np.array(scatter[i])*c) # Sum mi ci / Sum mi, cbar n *c, n*c + m*c, ..., Sum mi ci is lotterycmf[-1]
+            victor=bisect.bisect(lotterycmf,np.random.rand()*lotterycmf[-1]) #random.rand random between 0-1, [0 , c1 m1, c1 m1 + c2 m2] winner based on uniform
+            wins[victor] = wins[victor] + 1
+    return wins
 
 #------------------------------------------------------------------------------
+    
+def calculate_Ri_term(m,c,U):
+    # This function 
+    #
+    # Inputs:
+    # m - number of new propogules produced 
+    # c - relative fitness 
+    # U - 
+    #
+    # Outputs:    
+    # 
+    
+    l=m/float(U)
+    L=sum(l)
+    cbar=sum(m*c)/sum(m)
+    out = l
+    for i in range(len(l)):
+        try:
+            out[i]=cbar*np.exp(-l[i])*(1-np.exp(-(L-l[i])))\
+                    /(c[i] + (L-1+np.exp(-L))/(1-(1+L)*np.exp(-L))*(cbar*L-c[i]*l[i])/(L-l[i]))
+        except FloatingPointError:
+            out[i]=np.exp(-l[i])*(1-np.exp(-(L-l[i])))\
+                /(1 + (L-1+np.exp(-L))/(1-(1+L)*np.exp(-L)))
+#    for i in range(len(out)):
+#        if np.isnan(out)[i]: out[i]=0            
+    return out
+
+#------------------------------------------------------------------------------
+    
+def calculate_Ai_term(m,c,U):
+    # This function 
+    #
+    # Inputs:
+    # m - number of new propogules produced 
+    # c - relative fitness 
+    # U - 
+    #
+    # Outputs:    
+    # 
+    l=m/float(U)
+    L=sum(l)
+    cbar=sum(m*c)/sum(m)    
+    out = l
+    
+    for i in range(len(l)):    
+        try:
+            out[i]=cbar*(1-np.exp(-l[i]))\
+                    /((1-np.exp(-l[i]))/(1-(1+l[i])*np.exp(-l[i]))*c[i]*l[i]\
+                    +(L*(1-np.exp(-L))/(1-(1+L)*np.exp(-L))-l[i]*(1-np.exp(-l[i]))/(1-(1+l[i])*np.exp(-l[i])))/(L-l[i])*(cbar*L-c[i]*l[i]))
+        except FloatingPointError:
+            out[i]=cbar*(1-np.exp(-l[i]))\
+                    /(c[i]+(L*(1-np.exp(-L))/(1-(1+L)*np.exp(-L))-1))
+#    for i in range(len(out)):
+#        if np.isnan(out)[i]: out[i]=-1
+    return out
+
+#------------------------------------------------------------------------------
+    
+# This function is drawing divide by zero errors, most likely just numerical precision, but ask kevin
+def deltnplus(m,c,U):
+    if sum(m)>0 and U>0:
+        L=sum(m)/float(U)
+        cbar=sum(m*c)/sum(m)
+        return m*(np.exp(-L)+(R(m,c,U)+A(m,c,U))*c/cbar)
+    else:
+        return np.zeros(len(m))
+    
+#------------------------------------------------------------------------------
+        
+def popdeath(pop,di):
+    # goal here is the sum of the win vectors
+	# then we just add them to the pop
+    npop = np.array([np.random.binomial(pop[0],1/di), np.random.binomial(pop[1],1/di)]); #is the number that survive
+	# we would then output this number as the new initial population and iterated
+	# the process some arbitrary amount of times
+    return npop
+
+#------------------------------------------------------------------------------
+    
+def di_class(d,di,sa):
+    return math.ceil(np.log(float(d) / float(di))/np.log(1+sa))
+
+#------------------------------------------------------------------------------
+    
+def simpop(samp,steps,T,sr,b,di,do,sa,de,yi_option): #and all other shit here
+
+	# here we need to take an initial population, with all associated parameters
+	# and run through Jasons model i.e.
+    c = np.array([1,(1+sr)]);
+    pfix = 0;
+    print(get_eq_pop_density(b,di,sa,yi_option))
+    for i in range(int(samp)):
+        eq_pop = math.ceil(T * get_eq_pop_density(b,di,sa,yi_option));
+        #print(eq_pop/T)
+        pop = np.array([eq_pop-1, 1]);
+
+        while ((pop[1] > 0) & (pop[1] < 1000)): # 4/18: set to 1000 for now, no clue though, != 0 1/pfix calculated via mathematica, grown larger than wild
+            U = int(T - sum(pop));
+            mi = pop * ((b * U) / T); #or something to generate propugules numbers
+            
+            deltan = deltnplussim(mi,c,U)
+            wins = np.array([0,deltan[1]]) # 4/18: Change to deterministic growth 
+            
+            npop = pop+wins;
+            pop = np.array([(1/di)*(pop[0] + deltnplus(mi,c,U)[0]), np.random.binomial(npop[1],1/di)]); # 4/18: changed to deterministic
+            #print(pop[1])
+            
+        pfix = pfix + (pop[1] > 1)/float(samp);
+        
+    return pfix
+# Everythings running well, only issue is that it spits out nonsensical probabilities sometimes, (how the hell do you get 0.152 from 1 sample?)
+#possibility of poisson probabilites not working right
+#sum of mi and li.... poiss(mi) =dist= sum_{to U}[poiss(li)]
+
+def trackpop(samp,steps,T,sr,b,di,do,sa,de,yi_option): #and all other shit here
+
+	# here we need to take an initial population, with all associated parameters
+	# and run through Jasons model i.e.
+    c = np.array([1,(1+sr)]);
+    print(get_eq_pop_density(b,di,sa,yi_option))
+    tracker = np.array(np.zeros(steps))
+    for i in range(int(samp)):
+        eq_pop = math.ceil(T * get_eq_pop_density(b,di,sa,yi_option));
+        #print(eq_pop/T)
+        pop = np.array([eq_pop, 1]);
+        trk = np.array(np.zeros(steps))
+        trk[0] = 1
+        its = 1 
+        while ((pop[1] > 0) & (pop[1] < 100) & (its < steps)): # pop2 > 1000, while < 1000 or != 0 1/pfix calculated via mathematica, grown larger than wild
+            U = int(T - sum(pop));
+            mi = pop * ((b * U) / T); #or something to generate propugules numbers
+            #print(mi)
+            deltan = deltnplussim(mi,c,U)
+            wins = np.array([deltan[0],deltan[1]])
+            npop = pop+wins;
+            pop = np.array([np.random.binomial(npop[0],1/di), np.random.binomial(npop[1],1/di)]);
+            trk[its] = pop[1]
+            its = its + 1;
+        
+            
+        tracker = np.vstack((tracker,trk))
+        
+    return tracker
+
+#------------------------------------------------------------------------------
+    
+def compwin(n,samp,T,sr,b,di,do,sa,de,yi_option): 
+
+	# here we need to take an initial population, with all associated parameters
+	# and run through Jasons model i.e.
+    c = np.array([1,(1+sr)]);
+    wins = np.array(np.zeros(samp))
+    eq_pop = math.ceil(T * get_eq_pop_density(b,di,sa,yi_option));
+        #print(eq_pop/T)
+    pop = np.array([eq_pop-n, n]);
+    U = int(T - sum(pop));
+    mi = pop * ((b * U) / T); #or something to generate propugules numbers
+            #print(mi)
+    for i in range(samp):
+        wins[i] = deltnplussim(mi,c,U)[1]
+        
+    return wins
+
+#deterministic equations for wild, only consider competition when the mutant has a chance to win, everything else is a lost.  
+
+
+# i.e. remove the poisson deterministic sampling for the one here: n -> m -> Bin(n + m, 1 - 1/di) = n (wrap)	
+# when the approximations break down, assumptions regarding the poisson (when the bins work, binomial -> poisson) - go back through the paper.
+
+#------------------------------------------------------------------------------
+    
+def modsimpop(d_Inc,c_Inc,samp,T,sr,b,dis,do,sa,de,yi_option): #and all other shit here
+
+	# here we need to take an initial population, with all associated parameters
+	# and run through Jasons model i.e.
+    c = np.array([1,(1+sr*c_Inc)]);
+    pfix = 0;
+    #print(get_eq_pop_density(b,dis[0],sa,yi_option))
+    for i in range(int(samp)):
+        eq_pop = int(math.ceil(T * get_eq_pop_density(b,dis[0],sa,yi_option)));
+        #print(eq_pop/T)
+        pop = np.array([eq_pop-1, 1]);
+
+        while ((pop[1] > 0) & (pop[1] < 1000)): # 4/18: set to 1000 for now, no clue though, != 0 1/pfix calculated via mathematica, grown larger than wild
+            U = int(T - sum(pop));
+            mi = pop * ((b * U) / T); #or something to generate propugules numbers
+            deltan = deltnplussim(mi,c,U)
+
+            pop = np.array([(1/dis[0])*(pop[0] + deltnplus(mi,c,U)[0]), np.random.binomial(pop[1]+int(deltan[1]),1/dis[d_Inc])]); # 4/18: changed to deterministic
+            # print(pop[1])
+            
+        pfix = pfix + (pop[1] > 1)/float(samp);
+        
+    return pfix
+#possibility of poisson probabilites not working right
+#sum of mi and li.... poiss(mi) =dist= sum_{to U}[poiss(li)]

@@ -113,9 +113,9 @@ ve_i    = np.asarray(ve_i)
 #                               Figure 
 # --------------------------------------------------------------------------
 fig1,ax1 = plt.subplots(1,1,figsize=[7,6])
+ax1.plot(state_i,ve_i,color="black",linewidth=5,label=r'$v_e$')
 ax1.scatter(state_i,va_i,color="blue",linewidth=1.0,label=r'$v_a$')
 ax1.scatter(state_i,vr_i,color="red",linewidth=1.0,label=r'$v_r$')
-ax1.plot(state_i,ve_i,color="black",linewidth=5,label=r'$v_e$')
 
 # axes and label adjustements
 ax1.set_xlim(-iExt-1,0)
@@ -137,5 +137,6 @@ plt.text(-78,0.10e-4,r'$i_{ext}=180$',fontsize = 18)
 plt.text(-190,2.58e-4,r'$\times 10^{-4}$', fontsize = 20)
 plt.text(-175,2.30e-4,r'(B)', fontsize = 22)
 
-plt.tight_layout()
+# save figure
+#plt.tight_layout()
 fig1.savefig('figures/fig_MChain_VaVrIntersection.pdf')

@@ -10,6 +10,7 @@ see Bertram & Masel 2019 for details of lottery model
 # --------------------------------------------------------------------------
 #                               Libraries   
 # --------------------------------------------------------------------------
+
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
@@ -112,9 +113,9 @@ ve_i    = np.asarray(ve_i)
 #                               Figure 
 # --------------------------------------------------------------------------
 fig1,ax1 = plt.subplots(1,1,figsize=[7,6])
+ax1.plot(state_i,ve_i,color="black",linewidth=5,label=r'$v_e$')
 ax1.scatter(state_i,va_i,color="blue",linewidth=1.0,label=r'$v_a$')
 ax1.scatter(state_i,vr_i,color="orange",linewidth=1.0,label=r'$v_r$')
-ax1.plot(state_i,ve_i,color="black",linewidth=5,label=r'$v_e$')
 
 # axes and label adjustements
 ax1.set_xlim(-iExt-1,0)
@@ -136,6 +137,6 @@ plt.text(-84,0.10e-4,r'$i_{ext}=180$',fontsize = 18)
 plt.text(-190,2.58e-4,r'$\times 10^{-4}$', fontsize = 20)
 plt.text(-175,2.30e-4,r'(A)', fontsize = 22)
 
-# save figures
+# save figure
 #plt.tight_layout()
 fig1.savefig('figures/fig_MChain_VaVeIntersection.pdf')

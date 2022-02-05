@@ -344,7 +344,8 @@ def get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option):
 #------------------------------------------------------------------------------
     
 def deltnplussim(m,c,U): 
-    # This function 
+    # This function calculates the number of territories that the
+    # mutatnt lineage wins.
     #
     # Inputs:
     # m - array with number of new propogules (unoccupied territories) per class
@@ -354,14 +355,24 @@ def deltnplussim(m,c,U):
     # Outputs:    
     # 
     
-    # get array with the total number of propogules per class
+    # get array with the total number of propogules per class, m is the
+    # array of total propagules per class. in this implementation the 
+    # 1st index is the wild type and the 2nd index is the mutant class
     l = m/float(U)      
 
-    # sample the fraction of territories that draw zero
+    # Calculate the probability of no mutant propagules in a territory
     prob_neq_0 = st.poisson.sf(0, mu=l[1])
+    
+    # sample the number of territories that won't have mutants 
     comp_U = np.random.binomial(U,prob_neq_0)
     
+    # create a range of integer values between 1 and a max value.
+    # The max value is 4*l_mut. The +1 is needed to make sure that 
+    # array produced include the 4*l_mut value.
     rng = np.arange(1,int(4*math.ceil(l[1]))+1)
+    
+    # calcualte the poisson probabilities density values. 
+    # Note sure why this -1 is in the exponent
     zt_poiss_prbs = (l[1]**rng)/((scipy.special.factorial(rng)*(np.exp(l[1]) - 1)))
     
     comp_mut = np.random.choice(rng,p=zt_poiss_prbs/sum(zt_poiss_prbs),size=[comp_U,1])

@@ -303,6 +303,43 @@ def read_pFixOutputs(readFile,nStates):
     return pFixValues
 
 #------------------------------------------------------------------------------
+
+def get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option):
+    
+    # Calculate all evolution parameters.
+    state_i = []    # state number
+    Ua_i    = []    # absolute fitness mutation rate
+    Ur_i    = []    # relative fitness mutation rate
+    eq_yi   = []    # equilibrium density of fitness class i
+    eq_Ni   = []    # equilibrium population size of fitness class i
+    sr_i    = []    # selection coefficient of "c" trait beneficial mutation
+    sa_i    = []    # selection coefficient of "c" trait beneficial mutation
+    
+    va_i    = []    # rate of adaptation in absolute fitness trait alone
+    vr_i    = []    # rate of adaptation in relative fitness trait alone
+    ve_i    = []    # rate of fitness decrease due to environmental degradation
+    
+    # calculate evolution parameter for each of the states in the markov chain model
+    # the evolution parameters are calculated along the absolute fitness state space
+    # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
+    for ii in range(1,iExt+1):
+        # absolute fitness mutation rate, equilb.-density,equilb.-popsize,eff_sr 
+        state_i = state_i + [-ii]
+        Ua_i    = Ua_i + [params['UaMax']*(float(ii)/iExt)]
+        Ur_i    = Ur_i + [params['Ur']]
+        eq_yi   = eq_yi + [get_eqPopDensity(params['b'],di[ii],yi_option)]
+        eq_Ni   = eq_Ni + [params['T']*eq_yi[-1]]
+        sr_i    = sr_i + [get_c_SelectionCoeff(params['b'],eq_yi[-1],params['cr'],di[ii])]
+        sa_i    = sa_i + [params['sa']]
+        
+        # rates of fitness change ( on time scale of generations)
+        va_i = va_i + [get_rateOfAdapt(eq_Ni[-1],sa_i[-1],Ua_i[-1],pFixAbs_i[ii-1][0])]
+        vr_i = vr_i + [get_rateOfAdapt(eq_Ni[-1],sr_i[-1],Ur_i[-1],pFixRel_i[ii-1][0])]
+        ve_i = ve_i + [sa_i[-1]*params['R']/(di[ii]-1)]          
+        
+    return [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i,va_i,vr_i,ve_i]
+
+#------------------------------------------------------------------------------
 #                       Simulation functions
 #------------------------------------------------------------------------------
     
@@ -320,7 +357,7 @@ def deltnplussim(m,c,U):
     # get array with the total number of propogules per class
     l = m/float(U)      
 
-    # 
+    # sample the fraction of territories that draw zero
     prob_neq_0 = st.poisson.sf(0, mu=l[1])
     comp_U = np.random.binomial(U,prob_neq_0)
     
@@ -346,15 +383,15 @@ def deltnplussim(m,c,U):
 #------------------------------------------------------------------------------
     
 def calculate_Ri_term(m,c,U):
-    # This function 
+    # This function calculates the value of the Ri competitive term
     #
     # Inputs:
-    # m - number of new propogules produced 
-    # c - relative fitness 
+    # m - array of new propogule abundances
+    # c - array of relative fitness values
     # U - 
     #
     # Outputs:    
-    # 
+    # out - value of Ri term
     
     l=m/float(U)
     L=sum(l)

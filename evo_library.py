@@ -14,9 +14,15 @@ data and create figures in the mutation-driven adaptation manuscript.
 # *****************************************************************************
 
 import numpy as np
+import scipy.special
 import scipy.optimize as opt
+import scipy.stats as st
 import scipy as sp
+
+import bisect
 import csv
+import math as math
+
 
 # *****************************************************************************
 # FUNCTIONS TO GET QUANTITIES FROM DESAI AND FISHER 2007
@@ -361,10 +367,12 @@ def deltnplussim(m,c,U):
     # 1st index is the wild type and the 2nd index is the mutant class
     l = m/float(U)      
 
-    # Calculate the probability of no mutant propagules in a territory
+    # Calculate the probability of at least one mutant propagules in 
+    # a territory. sf = 1-cdf is the survival function
     prob_neq_0 = st.poisson.sf(0, mu=l[1])
     
-    # sample the number of territories that won't have mutants 
+    # sample the number of territories that will have mutants propagules
+    # this helps avoid drawing the full U number of territories to test 
     comp_U = np.random.binomial(U,prob_neq_0)
     
     # create a range of integer values between 1 and a max value.
@@ -372,18 +380,34 @@ def deltnplussim(m,c,U):
     # array produced include the 4*l_mut value.
     rng = np.arange(1,int(4*math.ceil(l[1]))+1)
     
-    # calcualte the poisson probabilities density values. 
-    # Note sure why this -1 is in the exponent
+    # calcualte the poisson probability density values, conditional on 
+    # not drawing 0 mutants. This leads to the bottom factor 
+    #
+    #   exp(-l)/(1-exp(-l)) = 1/(exp(l)-1)
+    #
     zt_poiss_prbs = (l[1]**rng)/((scipy.special.factorial(rng)*(np.exp(l[1]) - 1)))
     
+    # draw a sample of mutants for comp_U territories
+    # rng = 1, 2, 3,...,4*l[1] gives number of mutants
+    # p = zt_poiss_prbs/sum gives the set of probabilityies for those choices
     comp_mut = np.random.choice(rng,p=zt_poiss_prbs/sum(zt_poiss_prbs),size=[comp_U,1])
+    
+    # draw a sample of wild type for comp_U territories, theser are just poisson
+    # samples for each of the comp_U territories.
     comp_wld =np.random.poisson(lam=l[0],size=[comp_U,1])
     
+    # stack the draws of juveniles (mut & wild type) side by side
     scatter = np.hstack([comp_wld,comp_mut])
-    Up = len(scatter)
     
-    wins = np.zeros(len(m))
+    
+    # Set the number of competitions that will need to be run to check
+    # the count of won territories for each class (mut & wild type)
+    Up = len(scatter)    
+    
+    # create an array to store wins, here this is 
+    wins = np.zeros(len(m))    
     comp=np.zeros(Up);
+    
     for i in range(int(Up)):
         comp[i]=sum(scatter[i]) #total number competing per territory
         if comp[i]>0:            

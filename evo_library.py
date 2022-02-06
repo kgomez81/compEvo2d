@@ -15,6 +15,7 @@ data and create figures in the mutation-driven adaptation manuscript.
 
 import numpy as np
 import scipy.optimize as opt
+import scipy as sp
 import csv
 
 # *****************************************************************************
@@ -355,7 +356,7 @@ def deltnplussim(m,c,U):
     # Outputs:    
     # 
     
-    # get array with the total number of propogules per class, m is the
+    # get array with propogules densities per class, m below is the
     # array of total propagules per class. in this implementation the 
     # 1st index is the wild type and the 2nd index is the mutant class
     l = m/float(U)      
@@ -395,17 +396,21 @@ def deltnplussim(m,c,U):
     
 def calculate_Ri_term(m,c,U):
     # This function calculates the value of the Ri competitive term
-    #
     # Inputs:
     # m - array of new propogule abundances
     # c - array of relative fitness values
-    # U - 
-    #
+    # U - Number of unoccupied territories
     # Outputs:    
     # out - value of Ri term
     
-    l=m/float(U)
+    # get array with the total number of propogules per class, m is the
+    # array of total propagules per class. in this implementation the 
+    # 1st index is the wild type and the 2nd index is the mutant class
+    l = m/float(U)      
+    
+    # get sum of all propagules
     L=sum(l)
+    
     cbar=sum(m*c)/sum(m)
     out = l
     for i in range(len(l)):
@@ -422,15 +427,14 @@ def calculate_Ri_term(m,c,U):
 #------------------------------------------------------------------------------
     
 def calculate_Ai_term(m,c,U):
-    # This function 
-    #
+    # This function calculates the value of the Ri competitive term
     # Inputs:
-    # m - number of new propogules produced 
-    # c - relative fitness 
-    # U - 
-    #
+    # m - array of new propogule abundances
+    # c - array of relative fitness values
+    # U - Number of unoccupied territories
     # Outputs:    
-    # 
+    # out - value of Ai term
+    
     l=m/float(U)
     L=sum(l)
     cbar=sum(m*c)/sum(m)    

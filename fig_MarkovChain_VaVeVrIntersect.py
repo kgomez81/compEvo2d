@@ -24,29 +24,27 @@ import evo_library as myfun            # my functions in a seperate file
 # inputs or outputs directory. Below are examples of parameters that should be 
 # given in the csv file.
 #
-#T   = 1e9          # carrying capacity
-#b   = 2.0          # birth rate
-#do  = 100/98.0     # minimum death rate / death rate of optimal genotype
-#sa  = 1e-2         # selection coefficient of beneficial mutation in 
-#Ua  = 1e-5         # max beneficial mutation rate in trait "d"
-#Uad = 1e-5         # deleterious mutation rate in trait "d"
-#cr  = 0.175        # increment to "c" is (1+cr)
-#Ur  = 1e-5         # beneficial mutation rate in trait "c"
-#Urd = 1e-5         # deleterious mutation rate in trait "c"
-#R  = 1/130.0      # rate of environmental change per iteration
+# T   = 1e9          # carrying capacity
+# b   = 2.0          # birth rate
+# do  = 100/98.0     # minimum death rate / death rate of optimal genotype
+# sa  = 1e-2         # selection coefficient of beneficial mutation in 
+# Ua  = 1e-5         # max beneficial mutation rate in trait "d"
+# Uad = 1e-5         # deleterious mutation rate in trait "d"
+# cr  = 0.175        # increment to "c" is (1+cr)
+# Ur  = 1e-5         # beneficial mutation rate in trait "c"
+# Urd = 1e-5         # deleterious mutation rate in trait "c"
+# R  = 1/130.0      # rate of environmental change per iteration
 #
+
 # The parameter file is read and a dictionary with their values is generated.
 paramFile = 'inputs/evoExp01_parameters_VaVeIntersect.csv'
-paramList = ['T','b','dOpt','sa','UaMax','Uad','cr','Ur','Urd','R']
-params = myfun.read_parameterFile(paramFile,paramList)
+params = myfun.read_parameterFile(paramFile)
 
 # Calculate absolute fitness state space. This requires specificying:
 # dMax  - max size of death term that permits non-negative growth in abundances
 # di    - complete of death terms of the various absolute fitness states
-[dMax,di] = myfun.get_absoluteFitnessClasses(params['b'],params['dOpt'],params['sa'])
-
-# set index of extinction class
-iExt = int(di.shape[0]-1)
+# iExt  - extinction class
+[dMax,di,iExt] = myfun.get_absoluteFitnessClasses(params['b'],params['dOpt'],params['sa'])
 
 # pFix values from simulations are loaded for abs-fit mutations to states 0,...,iMax-1 
 pFixAbs_File = 'outputs/evoExp01_absPfix.csv'
@@ -100,11 +98,9 @@ plt.text(-175,5.25e-4,r'(A)', fontsize = 22)
 # --------------------------------------------------------------------------
 
 paramFile = 'inputs/evoExp02_parameters_VaVrIntersect.csv'
-paramList = ['T','b','dOpt','sa','UaMax','Uad','cr','Ur','Urd','R']
-params = myfun.read_parameterFile(paramFile,paramList)
+params = myfun.read_parameterFile(paramFile)
 
-[dMax,di] = myfun.get_absoluteFitnessClasses(params['b'],params['dOpt'],params['sa'])
-iExt = int(di.shape[0]-1)
+[dMax,di,iExt] = myfun.get_absoluteFitnessClasses(params['b'],params['dOpt'],params['sa'])
 
 pFixAbs_File = 'outputs/evoExp01_absPfix.csv'
 pFixAbs_i     = myfun.read_pFixOutputs(pFixAbs_File,iExt)
@@ -112,6 +108,7 @@ pFixAbs_i     = myfun.read_pFixOutputs(pFixAbs_File,iExt)
 pFixRel_File = 'outputs/evoExp01_relPfix.csv'
 pFixRel_i    = myfun.read_pFixOutputs(pFixRel_File,iExt)
 
+# Calculate all Evo parameters for Markov Chain
 [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i,va_i,vr_i,ve_i] = \
                     myfun.get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option)
                     

@@ -208,8 +208,9 @@ def get_absoluteFitnessClasses(b,dOpt,sa):
         di = di+[di[ii-1]*(1+sa*(di[ii-1]-1))]
     
     di = np.asarray(di)
-
-    return [dMax,di]
+    iExt = int(di.shape[0]-1)
+    
+    return [dMax,di,iExt]
 
 #------------------------------------------------------------------------------
     
@@ -262,11 +263,12 @@ def get_iterationsPerGenotypeGeneration(d_i):
 
 #------------------------------------------------------------------------------
 
-def read_parameterFile(readFile,paramList):
+def read_parameterFile(readFile):
     # This function reads the parameter values a file and creates a dictionary
     # with the parameters and their values 
 
-    # create array to store values
+    # create array to store values and define the parameter names
+    paramList = ['T','b','dOpt','sa','UaMax','Uad','cr','Ur','Urd','R']
     paramValue = np.zeros([len(paramList),1])
     
     # read values from csv file
@@ -311,7 +313,7 @@ def read_pFixOutputs(readFile,nStates):
 
 #------------------------------------------------------------------------------
 
-def get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option):
+def get_MChainPopParameters(params,di,iExt,yi_option):
     
     # Calculate all evolution parameters.
     state_i = []    # state number
@@ -322,11 +324,7 @@ def get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option):
     sr_i    = []    # selection coefficient of "c" trait beneficial mutation
     sa_i    = []    # selection coefficient of "c" trait beneficial mutation
     
-    va_i    = []    # rate of adaptation in absolute fitness trait alone
-    vr_i    = []    # rate of adaptation in relative fitness trait alone
-    ve_i    = []    # rate of fitness decrease due to environmental degradation
-    
-    # calculate evolution parameter for each of the states in the markov chain model
+    # calculate population parameters for each of the states in the markov chain model
     # the evolution parameters are calculated along the absolute fitness state space
     # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
     for ii in range(1,iExt+1):
@@ -339,10 +337,28 @@ def get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option):
         sr_i    = sr_i + [get_c_SelectionCoeff(params['b'],eq_yi[-1],params['cr'],di[ii])]
         sa_i    = sa_i + [params['sa']]
         
+    return [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i]
+
+#------------------------------------------------------------------------------
+
+def get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option):
+    
+    # Calculate all evolution parameters.
+    va_i    = []    # rate of adaptation in absolute fitness trait alone
+    vr_i    = []    # rate of adaptation in relative fitness trait alone
+    ve_i    = []    # rate of fitness decrease due to environmental degradation
+    
+    # absolute fitness mutation rate, equilb.-density,equilb.-popsize,eff_sr 
+    [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i] = get_MChainPopParameters(params,di,iExt,yi_option)
+    
+    # calculate evolution parameters for each of the states in the markov chain model
+    # the evolution parameters are calculated along the absolute fitness state space
+    # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
+    for ii in range(1,iExt+1):
         # rates of fitness change ( on time scale of generations)
-        va_i = va_i + [get_rateOfAdapt(eq_Ni[-1],sa_i[-1],Ua_i[-1],pFixAbs_i[ii-1][0])]
-        vr_i = vr_i + [get_rateOfAdapt(eq_Ni[-1],sr_i[-1],Ur_i[-1],pFixRel_i[ii-1][0])]
-        ve_i = ve_i + [sa_i[-1]*params['R']/(di[ii]-1)]          
+        va_i = va_i + [get_rateOfAdapt(eq_Ni[ii-1],sa_i[ii-1],Ua_i[ii-1],pFixAbs_i[ii-1][0])]
+        vr_i = vr_i + [get_rateOfAdapt(eq_Ni[ii-1],sr_i[ii-1],Ur_i[ii-1],pFixRel_i[ii-1][0])]
+        ve_i = ve_i + [sa_i[ii-1]*params['R']/(di[ii]-1)]          
         
     return [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i,va_i,vr_i,ve_i]
 
@@ -351,8 +367,8 @@ def get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option):
 #------------------------------------------------------------------------------
     
 def deltnplussim(m,c,U): 
-    # This function calculates the number of territories that the
-    # mutatnt lineage wins.
+    # This function calculates the number of territories are won by each of the
+    # existing classes in the population.
     #
     # Inputs:
     # m - array with number of new propogules (unoccupied territories) per class
@@ -362,8 +378,7 @@ def deltnplussim(m,c,U):
     # Outputs:    
     # 
     
-    # get array with propogules densities per class, m below is the
-    # array of total propagules per class. in this implementation the 
+    # get array with the set of juvenile densities. 
     # 1st index is the wild type and the 2nd index is the mutant class
     l = m/float(U)      
 
@@ -399,27 +414,43 @@ def deltnplussim(m,c,U):
     # stack the draws of juveniles (mut & wild type) side by side
     scatter = np.hstack([comp_wld,comp_mut])
     
-    
     # Set the number of competitions that will need to be run to check
     # the count of won territories for each class (mut & wild type)
     Up = len(scatter)    
     
-    # create an array to store wins, here this is 
+    # create an array to store wins for each class, with just two classes, this will be an 
+    # array of two entries [WT, MUT]. 
     wins = np.zeros(len(m))    
+    
+    # create an array to store comp
     comp=np.zeros(Up);
     
+    # loop through each territory
     for i in range(int(Up)):
-        comp[i]=sum(scatter[i]) #total number competing per territory
+        
+        # total number competing per territory. scatter[i] returns the array ex. [8 2]
+        # i.e. 8 wild type juveniles, 2 mutant juveniles
+        comp[i]=sum(scatter[i]) 
+        
         if comp[i]>0:            
-            lotterycmf=np.cumsum(np.array(scatter[i])*c) # Sum mi ci / Sum mi, cbar n *c, n*c + m*c, ..., Sum mi ci is lotterycmf[-1]
-            victor=bisect.bisect(lotterycmf,np.random.rand()*lotterycmf[-1]) #random.rand random between 0-1, [0 , c1 m1, c1 m1 + c2 m2] winner based on uniform
+            # Sum mi ci / Sum mi, cbar n *c, n*c + m*c, ..., Sum mi ci is lotterycmf[-1]
+            # here * is the element by element product of arrays
+            lotterycmf = np.cumsum(np.array(scatter[i])*c) 
+            
+            #random.rand random between 0-1, [0 , c1 m1, c1 m1 + c2 m2] winner based on uniform
+            victor=bisect.bisect(lotterycmf,np.random.rand()*lotterycmf[-1]) 
+            
+            # save the winner of the territory "victor" = 0 if WT, 1 if MUT, but need to add
+            # 1 to record the win. For example if currently wins = [2,3], and victor is MUT = 1
+            # then wins[MUT] = 3 and below increments it to 4.
             wins[victor] = wins[victor] + 1
+    
     return wins
 
 #------------------------------------------------------------------------------
     
 def calculate_Ri_term(m,c,U):
-    # This function calculates the value of the Ri competitive term
+    # This function calculates the value of the Ri competitive term. 
     # Inputs:
     # m - array of new propogule abundances
     # c - array of relative fitness values
@@ -427,25 +458,31 @@ def calculate_Ri_term(m,c,U):
     # Outputs:    
     # out - value of Ri term
     
-    # get array with the total number of propogules per class, m is the
-    # array of total propagules per class. in this implementation the 
+    # get array with the set of juvenile densities. 
     # 1st index is the wild type and the 2nd index is the mutant class
     l = m/float(U)      
     
-    # get sum of all propagules
-    L=sum(l)
+    # get total juvenile density 
+    L = sum(l)
     
-    cbar=sum(m*c)/sum(m)
+    # calculate the average value of the competitive trait
+    cbar = sum(m*c)/sum(m)
+    
+    # generate array to store the Ri term the 
     out = l
+    
+    # loop through the classes and calcualte the respective Ri term
     for i in range(len(l)):
         try:
-            out[i]=cbar*np.exp(-l[i])*(1-np.exp(-(L-l[i])))\
-                    /(c[i] + (L-1+np.exp(-L))/(1-(1+L)*np.exp(-L))*(cbar*L-c[i]*l[i])/(L-l[i]))
+            # calculate value via formula from Bertram & Masel Lottery Model paper
+            out[i] = cbar*np.exp(-l[i])*(1-np.exp(-(L-l[i]))) \
+                    /( c[i] + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * ( (L-1+np.exp(-L)) / (1-(1+L)*np.exp(-L) ) ) )
         except FloatingPointError:
-            out[i]=np.exp(-l[i])*(1-np.exp(-(L-l[i])))\
-                /(1 + (L-1+np.exp(-L))/(1-(1+L)*np.exp(-L)))
-#    for i in range(len(out)):
-#        if np.isnan(out)[i]: out[i]=0            
+            # calculate value via formula when there is no variation in c' terms 
+            # and when L ~ l[i], cbar ~ c[i].
+            out[i] = np.exp(-l[i])*(1-np.exp(-(L-l[i]))) \
+                    / ( 1 + ( (L-1+np.exp(-L)) / (1-(1+L)*np.exp(-L)) ) )
+
     return out
 
 #------------------------------------------------------------------------------
@@ -459,61 +496,102 @@ def calculate_Ai_term(m,c,U):
     # Outputs:    
     # out - value of Ai term
     
-    l=m/float(U)
-    L=sum(l)
+    # get array with the set of juvenile densities. 
+    # 1st index is the wild type and the 2nd index is the mutant class
+    l = m/float(U)
+    
+    # get total juvenile density 
+    L = sum(l)
+    
+    # calculate the average value of the competitive trait
     cbar=sum(m*c)/sum(m)    
+    
+    # generate array to store the Ri term the 
     out = l
     
+    # loop through the classes and calcualte the respective Ri term
     for i in range(len(l)):    
         try:
-            out[i]=cbar*(1-np.exp(-l[i]))\
-                    /((1-np.exp(-l[i]))/(1-(1+l[i])*np.exp(-l[i]))*c[i]*l[i]\
-                    +(L*(1-np.exp(-L))/(1-(1+L)*np.exp(-L))-l[i]*(1-np.exp(-l[i]))/(1-(1+l[i])*np.exp(-l[i])))/(L-l[i])*(cbar*L-c[i]*l[i]))
+            # calculate value via formula from Bertram & Masel Lottery Model paper
+            out[i] = cbar*( 1-np.exp(-l[i]) ) \
+                        / ( np.exp(-l[i])*c[i]*l[i]*(1-np.exp(-l[i])) / (1-(1+l[i])) \
+                        + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * \
+                          ( L*(1-np.exp(-L)) / (1-(1+L)*np.exp(-L)) - l[i]*(1-np.exp(-l[i]))/(1-(1+l[i])*np.exp(-l[i])) ) )
         except FloatingPointError:
-            out[i]=cbar*(1-np.exp(-l[i]))\
-                    /(c[i]+(L*(1-np.exp(-L))/(1-(1+L)*np.exp(-L))-1))
-#    for i in range(len(out)):
-#        if np.isnan(out)[i]: out[i]=-1
+            # use this calculation when l[i] << 1, i.e. for a small mutant class
+            out[i] = cbar*(1-np.exp(-l[i])) \
+                        / ( c[i] + cbar*( L*(1-np.exp(-L) ) / ( 1-(1+L)*np.exp(-L) ) - 1 ) )
+    
     return out
 
 #------------------------------------------------------------------------------
     
-# This function is drawing divide by zero errors, most likely just numerical precision, but ask kevin
 def deltnplus(m,c,U):
+    # This function calculates the deterministic incremental adults from juveniles 
+    # winning territorial competitions (set of delta_n_i).
+    #
+    # Inputs:
+    # m - array of juveniles for each class
+    # c - array of competitive trait values 
+    # U - number of unoccupied territories
+    #
+    # Outputs:
+    # delta_n = array of new adults per class (delta_n_1,...,delta_n_k)
+    #
+    
     if sum(m)>0 and U>0:
-        L=sum(m)/float(U)
-        cbar=sum(m*c)/sum(m)
-        return m*(np.exp(-L)+(R(m,c,U)+A(m,c,U))*c/cbar)
+        
+        L = sum(m)/float(U)
+        
+        cbar = sum(m*c)/sum(m)
+        
+        return m * ( np.exp(-L) + ( calculate_Ri_term(m,c,U) + calculate_Ai_term(m,c,U) ) * (c/cbar) )
+    
     else:
+        
         return np.zeros(len(m))
     
 #------------------------------------------------------------------------------
         
 def popdeath(pop,di):
-    # goal here is the sum of the win vectors
-	# then we just add them to the pop
-    npop = np.array([np.random.binomial(pop[0],1/di), np.random.binomial(pop[1],1/di)]); #is the number that survive
-	# we would then output this number as the new initial population and iterated
-	# the process some arbitrary amount of times
+    # This function adjusts abundances to capture deaths as determined by the 
+    # respective death terms of each class.
+    #
+    # Inputs:
+    # pop - array with set of abundances
+    # di - array with set of death terms
+    #
+    # Outputs:
+    # npop - array with surviving adults of each class
+    #
+    
+    npop = []
+    
+    for i in range(len(pop)):
+        # for class i, calculate the number that survive
+        npop = npop + [np.random.binomial(pop[i],1/di[i])]
+        
+    npop = np.asarray(npop); 
+	
     return npop
 
 #------------------------------------------------------------------------------
     
-def di_class(d,di,sa):
-    return math.ceil(np.log(float(d) / float(di))/np.log(1+sa))
-
-#------------------------------------------------------------------------------
+def simulate_popEvo(params,di,ci,y): 
+    (samp,steps,T,sr,b,di,do,sa,de,yi_option,flagTrackEvo)
+    # This function simulates the evolution of a population given the inputs/parameters
+	# Inputs:
+    # params - list of parameters
+    # 
+    # Outputs:
+    # pFix - estimate of probability of fixation
     
-def simpop(samp,steps,T,sr,b,di,do,sa,de,yi_option): #and all other shit here
-
-	# here we need to take an initial population, with all associated parameters
-	# and run through Jasons model i.e.
-    c = np.array([1,(1+sr)]);
     pfix = 0;
-    print(get_eq_pop_density(b,di,sa,yi_option))
+    
     for i in range(int(samp)):
         eq_pop = math.ceil(T * get_eq_pop_density(b,di,sa,yi_option));
         #print(eq_pop/T)
+        
         pop = np.array([eq_pop-1, 1]);
 
         while ((pop[1] > 0) & (pop[1] < 1000)): # 4/18: set to 1000 for now, no clue though, != 0 1/pfix calculated via mathematica, grown larger than wild
@@ -530,14 +608,22 @@ def simpop(samp,steps,T,sr,b,di,do,sa,de,yi_option): #and all other shit here
         pfix = pfix + (pop[1] > 1)/float(samp);
         
     return pfix
-# Everythings running well, only issue is that it spits out nonsensical probabilities sometimes, (how the hell do you get 0.152 from 1 sample?)
-#possibility of poisson probabilites not working right
-#sum of mi and li.... poiss(mi) =dist= sum_{to U}[poiss(li)]
 
-def trackpop(samp,steps,T,sr,b,di,do,sa,de,yi_option): #and all other shit here
+    # Everythings running well, only issue is that it spits out nonsensical 
+    # probabilities sometimes, (how the hell do you get 0.152 from 1 sample?)
+    # possibility of poisson probabilites not working right sum of mi and 
+    # li.... poiss(mi) =dist= sum_{to U}[poiss(li)]
 
-	# here we need to take an initial population, with all associated parameters
-	# and run through Jasons model i.e.
+
+#------------------------------------------------------------------------------
+    
+def trackpop(samp,steps,T,sr,b,di,do,sa,de,yi_option): 
+    # This function simulates the evolution of a population given the inputs/parameters
+	# Inputs:
+    #
+    # Outputs:
+    #
+    
     c = np.array([1,(1+sr)]);
     print(get_eq_pop_density(b,di,sa,yi_option))
     tracker = np.array(np.zeros(steps))
@@ -568,8 +654,7 @@ def trackpop(samp,steps,T,sr,b,di,do,sa,de,yi_option): #and all other shit here
     
 def compwin(n,samp,T,sr,b,di,do,sa,de,yi_option): 
 
-	# here we need to take an initial population, with all associated parameters
-	# and run through Jasons model i.e.
+	
     c = np.array([1,(1+sr)]);
     wins = np.array(np.zeros(samp))
     eq_pop = math.ceil(T * get_eq_pop_density(b,di,sa,yi_option));
@@ -583,18 +668,23 @@ def compwin(n,samp,T,sr,b,di,do,sa,de,yi_option):
         
     return wins
 
-#deterministic equations for wild, only consider competition when the mutant has a chance to win, everything else is a lost.  
-
-
-# i.e. remove the poisson deterministic sampling for the one here: n -> m -> Bin(n + m, 1 - 1/di) = n (wrap)	
-# when the approximations break down, assumptions regarding the poisson (when the bins work, binomial -> poisson) - go back through the paper.
+    # Use deterministic equations for wild type, only consider competition when 
+    # the mutant has a chance to win, everything else is a lost.  
+    
+    # i.e. remove the poisson deterministic sampling for the one here: n -> m -> Bin(n + m, 1 - 1/di) = n (wrap)	
+    # when the approximations break down, assumptions regarding the poisson (when the bins work, binomial -> poisson) - go back through the paper.
 
 #------------------------------------------------------------------------------
     
-def modsimpop(d_Inc,c_Inc,samp,T,sr,b,dis,do,sa,de,yi_option): #and all other shit here
-
-	# here we need to take an initial population, with all associated parameters
-	# and run through Jasons model i.e.
+def simulate_popEvoMod(d_Inc,c_Inc,samp,T,sr,b,dis,do,sa,de,yi_option): 
+    # This function simulates the evolution of a population with the parameters 
+    # provided in the inputs.
+	#
+    # Inputs:
+    #
+    # Outputs:
+    #
+    
     c = np.array([1,(1+sr*c_Inc)]);
     pfix = 0;
     #print(get_eq_pop_density(b,dis[0],sa,yi_option))
@@ -614,5 +704,8 @@ def modsimpop(d_Inc,c_Inc,samp,T,sr,b,dis,do,sa,de,yi_option): #and all other sh
         pfix = pfix + (pop[1] > 1)/float(samp);
         
     return pfix
-#possibility of poisson probabilites not working right
-#sum of mi and li.... poiss(mi) =dist= sum_{to U}[poiss(li)]
+
+    # possibility of poisson probabilites not working right
+    # sum of mi and li.... poiss(mi) =dist= sum_{to U}[poiss(li)]
+    
+#------------------------------------------------------------------------------

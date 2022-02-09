@@ -5,21 +5,8 @@ Created on Sun Feb 10 2022
 """
 
 import time
-from joblib import Parallel, delayed
 import numpy as np
-import fig_functions as myfun  
-import math as math
-import csv
-
-import matplotlib.pyplot as plt
-import bisect
-import scipy as sp
-
-import scipy.optimize as opt
-from scipy.optimize import fsolve
-from scipy.optimize import root 
-import fig_functions as myfun  
-import pfix_sim_functions as pfix_sim
+import evo_library as myfun  
 
 # The parameter file is read and a dictionary with their values is generated.
 paramFile = 'inputs/evoExp01_parameters_VaVeIntersect.csv'
@@ -45,50 +32,37 @@ pFixRel_i = np.zeros([nEst,1])
 
 samp = 10
 sub_sample = len(di)/part - 1
-
-
-# begin simulations and time the processes
 t = time.time()
 
+# simulate evolution of a population to estimate pfix
+# pFix for mutations from the extinction class is not calculated. That should
+# be one since the extinction class is not viable
+pFixAbs_i[0,0] = np.zeros([nEst,1])
 
-element_run_eqpop = Parallel(n_jobs=1)(delayed(myfun.get_eq_pop_density)(parValue[parName['b']],di[k*part],parValue[parName['sa']],yi_option) for k in range(subsamp)) #got rid of the minus 1
+for ii in range(1,len(nEst)):
+
+    ###### Relative Fitness pFix #######
+    # set initial pop sizes
+    pop = 
+    
+    # calcualte the d and c's
+    d = di[ii]
+    c = np.array([1,1])
+    
+    # estimate pFix values
+    
+    ###### Relative Fitness pFix #######
+    # set initial pop sizes
+    
+    # calcualte the d and c's
+
+    # estimate pFix values
+    
+# write estimate pFix values 
+fwrite_abs = open("evoExp01_absPfix.csv","a")
+fwrite_rel = open("evoExp01_absPfix.csv","a") 
+
+
+
 print(time.time() - t)  
-
-parallel_eqpop = open("parallel_eqpop.txt","a")
-for row in element_run_eqpop:
-    parallel_eqpop.write(str(int(math.ceil(parValue[parName['T']]*row[0])))+'\n')
-parallel_eqpop.close()
-
-parallel_effsr = open("parallel_effsr.txt","a") 
-for row in element_run_eqpop: # b,di,y,cr
-    parallel_effsr.write(str(myfun.get_c_selection_coefficient_OLD(parValue[parName['b']],row[0],parValue[parName['cr']]))+'\n')
-parallel_effsr.close()
-
-
-#The idea would be to take this and apply to
-d_Inc = 1
-c_Inc = 0
-
-t = time.time()
-element_run_abs = Parallel(n_jobs=1)(delayed(myfun.modsimpop)(d_Inc,c_Inc,samp,parValue[parName['T']],parValue[parName['cr']],parValue[parName['b']],di[k*part:(k*part + 2)],parValue[parName['do']],((di[k*part]/di[k*part + 1])-1)/(di[k*part + 1]-1),d_max,yi_option) for k in range(subsamp)) #got rid of the minus 1
-print(time.time() - t)  
-
-parallel_abs = open("parallel_abs.txt","a")
-for row in element_run_abs:
-    parallel_abs.write(str(row)+'\n')
-parallel_abs.close()
-
-d_Inc = 0
-c_Inc = 1
-#d_pfixes[i] = myfun.modsimpop(d_Inc,c_Inc,samp,parValue[parName['T']],parValue[parName['cr']],parValue[parName['b']],di[i:(i+2)],parValue[parName['do']],parValue[parName['cr']],d_max,yi_option) #fix
-t = time.time()
-element_run_rel = Parallel(n_jobs=1)(delayed(myfun.modsimpop)(d_Inc,c_Inc,samp,parValue[parName['T']],parValue[parName['cr']],parValue[parName['b']],di[k*5:(k*5 + 2)],parValue[parName['do']],((di[k*5]/di[k*5 + 1])-1)/(di[k*5 + 1]-1),d_max,yi_option) for k in range(subsamp)) #got rid of the minus 1
-print(time.time() - t)  
-
-parallel_rel = open("parallel_rel.txt","a")
-for row in element_run_rel:
-    parallel_rel.write(str(row)+'\n')
-parallel_rel.close()
-
-
 

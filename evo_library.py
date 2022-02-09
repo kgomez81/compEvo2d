@@ -368,7 +368,12 @@ def get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option):
     
 def deltnplussim(m,c,U): 
     # This function calculates the number of territories are won by each of the
-    # existing classes in the population.
+    # existing classes in the population. This function is written specifically
+    # to calculate changes in abundances for two classes, and is specialized to 
+    # help estimate pFix.
+    #
+    # NOTE: This function can only be used to calulate the wins for a the mutant
+    #       class
     #
     # Inputs:
     # m - array with number of new propogules (unoccupied territories) per class
@@ -540,15 +545,17 @@ def deltnplus(m,c,U):
     #
     
     if sum(m)>0 and U>0:
-        
+        # calculate juvenile density
         L = sum(m)/float(U)
         
+        # calculate mean relative fitness (average c value)
         cbar = sum(m*c)/sum(m)
         
+        # return the expected number of new adults
         return m * ( np.exp(-L) + ( calculate_Ri_term(m,c,U) + calculate_Ai_term(m,c,U) ) * (c/cbar) )
     
     else:
-        
+        # if the population has gone extinct
         return np.zeros(len(m))
     
 #------------------------------------------------------------------------------
@@ -562,150 +569,87 @@ def popdeath(pop,di):
     # di - array with set of death terms
     #
     # Outputs:
-    # npop - array with surviving adults of each class
+    # newpop - array with surviving adults of each class
     #
     
-    npop = []
+    newpop = []
     
     for i in range(len(pop)):
         # for class i, calculate the number that survive
-        npop = npop + [np.random.binomial(pop[i],1/di[i])]
+        newpop = newpop + [np.random.binomial(pop[i],1/di[i])]
         
-    npop = np.asarray(npop); 
+    newpop = np.asarray(newpop); 
 	
-    return npop
+    return newpop
 
 #------------------------------------------------------------------------------
     
-def simulate_popEvo(params,di,ci,y): 
-    (samp,steps,T,sr,b,di,do,sa,de,yi_option,flagTrackEvo)
-    # This function simulates the evolution of a population given the inputs/parameters
-	# Inputs:
-    # params - list of parameters
-    # 
-    # Outputs:
-    # pFix - estimate of probability of fixation
-    
-    pfix = 0;
-    
-    for i in range(int(samp)):
-        eq_pop = math.ceil(T * get_eq_pop_density(b,di,sa,yi_option));
-        #print(eq_pop/T)
-        
-        pop = np.array([eq_pop-1, 1]);
-
-        while ((pop[1] > 0) & (pop[1] < 1000)): # 4/18: set to 1000 for now, no clue though, != 0 1/pfix calculated via mathematica, grown larger than wild
-            U = int(T - sum(pop));
-            mi = pop * ((b * U) / T); #or something to generate propugules numbers
-            
-            deltan = deltnplussim(mi,c,U)
-            wins = np.array([0,deltan[1]]) # 4/18: Change to deterministic growth 
-            
-            npop = pop+wins;
-            pop = np.array([(1/di)*(pop[0] + deltnplus(mi,c,U)[0]), np.random.binomial(npop[1],1/di)]); # 4/18: changed to deterministic
-            #print(pop[1])
-            
-        pfix = pfix + (pop[1] > 1)/float(samp);
-        
-    return pfix
-
-    # Everythings running well, only issue is that it spits out nonsensical 
-    # probabilities sometimes, (how the hell do you get 0.152 from 1 sample?)
-    # possibility of poisson probabilites not working right sum of mi and 
-    # li.... poiss(mi) =dist= sum_{to U}[poiss(li)]
-
-
-#------------------------------------------------------------------------------
-    
-def trackpop(samp,steps,T,sr,b,di,do,sa,de,yi_option): 
-    # This function simulates the evolution of a population given the inputs/parameters
-	# Inputs:
-    #
-    # Outputs:
-    #
-    
-    c = np.array([1,(1+sr)]);
-    print(get_eq_pop_density(b,di,sa,yi_option))
-    tracker = np.array(np.zeros(steps))
-    for i in range(int(samp)):
-        eq_pop = math.ceil(T * get_eq_pop_density(b,di,sa,yi_option));
-        #print(eq_pop/T)
-        pop = np.array([eq_pop, 1]);
-        trk = np.array(np.zeros(steps))
-        trk[0] = 1
-        its = 1 
-        while ((pop[1] > 0) & (pop[1] < 100) & (its < steps)): # pop2 > 1000, while < 1000 or != 0 1/pfix calculated via mathematica, grown larger than wild
-            U = int(T - sum(pop));
-            mi = pop * ((b * U) / T); #or something to generate propugules numbers
-            #print(mi)
-            deltan = deltnplussim(mi,c,U)
-            wins = np.array([deltan[0],deltan[1]])
-            npop = pop+wins;
-            pop = np.array([np.random.binomial(npop[0],1/di), np.random.binomial(npop[1],1/di)]);
-            trk[its] = pop[1]
-            its = its + 1;
-        
-            
-        tracker = np.vstack((tracker,trk))
-        
-    return tracker
-
-#------------------------------------------------------------------------------
-    
-def compwin(n,samp,T,sr,b,di,do,sa,de,yi_option): 
-
-	
-    c = np.array([1,(1+sr)]);
-    wins = np.array(np.zeros(samp))
-    eq_pop = math.ceil(T * get_eq_pop_density(b,di,sa,yi_option));
-        #print(eq_pop/T)
-    pop = np.array([eq_pop-n, n]);
-    U = int(T - sum(pop));
-    mi = pop * ((b * U) / T); #or something to generate propugules numbers
-            #print(mi)
-    for i in range(samp):
-        wins[i] = deltnplussim(mi,c,U)[1]
-        
-    return wins
-
-    # Use deterministic equations for wild type, only consider competition when 
-    # the mutant has a chance to win, everything else is a lost.  
-    
-    # i.e. remove the poisson deterministic sampling for the one here: n -> m -> Bin(n + m, 1 - 1/di) = n (wrap)	
-    # when the approximations break down, assumptions regarding the poisson (when the bins work, binomial -> poisson) - go back through the paper.
-
-#------------------------------------------------------------------------------
-    
-def simulate_popEvoMod(d_Inc,c_Inc,samp,T,sr,b,dis,do,sa,de,yi_option): 
-    # This function simulates the evolution of a population with the parameters 
-    # provided in the inputs.
+def calcualte_popEvoSelection_pFixEst(params,pop,d,c): 
+    # This function simulates the evolution of a population given the parameters
+    # and starting population provided in the inputs.
 	#
     # Inputs:
+    # 
+    # Outputs:
+    # newpop - estimate of probability of fixation
+    #
+    
+    # calcualte the number of unoccupied territories
+    U = int(params['T'] - sum(pop))
+    
+    # calculate the number of juveniles
+    m = pop * ((params['b'] * U) / params['T'])
+    
+    # calcualte new adults using both the deterministic equations and stochastic
+    # sampling of competitions
+    deter_newAdults = deltnplus(m,c,U)
+    stoch_newAdults = deltnplussim(m,c,U)
+    
+    # calculate the total number of adults per class.
+    newpop = pop
+    newpop[0] = int(pop[0] + deter_newAdults[0])
+    newpop[1] = int(pop[1] + stoch_newAdults[1])
+    
+    # calculate the number of adults that survive
+    newpop = popdeath(newpop,d) 
+    
+    return newpop
+
+#------------------------------------------------------------------------------
+
+def simulation_popEvo_pFixEst(params,pop,d,c,nPfix,fixThrshld):
+    # This function simulates the evolution of a population (selection only) 
+    # of a popluation with a wild type dominant genotype, and a newly appearing 
+    # mutant lineage. 
+    #
+    # NOTE: This is not written to handle multiple lineages. Also, this can be 
+    #       put into a single script to parallelize the for loop.
+	#
+    # Inputs:
+    # params    - list of evolution parameters
+    # pop       - array with abundances
+    # d         - set of death terms for each class
+    # c         - set of competition terms for each class
+    # nPfix     - number of samples to use for estimating pFix
     #
     # Outputs:
+    # pFix      - estimate of probability of fixation
     #
     
-    c = np.array([1,(1+sr*c_Inc)]);
-    pfix = 0;
-    #print(get_eq_pop_density(b,dis[0],sa,yi_option))
-    for i in range(int(samp)):
-        eq_pop = int(math.ceil(T * get_eq_pop_density(b,dis[0],sa,yi_option)));
-        #print(eq_pop/T)
-        pop = np.array([eq_pop-1, 1]);
+    # create an array to store results 1-mut lineage fixes, 0-mut lineage dies
+    mutFixCheck = np.zeros([1,nPfix]);
 
-        while ((pop[1] > 0) & (pop[1] < 1000)): # 4/18: set to 1000 for now, no clue though, != 0 1/pfix calculated via mathematica, grown larger than wild
-            U = int(T - sum(pop));
-            mi = pop * ((b * U) / T); #or something to generate propugules numbers
-            deltan = deltnplussim(mi,c,U)
-
-            pop = np.array([(1/dis[0])*(pop[0] + deltnplus(mi,c,U)[0]), np.random.binomial(pop[1]+int(deltan[1]),1/dis[d_Inc])]); # 4/18: changed to deterministic
-            # print(pop[1])
+    # loop through nPfix instances to estimate pFix
+    for ii in range(nPfix):
+        while ((pop[1] > 0) & (pop[1] < fixThrshld)): 
+            pop = calcualte_popEvoSelection_pFixEst(params,pop,d,c)
             
-        pfix = pfix + (pop[1] > 1)/float(samp);
-        
-    return pfix
-
-    # possibility of poisson probabilites not working right
-    # sum of mi and li.... poiss(mi) =dist= sum_{to U}[poiss(li)]
+        mutFixCheck[ii] = int(pop[1] > 1)
     
+    # estimate pFix by summing the number of times the mutant lineage grew 
+    # sufficiently large (fixThrshld)
+    pFixEst = mutFixCheck.sum()/nPfix
+    
+    return pFixEst
+
 #------------------------------------------------------------------------------

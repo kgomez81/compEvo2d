@@ -3,7 +3,6 @@
 Created on Sun Feb 10 2022
 @author: kgomez81
 """
-
 import time
 import numpy as np
 import evo_library as myfun  
@@ -12,7 +11,7 @@ import evo_library as myfun
 paramFile = 'inputs/evoExp01_parameters_VaVeIntersect.csv'
 params = myfun.read_parameterFile(paramFile)
 
-# Calculate absolute fitness state space. This requires specificying:
+# Calculate absolute fitness state space. 
 [dMax,di,iExt] = myfun.get_absoluteFitnessClasses(params['b'],params['dOpt'],params['sa'])
 
 # option for determining equilibrium density
@@ -27,42 +26,53 @@ yi_option = 3
 # pFixRel_i estimates range between k=1,2,...,iExt, i.e. mutants in comp trait
 #           at state k to compete with absolute fitness mutations.
 nEst = len(di)-1
-pFixAbs_i = np.zeros([nEst,1])
-pFixRel_i = np.zeros([nEst,1])
+pFixAbs_i = np.zeros([nEst])
+pFixRel_i = np.zeros([nEst])
 
-samp = 10
-sub_sample = len(di)/part - 1
-t = time.time()
+nPfix = 100
+fixThrshld = 1000
 
 # simulate evolution of a population to estimate pfix
-# pFix for mutations from the extinction class is not calculated. That should
-# be one since the extinction class is not viable
-pFixAbs_i[0,0] = np.zeros([nEst,1])
+# pFix for mutations from the extinction class are not calculated. Assume 
+# for now that it is 1 since the extinction class is not viable. 
 
-for ii in range(1,len(nEst)):
-
-    ###### Relative Fitness pFix #######
+###### Absolute Fitness pFix #######
+for ii in range(1,nEst):
     # set initial pop sizes
-    pop = 
+    # eq_Ni indices have to be offset by 1 to match those from di. eq_Ni
+    # ranges from indices 0 to 179 for states 1 to 180, and di indices range
+    # 0 to 180 for states 0 to 180
+    pop = np.asarray([eq_Ni[ii]-1, 1])
     
     # calcualte the d and c's
-    d = di[ii]
+    d = [di[ii-1],di[ii]]
     c = np.array([1,1])
     
     # estimate pFix values
+    pFixAbs_i[ii-1] = myfun.simulation_popEvo_pFixEst(params,pop,d,c,nPfix,fixThrshld)
+    print pFixAbs_i[ii-1]
     
-    ###### Relative Fitness pFix #######
-    # set initial pop sizes
-    
-    # calcualte the d and c's
-
-    # estimate pFix values
-    
-# write estimate pFix values 
-fwrite_abs = open("evoExp01_absPfix.csv","a")
-fwrite_rel = open("evoExp01_absPfix.csv","a") 
-
-
-
-print(time.time() - t)  
+####### Relative Fitness pFix #######    
+#for ii in range(1,nEst):    
+#    # set initial pop sizes
+#    # eq_Ni indices have to be offset by 1 to match those from di. eq_Ni
+#    # ranges from indices 0 to 179 for states 1 to 180, and di indices range
+#    # 0 to 180 for states 0 to 180
+#    pop = np.asarray([eq_Ni[ii]-1, 1])
+#    
+#    # calcualte the d and c's
+#    d = [di[ii],di[ii]]
+#    c = np.array([1,(1+params['cr'])])
+#    
+#    # estimate pFix values
+#    pFixRel_i[ii-1] = simulation_popEvo_pFixEst(params,pop,d,c,nPfix,fixThrshld)
+#    
+## write estimates of pFix values to respective files
+#fwrite_abs = open("evoExp01_absPfix.csv","a")
+#fwrite_rel = open("evoExp01_absPfix.csv","a") 
+#
+#for ii in range(len(pFixAbs_i))
+#
+#
+#print(time.time() - t)  
 

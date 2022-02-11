@@ -90,7 +90,7 @@ ax1.annotate("", xy=(-89,0.7e-4), xytext=(-104,0.7e-4),arrowprops={'arrowstyle':
 ax1.annotate("", xy=(-87,0.7e-4), xytext=(-72, 0.7e-4),arrowprops={'arrowstyle':'-|>','lw':4})
 plt.text(-84,3.29e-4,r'$i^*=88$',fontsize = 18)
 plt.text(-84,3.10e-4,r'$i_{ext}=180$',fontsize = 18)
-plt.text(-190,5.60e-4,r'$\times 10^{-4}$', fontsize = 20)
+plt.text(-190,5.50e-4,r'$\times 10^{-4}$', fontsize = 20)
 plt.text(-175,5.25e-4,r'(A)', fontsize = 22)
 
 # --------------------------------------------------------------------------
@@ -140,5 +140,5 @@ plt.text(-190,2.58e-4,r'$\times 10^{-4}$', fontsize = 20)
 plt.text(-175,2.34e-4,r'(B)', fontsize = 22)
 
 # save figure
-plt.tight_layout(pad=1.4, h_pad=3.0)
+plt.tight_layout(pad=2.4, h_pad=3.0)
 fig1.savefig('figures/fig_MChain_VaVeVrIntersection.pdf')

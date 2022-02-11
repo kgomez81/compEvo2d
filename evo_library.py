@@ -18,6 +18,7 @@ import scipy.special
 import scipy.optimize as opt
 import scipy.stats as st
 import scipy as sp
+import copy
 
 import bisect
 import csv
@@ -366,7 +367,7 @@ def get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option):
 #                       Simulation functions
 #------------------------------------------------------------------------------
     
-def deltnplussim(m,c,U): 
+def deltnplussim(m,c,U,pop,params): 
     # This function calculates the number of territories are won by each of the
     # existing classes in the population. This function is written specifically
     # to calculate changes in abundances for two classes, and is specialized to 
@@ -393,6 +394,14 @@ def deltnplussim(m,c,U):
     
     # sample the number of territories that will have mutants propagules
     # this helps avoid drawing the full U number of territories to test 
+    if U == 0:
+        return np.zeros(len(m))
+    
+    print U
+    print params['T']
+    print sum(pop)
+    print prob_neq_0
+    
     comp_U = np.random.binomial(U,prob_neq_0)
     
     # create a range of integer values between 1 and a max value.
@@ -449,7 +458,8 @@ def deltnplussim(m,c,U):
             # 1 to record the win. For example if currently wins = [2,3], and victor is MUT = 1
             # then wins[MUT] = 3 and below increments it to 4.
             wins[victor] = wins[victor] + 1
-    
+    print wins
+    print compU
     return wins
 
 #------------------------------------------------------------------------------
@@ -478,15 +488,15 @@ def calculate_Ri_term(m,c,U):
     
     # loop through the classes and calcualte the respective Ri term
     for i in range(len(l)):
-        try:
-            # calculate value via formula from Bertram & Masel Lottery Model paper
-            out[i] = cbar*np.exp(-l[i])*(1-np.exp(-(L-l[i]))) \
-                    /( c[i] + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * ( (L-1+np.exp(-L)) / (1-(1+L)*np.exp(-L) ) ) )
-        except FloatingPointError:
+        if ((L-l[i]) == 0):
             # calculate value via formula when there is no variation in c' terms 
             # and when L ~ l[i], cbar ~ c[i].
             out[i] = np.exp(-l[i])*(1-np.exp(-(L-l[i]))) \
                     / ( 1 + ( (L-1+np.exp(-L)) / (1-(1+L)*np.exp(-L)) ) )
+        else:
+            # calculate value via formula from Bertram & Masel Lottery Model paper
+            out[i] = cbar*np.exp(-l[i])*(1-np.exp(-(L-l[i]))) \
+                    /( c[i] + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * ( (L-1+np.exp(-L)) / (1-(1+L)*np.exp(-L) ) ) )
 
     return out
 
@@ -515,17 +525,16 @@ def calculate_Ai_term(m,c,U):
     out = l
     
     # loop through the classes and calcualte the respective Ri term
-    for i in range(len(l)):    
-        try:
-            # calculate value via formula from Bertram & Masel Lottery Model paper
-            out[i] = cbar*( 1-np.exp(-l[i]) ) \
-                        / ( np.exp(-l[i])*c[i]*l[i]*(1-np.exp(-l[i])) / (1-(1+l[i])) \
-                        + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * \
-                          ( L*(1-np.exp(-L)) / (1-(1+L)*np.exp(-L)) - l[i]*(1-np.exp(-l[i]))/(1-(1+l[i])*np.exp(-l[i])) ) )
-        except FloatingPointError:
-            # use this calculation when l[i] << 1, i.e. for a small mutant class
+    for i in range(len(l)):   
+        if ((1-(1+l[i])*np.exp(-l[i])) == 0) or ((L-l[i]) == 0):
+            # use this calculation when l[i] << 1, i.e. for a small mutant class that leads to divide by zero
             out[i] = cbar*(1-np.exp(-l[i])) \
                         / ( c[i] + cbar*( L*(1-np.exp(-L) ) / ( 1-(1+L)*np.exp(-L) ) - 1 ) )
+        else: 
+            out[i] = cbar*( 1-np.exp(-l[i]) ) \
+                        / ( np.exp(-l[i])*c[i]*l[i]*(1-np.exp(-l[i])) / (1-(1+l[i])*np.exp(-l[i])) \
+                        + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * \
+                          ( L*(1-np.exp(-L)) / (1-(1+L)*np.exp(-L)) - l[i]*(1-np.exp(-l[i]))/(1-(1+l[i])*np.exp(-l[i])) ) ) 
     
     return out
 
@@ -574,11 +583,15 @@ def popdeath(pop,di):
     
     newpop = []
     
-    for i in range(len(pop)):
+    for ii in range(len(pop)):
         # for class i, calculate the number that survive
-        newpop = newpop + [np.random.binomial(pop[i],1/di[i])]
+        if pop[ii] > 0:
+            newpop = newpop + [np.random.binomial(pop[ii],1/di[ii])]
+        else:
+            # if there aren't any individuals, then just set to 0
+            newpop = newpop + [0]
         
-    newpop = np.asarray(newpop); 
+    newpop = np.asarray(newpop)
 	
     return newpop
 
@@ -595,20 +608,26 @@ def calcualte_popEvoSelection_pFixEst(params,pop,d,c):
     #
     
     # calcualte the number of unoccupied territories
-    U = int(params['T'] - sum(pop))
+#    if sum(pop) > int(params['T']):
+#        U = 0
+#    else:
+    U = min([0,int(params['T'] - sum(pop))])
     
     # calculate the number of juveniles
     m = pop * ((params['b'] * U) / params['T'])
-    
-    # calcualte new adults using both the deterministic equations and stochastic
-    # sampling of competitions
-    deter_newAdults = deltnplus(m,c,U)
-    stoch_newAdults = deltnplussim(m,c,U)
-    
-    # calculate the total number of adults per class.
+
+    # create array to store new pop values
     newpop = pop
-    newpop[0] = int(pop[0] + deter_newAdults[0])
-    newpop[1] = int(pop[1] + stoch_newAdults[1])
+    
+    if U > 0:
+        # calcualte new adults using both the deterministic equations and stochastic
+        # sampling of competitions
+        deter_newAdults = deltnplus(m,c,U)
+        stoch_newAdults = deltnplussim(m,c,U)
+        
+        # calculate the total number of adults per class.
+        newpop[0] = int(pop[0] + deter_newAdults[0])
+        newpop[1] = int(pop[1] + stoch_newAdults[1])
     
     # calculate the number of adults that survive
     newpop = popdeath(newpop,d) 
@@ -617,7 +636,7 @@ def calcualte_popEvoSelection_pFixEst(params,pop,d,c):
 
 #------------------------------------------------------------------------------
 
-def simulation_popEvo_pFixEst(params,pop,d,c,nPfix,fixThrshld):
+def simulation_popEvo_pFixEst(params,init_pop,d,c,nPfix,fixThrshld):
     # This function simulates the evolution of a population (selection only) 
     # of a popluation with a wild type dominant genotype, and a newly appearing 
     # mutant lineage. 
@@ -637,13 +656,16 @@ def simulation_popEvo_pFixEst(params,pop,d,c,nPfix,fixThrshld):
     #
     
     # create an array to store results 1-mut lineage fixes, 0-mut lineage dies
-    mutFixCheck = np.zeros([1,nPfix]);
+    mutFixCheck = np.zeros([nPfix]);
 
     # loop through nPfix instances to estimate pFix
     for ii in range(nPfix):
+        pop = init_pop
+        time = 0
         while ((pop[1] > 0) & (pop[1] < fixThrshld)): 
             pop = calcualte_popEvoSelection_pFixEst(params,pop,d,c)
-            
+            #print "time: %i, mutpopsize: %i" % (time,pop[1])
+            time = time+1
         mutFixCheck[ii] = int(pop[1] > 1)
     
     # estimate pFix by summing the number of times the mutant lineage grew 

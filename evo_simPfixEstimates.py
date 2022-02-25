@@ -50,7 +50,6 @@ for ii in range(1,nEst):
     
     # estimate pFix values
     pFixAbs_i[ii-1] = myfun.simulation_popEvo_pFixEst(params,pop,d,c,nPfix,fixThrshld)
-    print pFixAbs_i[ii-1]
     
 ####### Relative Fitness pFix #######    
 #for ii in range(1,nEst):    

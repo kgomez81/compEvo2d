@@ -174,12 +174,15 @@ def get_eqPopDensity(b,di,option):
         
         eq_density = np.max([eq_density,0]) # ensure density >= 0
         
-    else:
+    elif option == 3:
         # numerical solution to steady state population size equation
         eq_density = opt.broyden1(eq_popsize_err,[1], f_tol=1e-14)
         
         eq_density = np.max([eq_density[0],0]) # ensure density >= 0
+    else:
+        eq_density = 1 - (di-1)/(di-np.exp(-b))
         
+        eq_density = np.max([eq_density,0]) # ensure density >= 0
     return eq_density
 
 #------------------------------------------------------------------------------

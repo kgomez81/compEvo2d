@@ -174,15 +174,12 @@ def get_eqPopDensity(b,di,option):
         
         eq_density = np.max([eq_density,0]) # ensure density >= 0
         
-    elif option == 3:
+    else:
         # numerical solution to steady state population size equation
         eq_density = opt.broyden1(eq_popsize_err,[1], f_tol=1e-14)
         
         eq_density = np.max([eq_density[0],0]) # ensure density >= 0
-    else:
-        eq_density = 1 - (di-1)/(di-np.exp(-b))
         
-        eq_density = np.max([eq_density,0]) # ensure density >= 0
     return eq_density
 
 #------------------------------------------------------------------------------
@@ -216,6 +213,40 @@ def get_absoluteFitnessClasses(b,dOpt,sa):
     
     return [dMax,di,iExt]
 
+#------------------------------------------------------------------------------
+
+def get_absoluteFitnessClassesDRE(b,dOpt,dStop,alpha):
+    # function calculates the class for which population size has a negative 
+    # growth rate in the Bertram & Masel 2019 lottery model
+    #
+    # inputs:
+    # b - juvenile birth rate
+    # dOpt - death term of optimal genotype
+    # dStop - max value of death term to generate classes for. This 
+    #         prevents from trying to generate an infinite number of 
+    #         classes
+    # alpha - strength of diminishing returns epistasis
+    #
+    # Output: 
+    # dMax - largest death term after which there is negative growth in pop size
+    # di - list of death terms corresponding to the discrete absolute fit classes
+    
+    # Theoretical derivations show that maximum size of death term is given by 
+    # value below. See Appendix A in manuscript.
+    dMax = b+1
+    
+    # Recursively calculate set of absolute fitness classes 
+    di = [dMax]
+    ii = 0
+    while (di[-1] < dStop):
+        # loop until stop at dStop or greater reached
+        di = di + [ di[-1] + (dOpt-dMax)*(1-alpha)*alpha**(ii+1)]
+    
+    di = np.asarray(di)
+    iMax = int(di.shape[0]-1)
+    
+    return [dMax,di,iMax]
+    
 #------------------------------------------------------------------------------
     
 def get_c_SelectionCoeff(b,y,cr,d_i):
@@ -365,6 +396,42 @@ def get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option):
         ve_i = ve_i + [sa_i[ii-1]*params['R']/(di[ii]-1)]          
         
     return [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i,va_i,vr_i,ve_i]
+
+
+#------------------------------------------------------------------------------
+
+def get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i):
+    # This function assumes that the intersection occurs in the 
+    # multiple mutations regime. This quantity is irrelevant when in
+    # the successional regime since there is no interference between 
+    # evolution in traits.
+        
+    # find index that minimizes |va-vr|, but exclude extinction class (:-1)
+    idxMin = np.argmin(np.abs(np.asarray(va_i[0:-1])-np.asarray(vr_i[0:-1])))
+    
+    sa = sa_i[idxMin]
+    Ua = Ua_i[idxMin]
+    sr = sr_i[idxMin]
+    Ur = Ur_i[idxMin]
+    
+    # Definition of the rho at intersection in paper
+    rho = np.abs((sr/sa)*(np.log(sa/Ur)/np.log(sr/Ur)))
+    
+    return rho
+
+#------------------------------------------------------------------------------
+
+def get_intersection_popDensity(va_i, vr_i, eq_yi):
+    # function to calculate the intersection equilibrium density
+        
+    # find index that minimizes |va-vr| but exclude extinction class (:-1)
+    idxMin = np.argmin(np.abs(np.asarray(va_i[0:-1])-np.asarray(vr_i[0:-1])))
+    
+    
+    # Definition of the rho at intersection in paper
+    yiInt = eq_yi[idxMin]
+    
+    return yiInt
 
 #------------------------------------------------------------------------------
 #                       Simulation functions

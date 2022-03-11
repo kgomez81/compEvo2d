@@ -415,7 +415,7 @@ def get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i):
     Ur = Ur_i[idxMin]
     
     # Definition of the rho at intersection in paper
-    rho = np.abs((sr/sa)*(np.log(sa/Ur)/np.log(sr/Ur)))
+    rho = np.abs((sr/sa)*(np.log(sa/Ua)/np.log(sr/Ur)))
     
     return rho
 

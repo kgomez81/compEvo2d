@@ -1,0 +1,17 @@
+Files with RM indicate paramters for experiments assuming "running out of mutations" model. Files with DRE indicate parameters for experiments assuming "diminishing returns epistasis" model.
+
+RM files:
+
+evoExp 01 - 
+
+evoExp 02 - 
+
+evoExp 03 - 
+
+evoExp 04 - 
+
+evoExp 05 -
+
+DRE files:
+
+evoExp 01

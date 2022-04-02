@@ -23,6 +23,7 @@ import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 import evo_library as myfun            # my functions in a seperate file
+from matplotlib.lines import Line2D
 
 # --------------------------------------------------------------------------
 # Calculate Markov Chain Evolution Parameters - Panel (A)
@@ -45,7 +46,7 @@ import evo_library as myfun            # my functions in a seperate file
 #
 
 # The parameter file is read and a dictionary with their values is generated.
-paramFile = 'inputs/evoExp02_parameters_VaVrIntersect.csv'
+paramFile = 'inputs/evoExp_RM_02_parameters.csv'
 params = myfun.read_parameterFile(paramFile)
 
 # Calculate absolute fitness state space. This requires specificying:
@@ -72,14 +73,14 @@ yi_option = 3
                     myfun.get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option)
 
 # The parameter file is read and a dictionary with their values is generated.
-paramFile = 'inputs/evoExp04_parameters_VaVrIntersect.csv'
+paramFile = 'inputs/evoExp_RM_04_parameters.csv'
 params = myfun.read_parameterFile(paramFile)
 
 [state2_i,Ua2_i,Ur2_i,eq_y2i,eq_N2i,sr2_i,sa2_i,va2_i,vr2_i,ve2_i] = \
                     myfun.get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option)
 
 # The parameter file is read and a dictionary with their values is generated.
-paramFile = 'inputs/evoExp05_parameters_VaVrIntersect.csv'
+paramFile = 'inputs/evoExp_RM_05_parameters.csv'
 params = myfun.read_parameterFile(paramFile)
 
 [state3_i,Ua3_i,Ur3_i,eq_y3i,eq_N3i,sr3_i,sa3_i,va3_i,vr3_i,ve3_i] = \
@@ -94,10 +95,10 @@ fig1, ax1 = plt.subplots(1,1,figsize=[7,6])
 #ax1.plot(eq_y1i,va1_i,color="green",linewidth=2,label=r'$v_{a,1}$')
 #ax1.plot(eq_y1i,vr1_i,'-.',color="green",linewidth=2,label=r'$v_{r,1}$')
 
-ax1.plot(eq_y2i,va2_i,color="blue",linewidth=2,label=r'$v_a (T=10^5)$')
-ax1.plot(eq_y2i,vr2_i,'-.',color="blue",linewidth=2,label=r'$v_r (T=10^5)$')
-ax1.plot(eq_y3i,va3_i,color="cyan",linewidth=2,label=r'$v_a (T=10^7)$')
-ax1.plot(eq_y3i,vr3_i,'-.',color="cyan",linewidth=2,label=r'$v_r (T=10^7)$')
+ax1.plot(eq_y2i,va2_i,color="blue",linewidth=2,label=r'$v_a (T=10^7)$')
+ax1.plot(eq_y2i,vr2_i,'-.',color="blue",linewidth=2,label=r'$v_r (T=10^7)$')
+ax1.plot(eq_y3i,va3_i,color="cyan",linewidth=2,label=r'$v_a (T=10^5)$')
+ax1.plot(eq_y3i,vr3_i,'-.',color="cyan",linewidth=2,label=r'$v_r (T=10^5)$')
 
 ax1.scatter([0.8805],[1.0223e-4],marker="o",s=40,c="black")
 ax1.scatter([0.8923],[0.492e-4],marker="o",s=40,c="black")
@@ -113,7 +114,10 @@ ax1.set_yticklabels([str(2*i/10.0) for i in range(0,7)],fontsize=16)
 ax1.set_ylim(0,1.3e-4)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
 ax1.set_xlabel(r'Equilibrium Population Density',fontsize=20,labelpad=8)
 ax1.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
-#ax1.legend(fontsize = 14,ncol=1,loc='lower right')
+
+custom_lines = [Line2D([0], [0], color='blue', lw=2),
+                Line2D([0], [0], color='cyan', lw=2)]
+ax1.legend(custom_lines,[r'$T=10^7$',r'$T=10^5$'],fontsize=14)
 
 # save figure
 plt.tight_layout()

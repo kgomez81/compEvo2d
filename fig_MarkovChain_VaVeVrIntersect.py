@@ -37,7 +37,7 @@ import evo_library as myfun            # my functions in a seperate file
 #
 
 # The parameter file is read and a dictionary with their values is generated.
-paramFile = 'inputs/evoExp01_parameters_VaVeIntersect.csv'
+paramFile = 'inputs/evoExp_RM_01_parameters.csv'
 params = myfun.read_parameterFile(paramFile)
 
 # Calculate absolute fitness state space. This requires specificying:

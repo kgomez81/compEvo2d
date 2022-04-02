@@ -215,7 +215,7 @@ def get_absoluteFitnessClasses(b,dOpt,sa):
 
 #------------------------------------------------------------------------------
 
-def get_absoluteFitnessClassesDRE(b,dOpt,dStop,alpha):
+def get_absoluteFitnessClassesDRE(b,dOpt,alpha,iStop):
     # function calculates the class for which population size has a negative 
     # growth rate in the Bertram & Masel 2019 lottery model
     #
@@ -237,10 +237,11 @@ def get_absoluteFitnessClassesDRE(b,dOpt,dStop,alpha):
     
     # Recursively calculate set of absolute fitness classes 
     di = [dMax]
-    ii = 0
-    while (di[-1] < dStop):
+    ii = 1
+    while (ii < iStop):
         # loop until stop at dStop or greater reached
         di = di + [ di[-1] + (dOpt-dMax)*(1-alpha)*alpha**(ii+1)]
+        ii = ii + 1
     
     di = np.asarray(di)
     iMax = int(di.shape[0]-1)
@@ -319,6 +320,27 @@ def read_parameterFile(readFile):
 
 #------------------------------------------------------------------------------
     
+def read_parameterFileDRE(readFile):
+    # This function reads the parameter values a file and creates a dictionary
+    # with the parameters and their values 
+
+    # create array to store values and define the parameter names
+    paramList = ['T','b','dOpt','alpha','Ua','Uad','cr','Ur','Urd','R']
+    paramValue = np.zeros([len(paramList),1])
+    
+    # read values from csv file
+    with open(readFile,'r') as csvfile:
+        parInput = csv.reader(csvfile)
+        for (line,row) in enumerate(parInput):
+            paramValue[line] = float(row[0])
+    
+    # create dictionary with values
+    paramDict = dict([[paramList[i],paramValue[i][0]] for i in range(len(paramValue))])
+    
+    return paramDict
+
+#------------------------------------------------------------------------------
+    
 def read_pFixOutputs(readFile,nStates):
     # This function reads the output file containing the estimated pfix values 
     # simulations and stores them in an array so that they can be used in 
@@ -376,6 +398,37 @@ def get_MChainPopParameters(params,di,iExt,yi_option):
 
 #------------------------------------------------------------------------------
 
+def get_MChainPopParametersDRE(params,di,iMax,yi_option):
+
+    # Note: the state space for DRE must be calculated in reverse, since the di
+    #       are specified in reverse.
+    
+    # Calculate all evolution parameters.
+    state_i = []    # state number
+    Ua_i    = []    # absolute fitness mutation rate
+    Ur_i    = []    # relative fitness mutation rate
+    eq_yi   = []    # equilibrium density of fitness class i
+    eq_Ni   = []    # equilibrium population size of fitness class i
+    sr_i    = []    # selection coefficient of "c" trait beneficial mutation
+    sa_i    = []    # selection coefficient of "c" trait beneficial mutation
+    
+    # calculate population parameters for each of the states in the markov chain model
+    # the evolution parameters are calculated along the absolute fitness state space
+    # beginning with state 1 (1 mutation behind optimal) to iMax (max abs fitness state)
+    for ii in range(1,iMax+1):
+        # absolute fitness mutation rate, equilb.-density,equilb.-popsize,eff_sr 
+        state_i = state_i + [ii]
+        Ua_i    = Ua_i + [params['Ua']]
+        Ur_i    = Ur_i + [params['Ur']]
+        eq_yi   = eq_yi + [get_eqPopDensity(params['b'],di[ii],yi_option)]
+        eq_Ni   = eq_Ni + [params['T']*eq_yi[-1]]
+        sr_i    = sr_i + [get_c_SelectionCoeff(params['b'],eq_yi[-1],params['cr'],di[ii])]
+        sa_i    = sa_i + [(di[ii-1] - di[ii])/(di[ii]*(di[ii]-1))]
+        
+    return [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i]
+
+#------------------------------------------------------------------------------
+
 def get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option):
     
     # Calculate all evolution parameters.
@@ -397,6 +450,28 @@ def get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option):
         
     return [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i,va_i,vr_i,ve_i]
 
+#------------------------------------------------------------------------------
+
+def get_MChainEvoParametersDRE(params,di,iMax,pFixAbs_i,pFixRel_i,yi_option):
+    
+    # Calculate all evolution parameters.
+    va_i    = []    # rate of adaptation in absolute fitness trait alone
+    vr_i    = []    # rate of adaptation in relative fitness trait alone
+    ve_i    = []    # rate of fitness decrease due to environmental degradation
+    
+    # absolute fitness mutation rate, equilb.-density,equilb.-popsize,eff_sr 
+    [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i] = get_MChainPopParametersDRE(params,di,iMax,yi_option)
+    
+    # calculate evolution parameters for each of the states in the markov chain model
+    # the evolution parameters are calculated along the absolute fitness state space
+    # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
+    for ii in range(1,iMax+1):
+        # rates of fitness change ( on time scale of generations)
+        va_i = va_i + [get_rateOfAdapt(eq_Ni[ii-1],sa_i[ii-1],Ua_i[ii-1],pFixAbs_i[ii-1][0])]
+        vr_i = vr_i + [get_rateOfAdapt(eq_Ni[ii-1],sr_i[ii-1],Ur_i[ii-1],pFixRel_i[ii-1][0])]
+        ve_i = ve_i + [sa_i[0]*params['R']/(di[ii]-1)]          # Environmental fitness change is constant
+        
+    return [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i,va_i,vr_i,ve_i]
 
 #------------------------------------------------------------------------------
 

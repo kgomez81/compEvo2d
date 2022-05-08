@@ -132,7 +132,7 @@ def get_rateOfAdapt(N,s,U,pFix):
         Tswp = (1/s)*np.log(N*pFix)
         
         # calculate rate of adaptation based on regime
-        if (Test >= Tswp):
+        if (Test >= Tswp) and (s > 1.5*U):
             v = get_vSucc_pFix(N,s,U,pFix)
         else:
             # this needs to be divided into multiple mutations and diffusion regime
@@ -475,7 +475,7 @@ def get_MChainEvoParametersDRE(params,di,iMax,pFixAbs_i,pFixRel_i,yi_option):
 
 #------------------------------------------------------------------------------
 
-def get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i):
+def get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i, N_i):
     # This function assumes that the intersection occurs in the 
     # multiple mutations regime. This quantity is irrelevant when in
     # the successional regime since there is no interference between 
@@ -488,11 +488,21 @@ def get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i):
     Ua = Ua_i[idxMin]
     sr = sr_i[idxMin]
     Ur = Ur_i[idxMin]
+    Npop = N_i[idxMin]
     
-    # Definition of the rho at intersection in paper
-    rho = np.abs((sr/sa)*(np.log(sa/Ua)/np.log(sr/Ur)))
+    # Calculate mean time between establishments, and mean time of sweep
+    Test_r = 1/Npop*Ur*sr
+    Tswp_r = (1/sr)*np.log(Npop*sr)    
     
-    return rho
+    Test_a = 1/Npop*Ua*sa
+    Tswp_a = (1/sa)*np.log(Npop*sa)    
+    
+    if (Test_r < Tswp_r) and (Test_a < Tswp_a) and (sr > 1.5*Ur) and (sa > 1.5*Ua):       
+        rho = np.abs((sr/sa)*(np.log(sa/Ua)/np.log(sr/Ur)))
+    else:
+        rho = 0
+        
+    return [rho, sa, Ua, sr, Ur]
 
 #------------------------------------------------------------------------------
 
@@ -502,8 +512,7 @@ def get_intersection_popDensity(va_i, vr_i, eq_yi):
     # find index that minimizes |va-vr| but exclude extinction class (:-1)
     idxMin = np.argmin(np.abs(np.asarray(va_i[0:-1])-np.asarray(vr_i[0:-1])))
     
-    
-    # Definition of the rho at intersection in paper
+    # Definition of the gamma at intersection in paper
     yiInt = eq_yi[idxMin]
     
     return yiInt

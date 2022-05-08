@@ -98,7 +98,7 @@ plt.text(-175,5.15e-4,r'(A)', fontsize = 22)
 # Recalculate Markov Chain Evolution Parameters - Panel (B)
 # --------------------------------------------------------------------------
 
-paramFile = 'inputs/evoExp02_parameters_VaVrIntersect.csv'
+paramFile = 'inputs/evoExp_RM_02_parameters.csv'
 params = myfun.read_parameterFile(paramFile)
 
 [dMax,di,iExt] = myfun.get_absoluteFitnessClasses(params['b'],params['dOpt'],params['sa'])
@@ -143,4 +143,4 @@ plt.text(-175,2.34e-4,r'(B)', fontsize = 22)
 
 # save figure
 plt.tight_layout()
-fig1.savefig('figures/fig_MChain_VaVeVrIntersection.pdf')
+fig1.savefig('figures/fig_MChain_VaVeVrIntersection_2ndVer.pdf')

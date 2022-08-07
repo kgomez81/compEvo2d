@@ -18,12 +18,73 @@ import scipy.special
 import scipy.optimize as opt
 import scipy.stats as st
 import scipy as sp
-import copy
+import copy as cpy
 
 import bisect
 import csv
 import math as math
+import pickle 
 
+# *****************************************************************************
+#                       my classes and structures
+# *****************************************************************************
+
+class evoOptions:
+    def __init__(self,paramFilePath,saveDataName,saveFigName,modelType,varNames,varBounds,yi_option):
+        self.paramFilePath  = paramFilePath
+        self.saveDataName   = saveDataName
+        self.saveFigName    = saveFigName
+        
+        # set model type (str = 'RM' or 'DRE') 
+        self.modelType      = modelType
+        
+        # set list of variable names that will be used to specify the grid
+        # and the bounds with increments needed to define the grid.
+        
+        # square array is built with first two parmeters, and second set are held constant.
+        # varNames[0][0] stored as X1_ARRY
+        # varNames[1][0] stored as X1_ref
+        # varNames[0][1] stored as X2_ARRY
+        # varNames[1][1] stored as X2_ref
+        self.varNames       = varNames
+        
+        # varBounds values define the min and max bounds of parameters that are used to 
+        # define the square grid. 
+        # varBounds[j][0] = min Multiple of parameter value in file (Xj variable)
+        # varBounds[j][1] = max Multiple of parameter value in file (Xj variable)
+        # varBounds[j][2] = number of increments from min to max (log scale) 
+        self.varBounds      = varBounds
+        
+        # set root solving option for equilibrium densities
+        # (1) low-density analytic approximation 
+        # (2) high-density analytic approximation
+        # (3) root solving numerical approximation
+        self.yi_option      = yi_option
+        
+        # read the paremeter files and store as dictionary
+        self.params         = self.options_readParameterFile()
+        
+    def options_readParameterFile(self):
+        # This function reads the parameter values a file and creates a dictionary
+        # with the parameters and their values 
+    
+        # create array to store values and define the parameter names
+        if self.modelType == 'RM':
+            paramList = ['T','b','dOpt','sa','UaMax','Uad','cr','Ur','Urd','R']
+        else:
+            paramList = ['T','b','dOpt','alpha','Ua','Uad','cr','Ur','Urd','R']
+        paramValue = np.zeros([len(paramList),1])
+        
+        # read values from csv file
+        with open(self.paramFilePath,'r') as csvfile:
+            parInput = csv.reader(csvfile)
+            for (line,row) in enumerate(parInput):
+                paramValue[line] = float(row[0])
+        
+        # create dictionary with values
+        paramDict = dict([[paramList[i],paramValue[i][0]] for i in range(len(paramValue))])
+        
+        return paramDict
 
 # *****************************************************************************
 # FUNCTIONS TO GET QUANTITIES FROM DESAI AND FISHER 2007
@@ -107,6 +168,28 @@ def get_vSucc_pFix(N,s,U,pFix):
 
 #------------------------------------------------------------------------------
 
+def get_vOH(N,s,U):
+    # Calculates the rate of adaptation v, using a heuristic version of Desai 
+    # and Fisher 2007 argument, but without the asumption that p_fix ~ s, i.e. 
+    # for a given population size (N), selection coefficient (s) and beneficial
+    # mutation rate (U) and finally p_fix
+    #
+    # Inputs:
+    # N - population size
+    # s - selection coefficient
+    # U - beneficial mutation rate
+    #
+    # Output: 
+    # v - rate of adaptation
+
+    D = 0.5*U*s**2     
+    
+    v = D**0.6667*(np.log(N*D**0.3333))**0.3333
+    
+    return v
+
+#------------------------------------------------------------------------------
+
 def get_rateOfAdapt(N,s,U,pFix):
     # Calculates the rate of adaptation v, but checks which regime applies.
     #
@@ -132,13 +215,54 @@ def get_rateOfAdapt(N,s,U,pFix):
         Tswp = (1/s)*np.log(N*pFix)
         
         # calculate rate of adaptation based on regime
-        if (Test >= Tswp) and (s > 1.5*U):
+        if (Test >= Tswp):
             v = get_vSucc_pFix(N,s,U,pFix)
-        else:
+        elif (s > 1.5*U):
             # this needs to be divided into multiple mutations and diffusion regime
             v = get_vDF_pFix(N,s,U,pFix)
+        else:
+            # diffusive mutations regime
+            v = get_vOH(N,s,U)    
     
     return v
+
+#------------------------------------------------------------------------------
+    
+def get_regimeID(N,s,U,pFix):
+    # Calculates the rate of adaptation v, but checks which regime applies.
+    #
+    # Inputs:
+    # N - population size
+    # s - selection coefficient
+    # U - beneficial mutation rate
+    # pFix -  probability of fixation
+    #
+    # Output: 
+    # v - rate of adaptation
+    #
+    
+    # check that selection coefficient, pop size and beneficial mutation rate 
+    # are valid parameters
+    if (s <= 0) or (N <= 0) or (U <= 0) or (pFix <= 0):
+        regID = 0
+    else:    
+        # Calculate mean time between establishments
+        Test = 1/N*U*pFix
+        
+        # Calculate mean time of sweep
+        Tswp = (1/s)*np.log(N*pFix)
+        
+        # calculate rate of adaptation based on regime
+        if (Test >= Tswp):
+            regID = 1
+        elif (s > 1.5*U):
+            # this needs to be divided into multiple mutations and diffusion regime
+            regID = 2
+        else:
+            # diffusive mutations regime
+            regID = 3
+    
+    return regID
 
 #------------------------------------------------------------------------------
 
@@ -240,7 +364,7 @@ def get_absoluteFitnessClassesDRE(b,dOpt,alpha,iStop):
     ii = 1
     while (ii < iStop):
         # loop until stop at dStop or greater reached
-        di = di + [ di[-1] + (dOpt-dMax)*(1-alpha)*alpha**(ii+1)]
+        di = di + [ di[-1] + (dOpt-dMax)*(1-alpha)*alpha**(ii-1)]
         ii = ii + 1
     
     di = np.asarray(di)
@@ -491,16 +615,36 @@ def get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i, N_i):
     Npop = N_i[idxMin]
     
     # Calculate mean time between establishments, and mean time of sweep
-    Test_r = 1/Npop*Ur*sr
-    Tswp_r = (1/sr)*np.log(Npop*sr)    
-    
-    Test_a = 1/Npop*Ua*sa
-    Tswp_a = (1/sa)*np.log(Npop*sa)    
-    
-    if (Test_r < Tswp_r) and (Test_a < Tswp_a) and (sr > 1.5*Ur) and (sa > 1.5*Ua):       
-        rho = np.abs((sr/sa)*(np.log(sa/Ua)/np.log(sr/Ur)))
-    else:
+    try:
+        Test_r = 1/Npop*Ur*sr
+        Tswp_r = (1/sr)*np.log(Npop*sr)    
+        
+        Test_a = 1/Npop*Ua*sa
+        Tswp_a = (1/sa)*np.log(Npop*sa)    
+        regimeFactor = 20.0
+    except ZeroDivisionError:
         rho = 0
+        return [rho, sa, Ua, sr, Ur]
+    
+    if (Test_r >= Tswp_r) or (Test_a >= Tswp_a):       
+        # either or both in successional regime
+        rho = 0
+    elif (sa >= regimeFactor*Ua) and (sr >= regimeFactor*Ur):
+        # both multiple mutations regime
+        rho = (sr/np.log(sr/Ur))**2 / (sa/np.log(sa/Ua))**2
+    elif (sa <  regimeFactor*Ua) and (sr >= regimeFactor*Ur):
+        # abs trait in diffusion and rel trait in multiple mutations regime
+        Da = 0.5*Ua*sa**2
+        rho = (sr/np.log(sr/Ur))**2 / (Da**(2.0/3.0)/(3*np.log(Da**(1.0/3.0)*Npop)**(2.0/3.0)))               
+    elif (sa >= regimeFactor*Ua) and (sr <  regimeFactor*Ur):
+        # rel trait in diffusion and abs trait in multiple mutations regime
+        Dr = 0.5*Ur*sr**2
+        rho = (Dr**(2.0/3.0)/(3*np.log(Dr**(1.0/3.0)*Npop)**(2.0/3.0))) / (sa/np.log(sa/Ua))**2               
+    elif (sa <  3.0*Ua) and (sr <  3.0*Ur):
+        # both traits in diffusion
+        Da = 0.5*Ua*sa**2
+        Dr = 0.5*Ur*sr**2
+        rho = (Dr**(2.0/3.0)/(3*np.log(Dr**(1.0/3.0)*Npop)**(2.0/3.0))) / (Da**(2.0/3.0)/(3*np.log(Da**(1.0/3.0)*Npop)**(2.0/3.0)))
         
     return [rho, sa, Ua, sr, Ur]
 
@@ -516,6 +660,99 @@ def get_intersection_popDensity(va_i, vr_i, eq_yi):
     yiInt = eq_yi[idxMin]
     
     return yiInt
+
+#------------------------------------------------------------------------------
+    
+def get_contourPlot_arrayData(myOptions):
+    # Generic function takes the provided options and generates data needed to
+    # creat contour plot of rho and gamma.
+    
+    # set values of first parameter
+    varParam1A = myOptions.varNames[0][0]
+    varParam2A = myOptions.varNames[0][1]
+    
+    varParam1B = myOptions.varNames[1][0]
+    varParam2B = myOptions.varNames[1][1]
+    
+    x1LwrBnd_log10 = np.log10(myOptions.varBounds[0][0]*myOptions.params[varParam1A])
+    x1UprBnd_log10 = np.log10(myOptions.varBounds[0][1]*myOptions.params[varParam1A])
+    if myOptions.modelType == 'RM':
+        x1RefVal_log10 = np.log10(myOptions.params[varParam1B])
+    else:
+        alpha = myOptions.params[varParam1B]
+        de = myOptions.params['b']+1
+        d0 = myOptions.params['dOpt']
+        sa1_mid = 0.5*(1-alpha)*(de-d0)/((de+(d0-de)*(1-alpha))*(de+(d0-de)*(1-alpha)-1))
+        x1RefVal_log10 = np.log10(sa1_mid)
+    
+    X1_vals = np.logspace(x1LwrBnd_log10, x1UprBnd_log10, num=myOptions.varBounds[0][2])
+    X1_ref  = np.logspace(x1RefVal_log10, x1RefVal_log10, num=1                        )
+    
+    x2LwrBnd_log10 = np.log10(myOptions.varBounds[1][0]*myOptions.params[varParam2A])
+    x2UprBnd_log10 = np.log10(myOptions.varBounds[1][1]*myOptions.params[varParam2A])
+    x2RefVal_log10 = np.log10(myOptions.params[varParam2B])
+    
+    X2_vals = np.logspace(x2LwrBnd_log10, x2UprBnd_log10, num=myOptions.varBounds[1][2])
+    X2_ref  = np.logspace(x2RefVal_log10, x2RefVal_log10, num=1                        )
+    
+    X1_ARRY, X2_ARRY = np.meshgrid(X1_vals, X2_vals)
+    RHO_ARRY = np.zeros(X1_ARRY.shape)
+    Y_ARRY = np.zeros(X1_ARRY.shape)
+
+    # arrays to store effecttive s and U values
+    effSa_ARRY = np.zeros(X1_ARRY.shape)
+    effUa_ARRY = np.zeros(X1_ARRY.shape)
+
+    effSr_ARRY = np.zeros(X1_ARRY.shape)
+    effUr_ARRY = np.zeros(X1_ARRY.shape)
+    
+    paramsTemp = cpy.copy(myOptions.params)
+
+    # --------------------------------------------------------------------------
+    # Calculated rho values for T vs 2nd parameter variable
+    # --------------------------------------------------------------------------
+    
+    for ii in range(int(X1_ARRY.shape[0])):
+        for jj in range(int(X2_ARRY.shape[1])):
+            
+            # set cr and sa values (selection coefficient)
+            paramsTemp[varParam1A] = X1_ARRY[ii,jj]
+            paramsTemp[varParam1B] = (myOptions.params[varParam1B],X1_ref[0])[myOptions.modelType == 'RM']
+            
+            # set Ua values and Ur values (mutation coefficient)
+            paramsTemp[varParam2A] = X2_ARRY[ii,jj]
+            paramsTemp[varParam2B] = X2_ref[0]
+            
+            # Calculate absolute fitness state space. 
+            if myOptions.modelType == 'RM':
+                [dMax,di,iMax] = get_absoluteFitnessClasses(paramsTemp['b'],paramsTemp['dOpt'],paramsTemp['sa'])
+                [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i] = get_MChainPopParameters(paramsTemp,di,iMax,myOptions.yi_option)        
+            else:
+                iStop = np.log(0.01)/np.log(myOptions.params['alpha'])-1  # stop at i steps to get di within 5% of d0, i.e. (di-d0)/(dMax-d0) = 0.05.
+                [dMax,di,iMax] = get_absoluteFitnessClassesDRE(paramsTemp['b'],paramsTemp['dOpt'],paramsTemp['alpha'],iStop)
+                [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i] = get_MChainPopParametersDRE(paramsTemp,di,iMax,myOptions.yi_option)
+                
+            pFixAbs_i = np.reshape(np.asarray(sa_i),[len(sa_i),1])
+            pFixRel_i = np.reshape(np.asarray(sr_i),[len(sr_i),1])
+            
+            # Use s values for pFix until we get sim pFix values can be obtained
+            if myOptions.modelType == 'RM':
+                [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i,va_i,vr_i,ve_i] = \
+                                get_MChainEvoParameters(paramsTemp,di,iMax,pFixAbs_i,pFixRel_i,myOptions.yi_option)
+            else:
+                [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i,va_i,vr_i,ve_i] = \
+                                get_MChainEvoParametersDRE(paramsTemp,di,iMax,pFixAbs_i,pFixRel_i,myOptions.yi_option)                                    
+                                
+            [RHO_ARRY[ii,jj], effSa_ARRY[ii,jj], effUa_ARRY[ii,jj], effSr_ARRY[ii,jj], effUr_ARRY[ii,jj] ] = \
+                                get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i,eq_Ni)   
+                            
+            Y_ARRY[ii,jj] = get_intersection_popDensity(va_i, vr_i, eq_yi)   
+    
+    
+    with open(myOptions.saveDataName, 'wb') as f:
+        pickle.dump([X1_ARRY,X2_ARRY,RHO_ARRY,Y_ARRY,X1_ref,X2_ref, effSa_ARRY, effUa_ARRY, effSr_ARRY, effUr_ARRY, paramsTemp,dMax], f)
+    
+    return None
 
 #------------------------------------------------------------------------------
 #                       Simulation functions
@@ -550,11 +787,6 @@ def deltnplussim(m,c,U,pop,params):
     # this helps avoid drawing the full U number of territories to test 
     if U == 0:
         return np.zeros(len(m))
-    
-    print U
-    print params['T']
-    print sum(pop)
-    print prob_neq_0
     
     comp_U = np.random.binomial(U,prob_neq_0)
     
@@ -612,8 +844,6 @@ def deltnplussim(m,c,U,pop,params):
             # 1 to record the win. For example if currently wins = [2,3], and victor is MUT = 1
             # then wins[MUT] = 3 and below increments it to 4.
             wins[victor] = wins[victor] + 1
-    print wins
-    print compU
     return wins
 
 #------------------------------------------------------------------------------

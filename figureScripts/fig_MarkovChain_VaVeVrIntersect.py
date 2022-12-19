@@ -14,7 +14,10 @@ see Bertram & Masel 2019 for details of lottery model
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-import evo_library as myfun            # my functions in a seperate file
+
+import sys
+sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
+from evoLibraries import evo_library as myfun            # my functions in a seperate file
 
 # --------------------------------------------------------------------------
 # Calculate Markov Chain Evolution Parameters - Panel (A)
@@ -37,7 +40,8 @@ import evo_library as myfun            # my functions in a seperate file
 #
 
 # The parameter file is read and a dictionary with their values is generated.
-paramFile = 'inputs/evoExp_RM_01_parameters.csv'
+workDir = 'D:/Documents/GitHub/compEvo2d/'
+paramFile = workDir + 'inputs/evoExp_RM_01_parameters.csv'
 params = myfun.read_parameterFile(paramFile)
 
 # Calculate absolute fitness state space. This requires specificying:
@@ -47,11 +51,11 @@ params = myfun.read_parameterFile(paramFile)
 [dMax,di,iExt] = myfun.get_absoluteFitnessClasses(params['b'],params['dOpt'],params['sa'])
 
 # pFix values from simulations are loaded for abs-fit mutations to states 0,...,iMax-1 
-pFixAbs_File = 'outputs/evoExp01_absPfix.csv'
+pFixAbs_File = workDir + 'outputs/evoExp01_absPfix.csv'
 pFixAbs_i     = myfun.read_pFixOutputs(pFixAbs_File,iExt)
 
 # pFix values from simulations are loaded for rel-fit mutations at states 1,...,iMax 
-pFixRel_File = 'outputs/evoExp01_relPfix.csv'
+pFixRel_File = workDir + 'outputs/evoExp01_relPfix.csv'
 pFixRel_i    = myfun.read_pFixOutputs(pFixRel_File,iExt)
 
 # set root solving option for equilibrium densities
@@ -75,8 +79,11 @@ ax1.scatter(state_i,vr_i,color="red",s=8,label=r'$v_r$')
 # axes and label adjustements
 ax1.set_xlim(-iExt-1,0)
 ax1.set_ylim(0,2.52e-4)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
-ax1.set_xticks([-25*i for i in range(0,iExt/25+1)])
-ax1.set_xticklabels([str(25*i) for i in range(0,iExt/25+1)],fontsize=16)
+
+xTickMax = int(iExt/25+1)
+ax1.set_xticks([-25*i for i in range(0,xTickMax)])
+ax1.set_xticklabels([str(25*i) for i in range(0,xTickMax)],fontsize=16)
+
 #ax1.set_xticklabels(["" for i in range(0,iExt/25+1)],fontsize=16)
 ax1.set_yticks([1e-5*5*i for i in range(0,6)])
 #ax1.set_yticklabels(["" for i in range(0,6)],fontsize=16)
@@ -92,21 +99,21 @@ ax1.annotate("", xy=(-87,0.7e-4), xytext=(-72, 0.7e-4),arrowprops={'arrowstyle':
 #plt.text(-84,3.29e-4,r'$i^*=88$',fontsize = 18)
 #plt.text(-84,3.10e-4,r'$i_{ext}=180$',fontsize = 18)
 #plt.text(-190,5.50e-4,r'$\times 10^{-4}$', fontsize = 20)
-plt.text(-175,5.15e-4,r'(A)', fontsize = 22)
+# plt.text(-175,5.15e-4,r'(A)', fontsize = 22)
 
 # --------------------------------------------------------------------------
 # Recalculate Markov Chain Evolution Parameters - Panel (B)
 # --------------------------------------------------------------------------
 
-paramFile = 'inputs/evoExp_RM_02_parameters.csv'
+paramFile = workDir + 'inputs/evoExp_RM_02_parameters.csv'
 params = myfun.read_parameterFile(paramFile)
 
 [dMax,di,iExt] = myfun.get_absoluteFitnessClasses(params['b'],params['dOpt'],params['sa'])
 
-pFixAbs_File = 'outputs/evoExp01_absPfix.csv'
+pFixAbs_File = workDir + 'outputs/evoExp01_absPfix.csv'
 pFixAbs_i     = myfun.read_pFixOutputs(pFixAbs_File,iExt)
 
-pFixRel_File = 'outputs/evoExp01_relPfix.csv'
+pFixRel_File = workDir + 'outputs/evoExp01_relPfix.csv'
 pFixRel_i    = myfun.read_pFixOutputs(pFixRel_File,iExt)
 
 # Calculate all Evo parameters for Markov Chain
@@ -123,8 +130,11 @@ ax2.scatter(state_i,vr_i,color="red",s=8,label=r'$v_r$')
 # axes and label adjustements
 ax2.set_xlim(-iExt-1,0)
 ax2.set_ylim(0,2.52e-4)       # 1.5*max([max(va_i),max(vr_i)])
-ax2.set_xticks([-25*i for i in range(0,iExt/25+1)])
-ax2.set_xticklabels([str(25*i) for i in range(0,iExt/25+1)],fontsize=16)
+
+xTickMax = int(iExt/25+1)
+ax2.set_xticks([-25*i for i in range(0,xTickMax)])
+ax2.set_xticklabels([str(25*i) for i in range(0,xTickMax)],fontsize=16)
+
 ax2.set_yticks([1e-5*5*i for i in range(0,6)])
 ax2.set_yticklabels([str(5*i/10.0) for i in range(0,6)],fontsize=16)
 #ax2.set_yticklabels(["" for i in range(0,6)],fontsize=16)
@@ -139,8 +149,8 @@ ax2.annotate("", xy=(-84,0.7e-4), xytext=(-99,0.7e-4),arrowprops={'arrowstyle':'
 #plt.text(-78,0.29e-4,r'$i^*=84$',fontsize = 18)
 #plt.text(-78,0.10e-4,r'$i_{ext}=180$',fontsize = 18)
 #plt.text(-190,2.58e-4,r'$\times 10^{-4}$', fontsize = 20)
-plt.text(-175,2.34e-4,r'(B)', fontsize = 22)
+# plt.text(-175,2.34e-4,r'(B)', fontsize = 22)
 
 # save figure
 plt.tight_layout()
-fig1.savefig('figures/fig_MChain_VaVeVrIntersection_2ndVer.pdf')
+fig1.savefig(workDir + 'figures/MainDoc/fig_MarkovChain_VaVeVrIntersection.pdf')

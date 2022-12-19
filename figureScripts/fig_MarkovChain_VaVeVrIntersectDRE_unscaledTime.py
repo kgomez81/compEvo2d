@@ -14,6 +14,8 @@ import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 
+import sys
+sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
 from evoLibraries import evo_library as myfun            # my functions in a seperate file
 
 # --------------------------------------------------------------------------

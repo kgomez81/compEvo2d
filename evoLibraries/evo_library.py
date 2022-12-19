@@ -25,7 +25,7 @@ import csv
 import math as math
 import pickle 
 
-import constants as c 
+from evoLibraries import constants as c 
 
 # *****************************************************************************
 #                       my classes and structures
@@ -207,24 +207,29 @@ def get_rateOfAdapt(N,s,U,pFix):
     
     # check that selection coefficient, pop size and beneficial mutation rate 
     # are valid parameters
-    if (s <= 0) or (N <= 0) or (U <= 0) or (pFix <= 0):
+    
+    regimeID = get_regimeID(N,s,U,pFix)        
+    
+    if regimeID == 0:
+        # bad evolutionary parameters  
         v = 0
-    else:
-        regimeID = get_regimeID(N,s,U,pFix)        
-    
-    
+        
     if regimeID == 1:
         # successional regime
-            v = get_vSucc_pFix(N,s,U,pFix)        
+        v = get_vSucc_pFix(N,s,U,pFix)        
+        
     elif regimeID == 2:
-        # this needs to be divided into multiple mutations and diffusion regime
+        # multiple mutation regime
         v = get_vDF_pFix(N,s,U,pFix)
+        
     elif regimeID == 2: 
         # diffusive mutations regime
         v = get_vOH(N,s,U)        
-    else:
         
-    
+    else:
+        # regime undetermined
+        v = -1
+        
     return v
 
 #------------------------------------------------------------------------------
@@ -245,23 +250,32 @@ def get_regimeID(N,s,U,pFix):
     # check that selection coefficient, pop size and beneficial mutation rate 
     # are valid parameters
     if (s <= 0) or (N <= 0) or (U <= 0) or (pFix <= 0):
+        # bad evolutionary parameters
         regID = 0
-    else:    
-        # Calculate mean time between establishments
-        Test = 1/N*U*pFix
+        return regID
+    
+    # Calculate mean time between establishments
+    Test = 1/N*U*pFix
+    
+    # Calculate mean time of sweep
+    Tswp = (1/s)*np.log(N*pFix)
         
-        # Calculate mean time of sweep
-        Tswp = (1/s)*np.log(N*pFix)
+    # calculate rate of adaptation based on regime
+    if (Test >= Tswp/c.CI_TIMESCALE_TRANSITION):
+        # successional, establishment time scale exceeds sweep time scale
+        regID = 1
         
-        # calculate rate of adaptation based on regime
-        if (Test >= Tswp):
-            regID = 1
-        elif (s > 1.5*U):
-            # this needs to be divided into multiple mutations and diffusion regime
-            regID = 2
-        else:
-            # diffusive mutations regime
-            regID = 3
+    elif (s > c.MM_REGIME_MULTIPLE*U) and (Test <= c.CI_TIMESCALE_TRANSITION*Tswp):
+        # multiple mutations, selection time scale smaller than  mutation time scale
+        regID = 2
+        
+    elif (U <= c.DM_REGIME_MULTIPLE*s) and (Test <= c.CI_TIMESCALE_TRANSITION*Tswp):
+        # diffusive mutations, 
+        regID = 3
+    
+    else:
+        # regime undetermined
+        regID = -1
     
     return regID
 
@@ -364,7 +378,7 @@ def get_absoluteFitnessClassesDRE(b,dOpt,alpha):
     di = [dMax]
     ii = 1
     
-    iStop = False
+    iStop = True
     
     while (iStop):
 
@@ -629,6 +643,16 @@ def get_MChainEvoParametersDRE(params,di,iMax,pFixAbs_i,pFixRel_i,yi_option):
 
 #------------------------------------------------------------------------------
 
+def rescale_v_iterTimeScale(di,v):
+    v_rescaled = []
+    
+    for ii in range(len(v)):     
+        v_rescaled = v_rescaled + [v[ii]*(di[ii+1]-1)]
+    
+    return v_rescaled
+
+#------------------------------------------------------------------------------
+
 def get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i, N_i):
     # This function assumes that the intersection occurs in the 
     # multiple mutations regime. This quantity is irrelevant when in
@@ -643,39 +667,49 @@ def get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i, N_i):
     sr = sr_i[idxMin]
     Ur = Ur_i[idxMin]
     Npop = N_i[idxMin]
-    
-    # Calculate mean time between establishments, and mean time of sweep
-    try:
-        Test_r = 1/Npop*Ur*sr
-        Tswp_r = (1/sr)*np.log(Npop*sr)    
+
+    # calculate the regime IDs for each trait
+    #  0: Bad evo parameters
+    #  1: successional
+    #  2: multiple mutations
+    #  3: diffusion
+    # -1: regime undetermined, i.e. in transition region   
         
-        Test_a = 1/Npop*Ua*sa
-        Tswp_a = (1/sa)*np.log(Npop*sa)    
-        regimeFactor = 20.0
-    except ZeroDivisionError:
-        rho = 0
-        return [rho, sa, Ua, sr, Ur]
+    regimeID_a = get_regimeID(Npop,sa,Ua,sa)
+    regimeID_r = get_regimeID(Npop,sr,Ur,sr)
+
     
-    if (Test_r >= Tswp_r) or (Test_a >= Tswp_a):       
-        # either or both in successional regime
+    # calculate the appropriate rho
+    if (regimeID_a == 1) or (regimeID_r == 1):
+        # either or both in successional regime, no clonal interference
         rho = 0
-    elif (sa >= regimeFactor*Ua) and (sr >= regimeFactor*Ur):
-        # both multiple mutations regime
+    
+    elif (regimeID_a == 2) and (regimeID_r == 2):
+        # both traits in multiple mutations regime
         rho = (sr/np.log(sr/Ur))**2 / (sa/np.log(sa/Ua))**2
-    elif (sa <  regimeFactor*Ua) and (sr >= regimeFactor*Ur):
+        
+    elif (regimeID_a == 3) and (regimeID_r == 2):
         # abs trait in diffusion and rel trait in multiple mutations regime
         Da = 0.5*Ua*sa**2
+        
         rho = (sr/np.log(sr/Ur))**2 / (Da**(2.0/3.0)/(3*np.log(Da**(1.0/3.0)*Npop)**(2.0/3.0)))               
-    elif (sa >= regimeFactor*Ua) and (sr <  regimeFactor*Ur):
+        
+    elif (regimeID_a == 2) and (regimeID_r == 3):
         # rel trait in diffusion and abs trait in multiple mutations regime
         Dr = 0.5*Ur*sr**2
-        rho = (Dr**(2.0/3.0)/(3*np.log(Dr**(1.0/3.0)*Npop)**(2.0/3.0))) / (sa/np.log(sa/Ua))**2               
-    elif (sa <  3.0*Ua) and (sr <  3.0*Ur):
+        
+        rho = (Dr**(2.0/3.0)/(3*np.log(Dr**(1.0/3.0)*Npop)**(2.0/3.0))) / (sa/np.log(sa/Ua))**2
+        
+    elif (regimeID_a == 3) and (regimeID_r == 3):
         # both traits in diffusion
         Da = 0.5*Ua*sa**2
         Dr = 0.5*Ur*sr**2
+        
         rho = (Dr**(2.0/3.0)/(3*np.log(Dr**(1.0/3.0)*Npop)**(2.0/3.0))) / (Da**(2.0/3.0)/(3*np.log(Da**(1.0/3.0)*Npop)**(2.0/3.0)))
         
+    else:
+        rho = np.nan
+            
     return [rho, sa, Ua, sr, Ur]
 
 #------------------------------------------------------------------------------

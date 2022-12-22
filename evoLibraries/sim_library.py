@@ -19,6 +19,7 @@ import scipy.optimize as opt
 import scipy.stats as st
 import scipy as sp
 import copy as cpy
+import os.path
 
 import bisect
 import csv
@@ -30,7 +31,7 @@ import pickle
 # 
 #------------------------------------------------------------------------------
     
-def deltnplussim(m,c,U,pop,params): 
+def deltnplussim(m,c,U,pop,params,d): 
     # This function calculates the number of territories are won by each of the
     # existing classes in the population. This function is written specifically
     # to calculate changes in abundances for two classes, and is specialized to 
@@ -49,8 +50,8 @@ def deltnplussim(m,c,U,pop,params):
     
     # get array with the set of juvenile densities. 
     # 1st index is the wild type and the 2nd index is the mutant class
-    l = m/float(U)      
-
+    l = m/float(U)
+    
     # Calculate the probability of at least one mutant propagules in 
     # a territory. sf = 1-cdf is the survival function
     prob_neq_0 = st.poisson.sf(0, mu=l[1])
@@ -253,7 +254,7 @@ def popdeath(pop,di):
 
 #------------------------------------------------------------------------------
     
-def calcualte_popEvoSelection_pFixEst(params,pop,d,c): 
+def calculate_popEvoSelection_pFixEst(params,pop,d,c): 
     # This function simulates the evolution of a population given the parameters
     # and starting population provided in the inputs.
 	#
@@ -264,31 +265,75 @@ def calcualte_popEvoSelection_pFixEst(params,pop,d,c):
     #
     
     # calcualte the number of unoccupied territories
-#    if sum(pop) > int(params['T']):
-#        U = 0
-#    else:
-    U = min([0,int(params['T'] - sum(pop))])
+
+    U = max([0,int(params['T'] - sum(pop))])
     
     # calculate the number of juveniles
     m = pop * ((params['b'] * U) / params['T'])
 
     # create array to store new pop values
-    newpop = pop
+    newpop = [pop[i] for i in range(len(pop))]
+    # print('pop array: (%i,%i)' % tuple(pop))
+    
+    # creat output files
+    # ---------------------------------------------------
+    if os.path.isfile('mutOffspring.txt'):
+        fm = open('mutOffspring.txt','a')
+    else:
+        fm = open('mutOffspring.txt','w')
+    
+    if os.path.isfile('mutAdultPreDeath.txt'):
+        fd = open('mutAdultPreDeath.txt','a')
+    else:
+        fd = open('mutAdultPreDeath.txt','w')
+        
+    if os.path.isfile('unoccupiedT.txt'):
+        fu = open('unoccupiedT.txt','a')
+    else:
+        fu = open('unoccupiedT.txt','w')
+    
+    if os.path.isfile('mutAdultPostDeath.txt'):
+        fp = open('mutAdultPostDeath.txt','a')
+    else:
+        fp = open('mutAdultPostDeath.txt','w') 
+        
+    if os.path.isfile('wildAdultPostDeath.txt'):
+        fw = open('wildAdultPostDeath.txt','a')
+    else:
+        fw = open('wildAdultPostDeath.txt','w') 
+    # ---------------------------------------------------
     
     if U > 0:
         # calcualte new adults using both the deterministic equations and stochastic
         # sampling of competitions
         deter_newAdults = deltnplus(m,c,U)
-        stoch_newAdults = deltnplussim(m,c,U)
+        stoch_newAdults = deltnplussim(m,c,U,pop,params,d)
         
         # calculate the total number of adults per class.
         newpop[0] = int(pop[0] + deter_newAdults[0])
         newpop[1] = int(pop[1] + stoch_newAdults[1])
+
+        fm.write('mut-offspring   : %i\n' % (newpop[1]-pop[1]))
+        mutOffspring = newpop[1]-pop[1]
+        fd.write('adults pre-death: %i\n' % (newpop[1]))
+        fu.write('U = %i\n' % int(U))
+    else:
+        fu.write('U = %i\n' % int(U))
+    
     
     # calculate the number of adults that survive
     newpop = popdeath(newpop,d) 
+    # print('post-death   : (%E, %i)' % tuple(newpop))
+    fp.write('post-death      : %i\n' % (newpop[1]))
+    fw.write('post-death      : %i\n' % (newpop[0]))
     
-    return newpop
+    fm.close()
+    fd.close()
+    fu.close()
+    fp.close()
+    fw.close()
+    
+    return newpop,mutOffspring
 
 #------------------------------------------------------------------------------
 
@@ -314,19 +359,121 @@ def simulation_popEvo_pFixEst(params,init_pop,d,c,nPfix,fixThrshld):
     # create an array to store results 1-mut lineage fixes, 0-mut lineage dies
     mutFixCheck = np.zeros([nPfix]);
 
+    mutSurviveTime = [];
+    maxMutPops = []
+    
+    
+    # creat output files
+    # ---------------------------------------------------
+    # if os.path.isfile('mutOffspring.txt'):
+    #     fm = open('mutOffspring.txt','a')
+    # else:
+    #     fm = open('mutOffspring.txt','w')
+    
+    # if os.path.isfile('mutAdultPreDeath.txt'):
+    #     fd = open('mutAdultPreDeath.txt','a')
+    # else:
+    #     fd = open('mutAdultPreDeath.txt','w')
+        
+    # if os.path.isfile('unoccupiedT.txt'):
+    #     fu = open('unoccupiedT.txt','a')
+    # else:
+    #     fu = open('unoccupiedT.txt','w')
+    
+    # if os.path.isfile('mutAdultPostDeath.txt'):
+    #     fp = open('mutAdultPostDeath.txt','a')
+    # else:
+    #     fp = open('mutAdultPostDeath.txt','w') 
+        
+    # if os.path.isfile('wildAdultPostDeath.txt'):
+    #     fw = open('wildAdultPostDeath.txt','a')
+    # else:
+    #     fw = open('wildAdultPostDeath.txt','w') 
+        
+    fm = open('mutOffspring.txt','w')
+    fd = open('mutAdultPreDeath.txt','w')
+    fu = open('unoccupiedT.txt','w')
+    fp = open('mutAdultPostDeath.txt','w') 
+    fw = open('wildAdultPostDeath.txt','w') 
+        
+    fm.write("-----------------\n")
+    fd.write("-----------------\n")
+    fu.write("-----------------\n")
+    fp.write("-----------------\n")
+    fw.write("-----------------\n")
+    
+    fm.close()
+    fd.close()
+    fu.close()
+    fp.close()
+    fw.close()
+        
+    # fm = open('D:\Documents\compEvo2d\dataMutOffDistr.txt','w')
+    # fd = open('D:\Documents\compEvo2d\dataMutAdlDistr.txt','w')
+    # fm.writelines('Density: %f' % (sum(init_pop)/params['T']))
+    # fm.writelines('\n')
+    # fd.writelines('Density: %f' % (sum(init_pop)/params['T']))
+    # fd.writelines('\n')
+    
     # loop through nPfix instances to estimate pFix
     for ii in range(nPfix):
         pop = init_pop
         time = 0
+        maxMutPops = maxMutPops + [init_pop[1]]
+        
+        # creat output files
+        # ---------------------------------------------------
+        if os.path.isfile('mutOffspring.txt'):
+            fm = open('mutOffspring.txt','a')
+        else:
+            fm = open('mutOffspring.txt','w')
+        
+        if os.path.isfile('mutAdultPreDeath.txt'):
+            fd = open('mutAdultPreDeath.txt','a')
+        else:
+            fd = open('mutAdultPreDeath.txt','w')
+            
+        if os.path.isfile('unoccupiedT.txt'):
+            fu = open('unoccupiedT.txt','a')
+        else:
+            fu = open('unoccupiedT.txt','w')
+        
+        if os.path.isfile('mutAdultPostDeath.txt'):
+            fp = open('mutAdultPostDeath.txt','a')
+        else:
+            fp = open('mutAdultPostDeath.txt','w') 
+        
+        if os.path.isfile('wildAdultPostDeath.txt'):
+            fw = open('wildAdultPostDeath.txt','a')
+        else:
+            fw = open('wildAdultPostDeath.txt','w') 
+            
+        fm.write("-----------------\n")
+        fd.write("-----------------\n")
+        fu.write("-----------------\n")
+        fp.write("-----------------\n")
+        fw.write("-----------------\n")
+        
+        fm.close()
+        fd.close()
+        fu.close()
+        fp.close()
+        fw.close()
+        # ---------------------------------------------------
+        
+        # print('start-gamma  : %f' % (np.sum(pop)/params['T']))
         while ((pop[1] > 0) & (pop[1] < fixThrshld)): 
-            pop = calcualte_popEvoSelection_pFixEst(params,pop,d,c)
-            #print "time: %i, mutpopsize: %i" % (time,pop[1])
+            pop,mut = calculate_popEvoSelection_pFixEst(params,pop,d,c)
             time = time+1
+            
         mutFixCheck[ii] = int(pop[1] > 1)
     
     # estimate pFix by summing the number of times the mutant lineage grew 
     # sufficiently large (fixThrshld)
     pFixEst = mutFixCheck.sum()/nPfix
+    
+    # fm.close()
+    # fd.close()
     
     return pFixEst
 

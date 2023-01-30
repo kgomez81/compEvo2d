@@ -1,0 +1,113 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Feb 02 11:25:45 2019
+Masel Lab
+Project: Two trait adaptation: Relative versus absolute fitness 
+@author: Kevin Gomez
+
+Description:
+Defines the basics functions used in all scripts that process matlab
+data and create figures in the mutation-driven adaptation manuscript.
+"""
+# *****************************************************************************
+# libraries
+# *****************************************************************************
+
+import numpy as np
+import csv
+
+# *****************************************************************************
+#                       my classes and structures
+# *****************************************************************************
+
+class evoOptions:
+    # evoOptions encapsulates all evolution parameters needed to build a 
+    # Markov Chain model.
+    
+    def __init__(self,paramFilePath,saveDataName,saveFigName,modelType,varNames,varBounds,yi_option):
+        self.paramFilePath  = paramFilePath
+        self.saveDataName   = saveDataName
+        self.saveFigName    = saveFigName
+        
+        # set model type (str = 'RM' or 'DRE') 
+        self.modelType      = modelType
+        
+        # set list of variable names that will be used to specify the grid
+        # and the bounds with increments needed to define the grid.
+        
+        # square array is built with first two parmeters, and second set are held constant.
+        # varNames[0][0] stored as X1_ARRY
+        # varNames[1][0] stored as X1_ref
+        # varNames[0][1] stored as X2_ARRY
+        # varNames[1][1] stored as X2_ref
+        self.varNames       = varNames
+        
+        # varBounds values define the min and max bounds of parameters that are used to 
+        # define the square grid. 
+        # varBounds[j][0] = min Multiple of parameter value in file (Xj variable)
+        # varBounds[j][1] = max Multiple of parameter value in file (Xj variable)
+        # varBounds[j][2] = number of increments from min to max (log scale) 
+        self.varBounds      = varBounds
+        
+        # set root solving option for equilibrium densities
+        # (1) low-density analytic approximation 
+        # (2) high-density analytic approximation
+        # (3) root solving numerical approximation
+        self.yi_option      = yi_option
+        
+        # read the paremeter files and store as dictionary
+        self.params         = self.options_readParameterFile()
+        
+    def options_readParameterFile(self):
+        # This function reads the parameter values a file and creates a dictionary
+        # with the parameters and their values 
+    
+        # create array to store values and define the parameter names
+        if self.modelType == 'RM':
+            paramList = ['T','b','dOpt','sa','UaMax','Uad','cr','Ur','Urd','R']
+        else:
+            paramList = ['T','b','dOpt','alpha','Ua','Uad','cr','Ur','Urd','R']
+        paramValue = np.zeros([len(paramList),1])
+        
+        # read values from csv file
+        with open(self.paramFilePath,'r') as csvfile:
+            parInput = csv.reader(csvfile)
+            for (line,row) in enumerate(parInput):
+                paramValue[line] = float(row[0])
+        
+        # create dictionary with values
+        paramDict = dict([[paramList[i],paramValue[i][0]] for i in range(len(paramValue))])
+        
+        return paramDict
+
+
+#------------------------------------------------------------------------------
+    
+def read_pFixOutputs(readFile,nStates):
+    # This function reads the output file containing the estimated pfix values 
+    # simulations and stores them in an array so that they can be used in 
+    # creating figures.
+    #
+    # pFix values for absolute fitness classes should specified beginning from
+    # the optimal class, all the way up to the extinction class or greater. The
+    # code below will only read up to the extinction class.
+    #
+    # Inputs:
+    # readFile - name of csv file that has the estimated pFix values.
+    #
+    # Outputs:
+    # pFixValues - set of pFix values, beginning from the optimal absolute up to
+    #               the extinction class
+    
+    # create array to store pFix values
+    pFixValues = np.zeros([nStates,1])
+    
+    # read values from csv file
+    with open(readFile,'r') as csvfile:
+        pfixOutput = csv.reader(csvfile)
+        for (line,row) in enumerate(pfixOutput):
+            pFixValues[line] = float(row[0])
+    
+    return pFixValues
+    
+#------------------------------------------------------------------------------

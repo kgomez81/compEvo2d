@@ -26,6 +26,8 @@ import csv
 import math as math
 import pickle 
 
+from joblib import Parallel, delayed
+
 #------------------------------------------------------------------------------
 #                       Simulation functions
 # 
@@ -145,15 +147,9 @@ def calculate_Ri_term(m,c,U):
     
     # loop through the classes and calcualte the respective Ri term
     for i in range(len(l)):
-        if ((L-l[i]) == 0):
-            # calculate value via formula when there is no variation in c' terms 
-            # and when L ~ l[i], cbar ~ c[i].
-            out[i] = np.exp(-l[i])*(1-np.exp(-(L-l[i]))) \
-                    / ( 1 + ( (L-1+np.exp(-L)) / (1-(1+L)*np.exp(-L)) ) )
-        else:
-            # calculate value via formula from Bertram & Masel Lottery Model paper
-            out[i] = cbar*np.exp(-l[i])*(1-np.exp(-(L-l[i]))) \
-                    /( c[i] + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * ( (L-1+np.exp(-L)) / (1-(1+L)*np.exp(-L) ) ) )
+        # calculate value via formula from Bertram & Masel Lottery Model paper
+        out[i] = cbar*np.exp(-l[i])*(1-np.exp(-(L-l[i]))) \
+                /( c[i] + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * ( (L-1+np.exp(-L)) / (1-(1+L)*np.exp(-L) ) ) )
 
     return out
 
@@ -183,16 +179,17 @@ def calculate_Ai_term(m,c,U):
     
     # loop through the classes and calcualte the respective Ri term
     for i in range(len(l)):   
-        if ((1-(1+l[i])*np.exp(-l[i])) == 0) or ((L-l[i]) == 0):
+        if ((1-(1+l[i])*np.exp(-l[i])) > 0):
+            # use normal calculation when l[i] sufficiently large
+            t1 = l[i]*(1-np.exp(-l[i]))/(1-(1+l[i])*np.exp(-l[i]))
+        else:             
             # use this calculation when l[i] << 1, i.e. for a small mutant class that leads to divide by zero
-            out[i] = cbar*(1-np.exp(-l[i])) \
-                        / ( c[i] + cbar*( L*(1-np.exp(-L) ) / ( 1-(1+L)*np.exp(-L) ) - 1 ) )
-        else: 
-            out[i] = cbar*( 1-np.exp(-l[i]) ) \
-                        / ( np.exp(-l[i])*c[i]*l[i]*(1-np.exp(-l[i])) / (1-(1+l[i])*np.exp(-l[i])) \
-                        + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * \
-                          ( L*(1-np.exp(-L)) / (1-(1+L)*np.exp(-L)) - l[i]*(1-np.exp(-l[i]))/(1-(1+l[i])*np.exp(-l[i])) ) ) 
-    
+            t1 = 1
+                        
+        out[i] = cbar*( 1-np.exp(-l[i]) ) \
+                    / ( c[i]*t1 + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * \
+                      ( L*(1-np.exp(-L)) / (1-(1+L)*np.exp(-L)) - t1 ) ) 
+                        
     return out
 
 #------------------------------------------------------------------------------
@@ -254,18 +251,21 @@ def popdeath(pop,di):
 
 #------------------------------------------------------------------------------
     
-def calculate_popEvoSelection_pFixEst(params,pop,d,c): 
+def simulate_popEvoSelection(params,pop,d,c): 
     # This function simulates the evolution of a population given the parameters
     # and starting population provided in the inputs.
 	#
     # Inputs:
-    # 
+    # params    - dictionary with evolution parameters
+    # pop       - array abundances of subpopulation 
+    # d         - array with d-terms of subpopulations
+    # c         - array with c-terms of subpopulations
+    #
     # Outputs:
     # newpop - estimate of probability of fixation
     #
     
     # calcualte the number of unoccupied territories
-
     U = max([0,int(params['T'] - sum(pop))])
     
     # calculate the number of juveniles
@@ -275,33 +275,6 @@ def calculate_popEvoSelection_pFixEst(params,pop,d,c):
     newpop = [pop[i] for i in range(len(pop))]
     # print('pop array: (%i,%i)' % tuple(pop))
     
-    # creat output files
-    # ---------------------------------------------------
-    if os.path.isfile('mutOffspring.txt'):
-        fm = open('mutOffspring.txt','a')
-    else:
-        fm = open('mutOffspring.txt','w')
-    
-    if os.path.isfile('mutAdultPreDeath.txt'):
-        fd = open('mutAdultPreDeath.txt','a')
-    else:
-        fd = open('mutAdultPreDeath.txt','w')
-        
-    if os.path.isfile('unoccupiedT.txt'):
-        fu = open('unoccupiedT.txt','a')
-    else:
-        fu = open('unoccupiedT.txt','w')
-    
-    if os.path.isfile('mutAdultPostDeath.txt'):
-        fp = open('mutAdultPostDeath.txt','a')
-    else:
-        fp = open('mutAdultPostDeath.txt','w') 
-        
-    if os.path.isfile('wildAdultPostDeath.txt'):
-        fw = open('wildAdultPostDeath.txt','a')
-    else:
-        fw = open('wildAdultPostDeath.txt','w') 
-    # ---------------------------------------------------
     
     if U > 0:
         # calcualte new adults using both the deterministic equations and stochastic
@@ -312,32 +285,42 @@ def calculate_popEvoSelection_pFixEst(params,pop,d,c):
         # calculate the total number of adults per class.
         newpop[0] = int(pop[0] + deter_newAdults[0])
         newpop[1] = int(pop[1] + stoch_newAdults[1])
-
-        fm.write('mut-offspring   : %i\n' % (newpop[1]-pop[1]))
-        mutOffspring = newpop[1]-pop[1]
-        fd.write('adults pre-death: %i\n' % (newpop[1]))
-        fu.write('U = %i\n' % int(U))
-    else:
-        fu.write('U = %i\n' % int(U))
-    
+        
     
     # calculate the number of adults that survive
     newpop = popdeath(newpop,d) 
-    # print('post-death   : (%E, %i)' % tuple(newpop))
-    fp.write('post-death      : %i\n' % (newpop[1]))
-    fw.write('post-death      : %i\n' % (newpop[0]))
     
-    fm.close()
-    fd.close()
-    fu.close()
-    fp.close()
-    fw.close()
-    
-    return newpop,mutOffspring
+    return newpop
 
 #------------------------------------------------------------------------------
 
-def simulation_popEvo_pFixEst(params,init_pop,d,c,nPfix,fixThrshld):
+def simulate_mutantPopEvo2Extinction(params,pop,d,c,fixThrshld):
+    # This function simulates the evolution of a population, with  parameters
+    # given, until the mutant population becomes extinct.
+	#
+    # Inputs:
+    # params    - dictionary with evolution parameters
+    # pop       - array abundances of subpopulation 
+    # d         - array with d-terms of subpopulations
+    # c         - array with c-terms of subpopulations
+    # fixThreshold - minimum population size to consider lineage fixed.
+    #
+    # Outputs:
+    # mutFixCheck - value indicating if mutant lineage fixed or not
+    # time        - number of periods till extinction or fixation
+    
+    mutFixCheck = 0
+    
+    while ((pop[1] > 0) & (pop[1] < fixThrshld)): 
+        pop = simulate_popEvoSelection(params,pop,d,c)
+    
+    mutFixCheck = int(pop[1] > 1)
+        
+    return mutFixCheck
+
+#------------------------------------------------------------------------------
+
+def estimate_popEvo_pFix(params,init_pop,d,c,nPfix,fixThrshld):
     # This function simulates the evolution of a population (selection only) 
     # of a popluation with a wild type dominant genotype, and a newly appearing 
     # mutant lineage. 
@@ -357,123 +340,16 @@ def simulation_popEvo_pFixEst(params,init_pop,d,c,nPfix,fixThrshld):
     #
     
     # create an array to store results 1-mut lineage fixes, 0-mut lineage dies
-    mutFixCheck = np.zeros([nPfix]);
-
-    mutSurviveTime = [];
-    maxMutPops = []
+    # mutFixCheck = np.zeros([nPfix]);
     
     
-    # creat output files
-    # ---------------------------------------------------
-    # if os.path.isfile('mutOffspring.txt'):
-    #     fm = open('mutOffspring.txt','a')
-    # else:
-    #     fm = open('mutOffspring.txt','w')
-    
-    # if os.path.isfile('mutAdultPreDeath.txt'):
-    #     fd = open('mutAdultPreDeath.txt','a')
-    # else:
-    #     fd = open('mutAdultPreDeath.txt','w')
-        
-    # if os.path.isfile('unoccupiedT.txt'):
-    #     fu = open('unoccupiedT.txt','a')
-    # else:
-    #     fu = open('unoccupiedT.txt','w')
-    
-    # if os.path.isfile('mutAdultPostDeath.txt'):
-    #     fp = open('mutAdultPostDeath.txt','a')
-    # else:
-    #     fp = open('mutAdultPostDeath.txt','w') 
-        
-    # if os.path.isfile('wildAdultPostDeath.txt'):
-    #     fw = open('wildAdultPostDeath.txt','a')
-    # else:
-    #     fw = open('wildAdultPostDeath.txt','w') 
-        
-    fm = open('mutOffspring.txt','w')
-    fd = open('mutAdultPreDeath.txt','w')
-    fu = open('unoccupiedT.txt','w')
-    fp = open('mutAdultPostDeath.txt','w') 
-    fw = open('wildAdultPostDeath.txt','w') 
-        
-    fm.write("-----------------\n")
-    fd.write("-----------------\n")
-    fu.write("-----------------\n")
-    fp.write("-----------------\n")
-    fw.write("-----------------\n")
-    
-    fm.close()
-    fd.close()
-    fu.close()
-    fp.close()
-    fw.close()
-        
-    # fm = open('D:\Documents\compEvo2d\dataMutOffDistr.txt','w')
-    # fd = open('D:\Documents\compEvo2d\dataMutAdlDistr.txt','w')
-    # fm.writelines('Density: %f' % (sum(init_pop)/params['T']))
-    # fm.writelines('\n')
-    # fd.writelines('Density: %f' % (sum(init_pop)/params['T']))
-    # fd.writelines('\n')
-    
-    # loop through nPfix instances to estimate pFix
-    for ii in range(nPfix):
-        pop = init_pop
-        time = 0
-        maxMutPops = maxMutPops + [init_pop[1]]
-        
-        # creat output files
-        # ---------------------------------------------------
-        if os.path.isfile('mutOffspring.txt'):
-            fm = open('mutOffspring.txt','a')
-        else:
-            fm = open('mutOffspring.txt','w')
-        
-        if os.path.isfile('mutAdultPreDeath.txt'):
-            fd = open('mutAdultPreDeath.txt','a')
-        else:
-            fd = open('mutAdultPreDeath.txt','w')
+    # run parallel loops through nPfix instances to estimate pFix
+    mutFixCheck = Parallel(n_jobs=6)(delayed(simulate_mutantPopEvo2Extinction)(params,init_pop,d,c,fixThrshld) for ii in range(nPfix))
             
-        if os.path.isfile('unoccupiedT.txt'):
-            fu = open('unoccupiedT.txt','a')
-        else:
-            fu = open('unoccupiedT.txt','w')
-        
-        if os.path.isfile('mutAdultPostDeath.txt'):
-            fp = open('mutAdultPostDeath.txt','a')
-        else:
-            fp = open('mutAdultPostDeath.txt','w') 
-        
-        if os.path.isfile('wildAdultPostDeath.txt'):
-            fw = open('wildAdultPostDeath.txt','a')
-        else:
-            fw = open('wildAdultPostDeath.txt','w') 
-            
-        fm.write("-----------------\n")
-        fd.write("-----------------\n")
-        fu.write("-----------------\n")
-        fp.write("-----------------\n")
-        fw.write("-----------------\n")
-        
-        fm.close()
-        fd.close()
-        fu.close()
-        fp.close()
-        fw.close()
-        # ---------------------------------------------------
-        
-        # print('start-gamma  : %f' % (np.sum(pop)/params['T']))
-        while ((pop[1] > 0) & (pop[1] < fixThrshld)): 
-            pop,mut = calculate_popEvoSelection_pFixEst(params,pop,d,c)
-            time = time+1
-            
-        mutFixCheck[ii] = int(pop[1] > 1)
     
     # estimate pFix by summing the number of times the mutant lineage grew 
     # sufficiently large (fixThrshld)
-    pFixEst = mutFixCheck.sum()/nPfix
-    
-    # fm.close()
-    # fd.close()
+    pFixEst = np.asarray(mutFixCheck).sum()/nPfix
     
     return pFixEst
 

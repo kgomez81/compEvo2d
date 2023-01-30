@@ -14,343 +14,229 @@ data and create figures in the mutation-driven adaptation manuscript.
 # *****************************************************************************
 
 import numpy as np
-import scipy.special
-import scipy.optimize as opt
 import scipy.stats as st
-import scipy as sp
-import copy as cpy
-
-import bisect
-import csv
-import math as math
-import pickle 
-
-from evoLibraries import constants as c 
+import LotteryModel.LM_functions as lmFun
+import LotteryModel.LM_pFix_FSA as lmPfix
+import RateOfAdapt.ROA_functions as roaFun
 
 # *****************************************************************************
-#                       my classes and structures
+# Markov Chain Class - Running Out of Mutations (RM)
 # *****************************************************************************
 
-class evoOptions:
-    def __init__(self,paramFilePath,saveDataName,saveFigName,modelType,varNames,varBounds,yi_option):
-        self.paramFilePath  = paramFilePath
-        self.saveDataName   = saveDataName
-        self.saveFigName    = saveFigName
-        
-        # set model type (str = 'RM' or 'DRE') 
-        self.modelType      = modelType
-        
-        # set list of variable names that will be used to specify the grid
-        # and the bounds with increments needed to define the grid.
-        
-        # square array is built with first two parmeters, and second set are held constant.
-        # varNames[0][0] stored as X1_ARRY
-        # varNames[1][0] stored as X1_ref
-        # varNames[0][1] stored as X2_ARRY
-        # varNames[1][1] stored as X2_ref
-        self.varNames       = varNames
-        
-        # varBounds values define the min and max bounds of parameters that are used to 
-        # define the square grid. 
-        # varBounds[j][0] = min Multiple of parameter value in file (Xj variable)
-        # varBounds[j][1] = max Multiple of parameter value in file (Xj variable)
-        # varBounds[j][2] = number of increments from min to max (log scale) 
-        self.varBounds      = varBounds
-        
-        # set root solving option for equilibrium densities
-        # (1) low-density analytic approximation 
-        # (2) high-density analytic approximation
-        # (3) root solving numerical approximation
-        self.yi_option      = yi_option
-        
-        # read the paremeter files and store as dictionary
-        self.params         = self.options_readParameterFile()
-        
-    def options_readParameterFile(self):
-        # This function reads the parameter values a file and creates a dictionary
-        # with the parameters and their values 
+class mcEvoModel_DRE:
+    # class used to encaptulate all of evolution parameters for an Markov Chain (MC)
+    # representing a diminishing returns epistasis evolution model.
     
-        # create array to store values and define the parameter names
-        if self.modelType == 'RM':
-            paramList = ['T','b','dOpt','sa','UaMax','Uad','cr','Ur','Urd','R']
-        else:
-            paramList = ['T','b','dOpt','alpha','Ua','Uad','cr','Ur','Urd','R']
-        paramValue = np.zeros([len(paramList),1])
+    def __init__(self,params):
         
-        # read values from csv file
-        with open(self.paramFilePath,'r') as csvfile:
-            parInput = csv.reader(csvfile)
-            for (line,row) in enumerate(parInput):
-                paramValue[line] = float(row[0])
+        # Basic evolution parameters for Lottery Model (Bertram & Masel 2019)
+        self.params = params            # dictionary with evo parameters
         
-        # create dictionary with values
-        paramDict = dict([[paramList[i],paramValue[i][0]] for i in range(len(paramValue))])
+        # absolute fitness landscape (array of di terms)
+        self.di = self.get_absoluteFitnessClasses() 
         
-        return paramDict
-
-# *****************************************************************************
-# FUNCTIONS TO GET QUANTITIES FROM DESAI AND FISHER 2007
-# *****************************************************************************
-
-def get_vDF(N,s,U):
-    # Calculates the rate of adaptation v, derived in Desai and Fisher 2007
-    # for a given population size (N), selection coefficient (s) and beneficial
-    # mutation rate (U)
-    #
-    # Inputs:
-    # N - population size
-    # s - selection coefficient
-    # U - beneficial mutation rate
-    #
-    # Output: 
-    # v - rate of adaptation
+        # state space evolution parameters
+        self.state_i = np.zeros(self.di.shape) # state number
+        self.Ua_i    = np.zeros(self.di.shape) # absolute fitness mutation rate
+        self.Ur_i    = np.zeros(self.di.shape) # relative fitness mutation rate
+        self.eq_yi   = np.zeros(self.di.shape) # equilibrium density of fitness class i
+        self.eq_Ni   = np.zeros(self.di.shape) # equilibrium population size of fitness class i
+        self.sd_i    = np.zeros(self.di.shape) # selection coefficient of "d" trait beneficial mutation
+        self.sc_i    = np.zeros(self.di.shape) # selection coefficient of "c" trait beneficial mutation
         
-    v = s**2*(2*np.log(N*s)-np.log(s/U))/(np.log(s/U)**2)
+        self.get_stateSpaceEvoParameters()      # update parameter arrays above
+        
+        # state space pFix values
+        self.pFix_d_i = np.zeros(self.di.shape) # pFix of "d" trait beneficial mutation
+        self.pFix_c_i = np.zeros(self.di.shape) # pFix of "c" trait beneficial mutation
+        
+        self.get_stateSpacePfixValues()         # update pFix arrays (expand later to include options)    
+        
+        # state space evolution rates
+        self.va_i    = np.zeros(self.di.shape) # rate of adaptation in absolute fitness trait alone
+        self.vr_i    = np.zeros(self.di.shape) # rate of adaptation in relative fitness trait alone
+        self.ve_i    = np.zeros(self.di.shape) # rate of fitness decrease due to environmental degradation
+        
+        self.get_stateSpaceEvoRates()           # update evolution rate arrays above
+        
+    #------------------------------------------------------------------------------
     
-    return v
-
-#------------------------------------------------------------------------------
-
-def get_qDF(N,s,U):
-    # Calculates the rate of adaptation v, derived in Desai and Fisher 2007
-    # for a given population size (N), selection coefficient (s) and beneficial
-    # mutation rate (U)
-    #
-    # Inputs:
-    # N - population size
-    # s - selection coefficient
-    # U - beneficial mutation rate
-    #
-    # Output: 
-    # v - rate of adaptation
+    def get_iMax(self):
         
-    q = 2*np.log(N*s)/np.log(s/U)
+        # get the last state space closest the optimum
+        # Note: di begins with dExt, but does not include dOpt
+        iMax = (self.di.size)
+        
+        return iMax
     
-    return q
-
-#------------------------------------------------------------------------------
-
-def get_vDF_pFix(N,s,U,pFix):
-    # Calculates the rate of adaptation v, using a heuristic version of Desai 
-    # and Fisher 2007 argument, but without the asumption that p_fix ~ s, i.e. 
-    # for a given population size (N), selection coefficient (s) and beneficial
-    # mutation rate (U) and finally p_fix
-    #
-    # Inputs:
-    # N - population size
-    # s - selection coefficient
-    # U - beneficial mutation rate
-    # pFix -  probability of fixation
-    #
-    # Output: 
-    # v - rate of adaptation
-        
-    v = s**2*(2*np.log(N*pFix)-np.log(s/U))/(np.log(s/U)**2)
+    #------------------------------------------------------------------------------
     
-    return v
+    def get_last_di(self):
+        # get_last_di() calculates next d-term after di[-1], this value is 
+        # occasionally need it to calculate pfix and the rate of adaption.
+        
+        
+        
+        return di_last
+    #------------------------------------------------------------------------------
+    
+    def get_absoluteFitnessClasses(self):
+        # get_absoluteFitnessClasses() generates the sequence of death terms
+        # that represent the absolute fitness space.
+        # 
+        # the fitness space is contructed up a selection coefficient threshold
+        #
+        # Note: the state space order for DRE is reversed from RM
+        
+        # define lowerbound for selection coefficients
+        minSelCoeff = 1/self.params['T']   # lower bound on neutral limit   
+        
+        # Recursively calculate set of absolute fitness classes 
+        dMax        = self.params['b']+1
+        di          = [dMax]
+        getNext_di  = True
+        ii          = 1             
+        
+        while (getNext_di):
 
+            # get next d-term using log series CDF
+            dNext = dMax*(self.params['dOpt']/dMax)**st.logser.cdf(ii,self.params['alpha'])
+            
+            selCoeff_ii = lmFun.get_d_SelectionCoeff(di[-1],dNext) 
+            
+            if (selCoeff_ii > minSelCoeff):
+                # selection coefficient above threshold, so ad dNext 
+                di = di + [ dNext ]
+            else:
+                # size of selection coefficient fell below threshold
+                getNext_di = False
+        
+        # Return di as array
+        return np.asarray(di)
 
-#------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------
+    
+    def get_stateSpaceEvoParameters(self):
+        
+        # calculate population parameters for each of the states in the markov chain model
+        # the evolution parameters are calculated along the absolute fitness state space
+        # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
+        
+        yi_option = 3   # numerically solve for equilibrium population densities
+        
+        # loop through state space to calculate following: 
+        # mutation rates, equilb. density, equilb. popsize, selection coefficients
+        #
+        # NOTE: pFix value not calculate here, but in sepearate function to that method 
+        # of getting pFix values can be selected without mucking up the code here.
+        for ii in range(self.di.size):
+            self.state_i[ii] = -(ii+1)
+            
+            # mutation rates (per birth per generation - NEED TO CHECK IF CORRECT)
+            self.Ua_i[ii]    = self.params['Ua']
+            self.Ur_i[ii]    = self.params['Ur']
+            
+            # population sizes and densities 
+            self.eq_yi[ii]   = lmFun.get_eqPopDensity(self.params['b'],self.di[ii],yi_option)
+            self.eq_Ni[ii]   = self.params['T']*lmFun.eq_yi[ii]
+            
+            # selection coefficients ( time scale = 1 generation)
+            self.sc_i[ii]    = lmFun.get_c_SelectionCoeff(self.params['b'],self.eq_yi[ii], \
+                                                          self.params['cr'],self.di[ii])
+            # calculation for d-selection coefficient cannot be performed 
+            if (ii < self.di.size): 
+                self.sd_i[ii]   = lmFun.get_d_SelectionCoeff(self.di[ii],self.di[ii+1])
+            else:
+                # we don't story the next di term due to cutoff for the threshold
+                # get next d-term using log series CDF (note: dMax = di[0])
+                dNext = self.di[0] * (self.params['dOpt']/self.di[0])**st.logser.cdf(ii,self.params['alpha'])
+                
+                # save the selection coefficient of next mutation.
+                self.sd_i[ii]   = lmFun.get_d_SelectionCoeff(self.di[-1],dNext) 
 
-def get_vSucc_pFix(N,s,U,pFix):
-    # Calculates the rate of adaptation v for the successional regime
-    #
-    # Inputs:
-    # N - population size
-    # s - selection coefficient
-    # U - beneficial mutation rate
-    # pFix - probability of fixation
-    #
-    # Output: 
-    # v - rate of adaptation
-        
-    v = N*U*pFix*s
-    
-    return v
+        return None 
 
-#------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------
+    
+    def get_stateSpacePfixValues(self):
+        
+        # calculate population parameters for each of the states in the markov chain model
+        # the evolution parameters are calculated along the absolute fitness state space
+        # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
+        
+        yi_option = 3   # numerically solve for equilibrium population densities
+        
+        # loop through state space to calculate following: 
+        # pFix values
+        for ii in range(self.di.size):
+            # ----- Probability of Fixation Calculations -------
+            # Expand this section alter to select different options for calculating pFix
+            # 1) First step analysis, (fastest but likely not as accurate across parameter space)
+            # 2) Transition matrix steady state (slower but improved accuracy, requires tuning matrix size)
+            # 3) Simulation (slowest but most accurate across parameter space)
+            
+            # ---- First step analysis method of obtaining pFix -------
+            # set up parameters/arrays for pfix calculations
+            kMax = 10   # use up to 10th order term of Prob Generating function to root find pFix
+            
+            # pFix d-trait beneficial mutation
+            # NOTE: second array entry of dArry corresponds to mutation
+            if (ii == 0):
+                # if at first state space, then use dOpt since it is not in the di array
+                dArry = np.array( [self.di[ii], self.params['dOpt'] ] )
+            else:
+                # if not at first state space then evolution goes from ii -> ii-1
+                dArry = np.array( [self.di[ii], self.di[ii-1]       ] )
+            cArry = np.array( [1, 1] )
+            
+            self.pFix_c_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
+                                                         self.params['T'], \
+                                                         dArry, \
+                                                         cArry, \
+                                                         kMax)
+            # pFix c-trait beneficial mutation
+            # NOTE: second array entry of cArry corresponds to mutation
+            dArry = np.array( [self.di[ii], self.di[ii]         ] )
+            cArry = np.array( [1          , 1+self.params['cr'] ] )  # mutation in c-trait
+            self.pFix_d_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
+                                                         self.params['T'], \
+                                                         dArry, \
+                                                         cArry, \
+                                                         kMax)
+        return None
+    
 
-def get_vOH(N,s,U):
-    # Calculates the rate of adaptation v, using a heuristic version of Desai 
-    # and Fisher 2007 argument, but without the asumption that p_fix ~ s, i.e. 
-    # for a given population size (N), selection coefficient (s) and beneficial
-    # mutation rate (U) and finally p_fix
-    #
-    # Inputs:
-    # N - population size
-    # s - selection coefficient
-    # U - beneficial mutation rate
-    #
-    # Output: 
-    # v - rate of adaptation
+    #------------------------------------------------------------------------------
 
-    D = 0.5*U*s**2     
+    def get_stateSpaceEvoRates(self):
+        
+        # calculate evolution parameters for each of the states in the markov chain model
+        # the evolution parameters are calculated along the absolute fitness state space
+        # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
+        for ii in range(self.di.size):
+            # absolute fitness rate of adaptation ( on time scale of generations)
+            self.va_i = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
+                                               self.sa_i[ii], \
+                                               self.Ua_i[ii], \
+                                               self.pFixAbs_i[ii])
+                
+            # relative fitness rate of adaptation ( on time scale of generations)
+            self.vr_i = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
+                                               self.sr_i[ii], \
+                                               self.Ur_i[ii], \
+                                               self.pFixRel_i[ii])
+                
+            # rate of fitness decrease due to environmental change ( on time scale of generations)
+            # fitness assumed to decrease by sa = absolute fitness increment.
+            self.ve_i = self.params['sa'] * self.params['R'] * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
+            
+        return None
     
-    v = D**0.6667*(np.log(N*D**0.3333))**0.3333
-    
-    return v
-
-#------------------------------------------------------------------------------
-
-def get_rateOfAdapt(N,s,U,pFix):
-    # Calculates the rate of adaptation v, but checks which regime applies.
-    #
-    # Inputs:
-    # N - population size
-    # s - selection coefficient
-    # U - beneficial mutation rate
-    # pFix -  probability of fixation
-    #
-    # Output: 
-    # v - rate of adaptation
-    #
-    
-    # check that selection coefficient, pop size and beneficial mutation rate 
-    # are valid parameters
-    
-    regimeID = get_regimeID(N,s,U,pFix)        
-    
-    if regimeID == 0:
-        # bad evolutionary parameters  
-        v = 0
-        
-    if regimeID == 1:
-        # successional regime
-        v = get_vSucc_pFix(N,s,U,pFix)        
-        
-    elif regimeID == 2:
-        # multiple mutation regime
-        v = get_vDF_pFix(N,s,U,pFix)
-        
-    elif regimeID == 2: 
-        # diffusive mutations regime
-        v = get_vOH(N,s,U)        
-        
-    else:
-        # regime undetermined
-        v = -1
-        
-    return v
-
-#------------------------------------------------------------------------------
-    
-def get_regimeID(N,s,U,pFix):
-    # Calculates the rate of adaptation v, but checks which regime applies.
-    #
-    # Inputs:
-    # N - population size
-    # s - selection coefficient
-    # U - beneficial mutation rate
-    # pFix -  probability of fixation
-    #
-    # Output: 
-    # v - rate of adaptation
-    #
-    
-    # check that selection coefficient, pop size and beneficial mutation rate 
-    # are valid parameters
-    if (s <= 0) or (N <= 0) or (U <= 0) or (pFix <= 0):
-        # bad evolutionary parameters
-        regID = 0
-        return regID
-    
-    # Calculate mean time between establishments
-    Test = 1/N*U*pFix
-    
-    # Calculate mean time of sweep
-    Tswp = (1/s)*np.log(N*pFix)
-        
-    # calculate rate of adaptation based on regime
-    if (Test >= Tswp/c.CI_TIMESCALE_TRANSITION):
-        # successional, establishment time scale exceeds sweep time scale
-        regID = 1
-        
-    elif (s > c.MM_REGIME_MULTIPLE*U) and (Test <= c.CI_TIMESCALE_TRANSITION*Tswp):
-        # multiple mutations, selection time scale smaller than  mutation time scale
-        regID = 2
-        
-    elif (U <= c.DM_REGIME_MULTIPLE*s) and (Test <= c.CI_TIMESCALE_TRANSITION*Tswp):
-        # diffusive mutations, 
-        regID = 3
-    
-    else:
-        # regime undetermined
-        regID = -1
-    
-    return regID
-
-#------------------------------------------------------------------------------
-
-def get_eqPopDensity(b,di,option):
-    # Calculate the equilibrium population size for the Bertram & Masel
-    # variable density lottery model, single abs-fitness class case. For 
-    # multiple abs-fitness classes, used dHar = harmonic mean of di weighted 
-    # by frequency.
-    #
-    # Inputs:
-    # b - juvenile birth term
-    # di - death term of abs-fitness class i
-    #
-    # Output: 
-    # eq_density - equilibrium population density
-    #
-    
-    def eq_popsize_err(y):    
-        # used in numerical approach to obtain equilibrium population density    
-        return (1-y)*(1-np.exp(-b*y))-(di-1)*y
-
-    if option == 1:
-        # approximation near optimal gentotype
-        eq_density = (1-np.exp(-b))/(di-np.exp(-b))+(di-1)/(di-np.exp(-b))* \
-                        (np.exp(-b)-np.exp(-b*(1-np.exp(-b))/(di-np.exp(-b))))/ \
-                                (di-np.exp(-b*(1-np.exp(-b))/(di-np.exp(-b))))
-        
-        eq_density = np.max([eq_density,0]) # ensure density >= 0
-        
-    elif option == 2:
-        # approximation near extinction genotype
-        eq_density = (b+2)/(2*b)*(1-np.sqrt(1-8*(b-di+1)/(b+2)**2))
-        
-        eq_density = np.max([eq_density,0]) # ensure density >= 0
-        
-    else:
-        # numerical solution to steady state population size equation
-        eq_density = opt.broyden1(eq_popsize_err,[1], f_tol=1e-14)
-        
-        eq_density = np.max([eq_density[0],0]) # ensure density >= 0
-        
-    return eq_density
+    #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
     
-def get_absoluteFitnessClasses(b,dOpt,sa):
-    # function calculates the class for which population size has a negative 
-    # growth rate in the Bertram & Masel 2019 lottery model
-    #
-    # inputs:
-    # b - juvenile birth rate
-    # dOpt - death term of optimal genotype
-    # sa - selection coefficient of beneficial mutations in "d" trait
-    #
-    # Output: 
-    # dMax - largest death term after which there is negative growth in pop size
-    # di - list of death terms corresponding to the discrete absolute fit classes
-    
-    # Theoretical derivations show that maximum size of death term is given by 
-    # value below. See Appendix A in manuscript.
-    dMax = b+1
-    
-    # Recursively calculate set of absolute fitness classes 
-    di = [dOpt]
-    ii = 0
-    while (di[-1] < dMax):
-        # loop until stop at dMax or greater reached
-        di = di+[di[ii-1]*(1+sa*(di[ii-1]-1))]
-    
-    di = np.asarray(di)
-    iExt = int(di.shape[0]-1)
-    
-    return [dMax,di,iExt]
+
 
 #------------------------------------------------------------------------------
 
@@ -818,4 +704,15 @@ def get_contourPlot_arrayData(myOptions):
     
     return None
 
-#------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+

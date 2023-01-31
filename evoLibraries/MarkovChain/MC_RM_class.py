@@ -126,8 +126,6 @@ class mcEvoModel_RM:
         # the evolution parameters are calculated along the absolute fitness state space
         # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
         
-        yi_option = 3   # numerically solve for equilibrium population densities
-        
         # loop through state space to calculate following: 
         # pFix values
         for ii in range(self.di.size):

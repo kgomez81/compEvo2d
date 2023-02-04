@@ -5,34 +5,96 @@ Masel Lab
 Project: Two trait adaptation: Relative versus absolute fitness 
 @author: Kevin Gomez
 
-Description:
-Defines the basics functions used in all scripts that process matlab
-data and create figures in the mutation-driven adaptation manuscript.
+Description: Defintion of RM MC class for defining Markov Chain models
+of evolution that approximate the evolution in the Bertram & Masel 2019 
+variable density lottery model.
 """
+
 # *****************************************************************************
-# libraries
+# import libraries
 # *****************************************************************************
 
 import numpy as np
+
+import MarkovChain.MC_class as mc
 import LotteryModel.LM_functions as lmFun
 import LotteryModel.LM_pFix_FSA as lmPfix
-import RateOfAdapt.ROA_functions as roaFun
 
 # *****************************************************************************
 # Markov Chain Class - Running Out of Mutations (RM)
 # *****************************************************************************
 
-class mcEvoModel_RM:
+class mcEvoModel_RM(mc.mcEvoModel):
     # class used to encaptulate all of evolution parameters for an Markov Chain (MC)
     # representing a running out of mutations evolution model.
+    
+    # MC_class for list of class attribures
+    #
+    # Fitness landscape
+    # di      #absolute fitness landscape (array of di terms), 
+    
+    # state space evolution parameters
+    # state_i # state number
+    # Ua_i    # absolute fitness mutation rate
+    # Ur_i    # relative fitness mutation rate
+    # eq_yi   # equilibrium density of fitness class i
+    # eq_Ni   # equilibrium population size of fitness class i
+    # sd_i    # selection coefficient of "d" trait beneficial mutation
+    # sc_i    # selection coefficient of "c" trait beneficial mutation
+    
+    # state space pFix values
+    # pFix_d_i = np.zeros(self.di.shape) # pFix of "d" trait beneficial mutation
+    # pFix_c_i = np.zeros(self.di.shape) # pFix of "c" trait beneficial mutation
+    
+    # state space evolution rates
+    # va_i    # rate of adaptation in absolute fitness trait alone
+    # vr_i    # rate of adaptation in relative fitness trait alone
+    # ve_i    # rate of fitness decrease due to environmental degradation
+    
+    #------------------------------------------------------------------------------
+    # Class constructor
+    #------------------------------------------------------------------------------
     
     def __init__(self,params):
         
         # Basic evolution parameters for Lottery Model (Bertram & Masel 2019)
-        self.params = params            # dictionary with evo parameters
+        super().__init__(params)            # dictionary with evo parameters
         
-        # absolute fitness landscape (array of di terms)
+        # Load absolute fitness landscape (array of di terms)
         self.di = self.get_absoluteFitnessClasses() 
+        
+        # update parameter arrays above
+        self.get_stateSpaceEvoParameters()      
+        
+        # update pFix arrays (expand later to include options)    
+        self.get_stateSpacePfixValues()         
+        
+        # update evolution rate arrays above
+        super().get_stateSpaceEvoRates()           
+        
+    #------------------------------------------------------------------------------
+    # Definitions for abstract methods
+    #------------------------------------------------------------------------------
+    
+    def get_absoluteFitnessClasses(self):
+        # get_absoluteFitnessClasses() generates the sequence of death terms
+        # that represent the absolute fitness space. Additionally, with the state
+        # space defined, we allocate arrays for all of the other evolutation 
+        # parameters and rates.
+        
+        # Recursively calculate set of absolute fitness classes 
+        dMax = self.params['b']+1
+        di = [self.params['dOpt']]
+        
+        while (di[-1] < dMax):
+            # loop until at dMax or greater (max death term for viable pop)
+            di = di+[di[-1]*(1+self.params['sa']*(di[-1]-1))]
+        
+        # FinallRemove dOpt from state space
+        self.di = np.asarray(di[1:])
+        
+        # Now that the state space is defined, adjust the size of all other arrays
+        # that store evolution parameters and rates
         
         # state space evolution parameters
         self.state_i = np.zeros(self.di.shape) # state number
@@ -43,47 +105,16 @@ class mcEvoModel_RM:
         self.sd_i    = np.zeros(self.di.shape) # selection coefficient of "d" trait beneficial mutation
         self.sc_i    = np.zeros(self.di.shape) # selection coefficient of "c" trait beneficial mutation
         
-        self.get_stateSpaceEvoParameters()      # update parameter arrays above
-        
         # state space pFix values
         self.pFix_d_i = np.zeros(self.di.shape) # pFix of "d" trait beneficial mutation
         self.pFix_c_i = np.zeros(self.di.shape) # pFix of "c" trait beneficial mutation
-        
-        self.get_stateSpacePfixValues()         # update pFix arrays (expand later to include options)    
         
         # state space evolution rates
         self.va_i    = np.zeros(self.di.shape) # rate of adaptation in absolute fitness trait alone
         self.vr_i    = np.zeros(self.di.shape) # rate of adaptation in relative fitness trait alone
         self.ve_i    = np.zeros(self.di.shape) # rate of fitness decrease due to environmental degradation
         
-        self.get_stateSpaceEvoRates()           # update evolution rate arrays above
-        
-    #------------------------------------------------------------------------------
-    
-    def get_iExt(self):
-        
-        # get the last state space corresponding to extinction of the pop
-        # Note: di does not include dOpt, so we add 1)
-        iExt = (self.di.size+1)
-        
-        return iExt
-    
-    #------------------------------------------------------------------------------
-    
-    def get_absoluteFitnessClasses(self):
-        # get_absoluteFitnessClasses() generates the sequence of death terms
-        # that represent the absolute fitness space.
-        
-        # Recursively calculate set of absolute fitness classes 
-        dMax = self.params['b']+1
-        di = [self.params['dOpt']]
-        
-        while (di[-1] < dMax):
-            # loop until at dMax or greater (max death term for viable pop)
-            di = di+[di[-1]*(1+self.params['sa']*(di[-1]-1))]
-        
-        # Remove dOpt from state space
-        return np.asarray(di[1:])
+        return None
 
     #------------------------------------------------------------------------------
     
@@ -165,31 +196,32 @@ class mcEvoModel_RM:
                                                          kMax)
         return None
     
+    # ------------------------------------------------------------------------------
+    #  List of conrete methods from MC class
+    # ------------------------------------------------------------------------------
+    
+    " def get_stateSpaceEvoRates(self):                                                     "
+    "                                                                                       "
+    "     calculate evolution parameters for each of the states in the markov chain model   "
+    "     the evolution parameters are calculated along the absolute fitness state space    "
+    "     beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)     "
+    
 
-    #------------------------------------------------------------------------------
-
-    def get_stateSpaceEvoRates(self):
+    " def read_pFixOutputs(self,readFile,nStates):                                          "
+    "                                                                                       "
+    "     read_pFixOutputs reads the output file containing estimated pfix values           "
+    "     from simulations and stores them in an array so that they can be used in          "
+    "     creating figures.                                                                 "
+    
+    # ------------------------------------------------------------------------------
+    #  Specific methods for the RM MC class
+    # ------------------------------------------------------------------------------
+    
+    def get_iExt(self):      
+        # get_iExt()  returns the last state space corresponding to extinction 
+        # of the pop. Since dOpt is always zero and not part of the di array, 
+        # then dExt is just the size of di array.
         
-        # calculate evolution parameters for each of the states in the markov chain model
-        # the evolution parameters are calculated along the absolute fitness state space
-        # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
-        for ii in range(self.di.size):
-            # absolute fitness rate of adaptation ( on time scale of generations)
-            self.va_i = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
-                                               self.sa_i[ii], \
-                                               self.Ua_i[ii], \
-                                               self.pFixAbs_i[ii])
-                
-            # relative fitness rate of adaptation ( on time scale of generations)
-            self.vr_i = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
-                                               self.sr_i[ii], \
-                                               self.Ur_i[ii], \
-                                               self.pFixRel_i[ii])
-                
-            # rate of fitness decrease due to environmental change ( on time scale of generations)
-            # fitness assumed to decrease by sa = absolute fitness increment.
-            self.ve_i = self.params['sa'] * self.params['R'] * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
-            
-        return None
+        return self.di.size
     
     #------------------------------------------------------------------------------

@@ -79,35 +79,3 @@ class evoOptions:
         paramDict = dict([[paramList[i],paramValue[i][0]] for i in range(len(paramValue))])
         
         return paramDict
-
-
-#------------------------------------------------------------------------------
-    
-def read_pFixOutputs(readFile,nStates):
-    # This function reads the output file containing the estimated pfix values 
-    # simulations and stores them in an array so that they can be used in 
-    # creating figures.
-    #
-    # pFix values for absolute fitness classes should specified beginning from
-    # the optimal class, all the way up to the extinction class or greater. The
-    # code below will only read up to the extinction class.
-    #
-    # Inputs:
-    # readFile - name of csv file that has the estimated pFix values.
-    #
-    # Outputs:
-    # pFixValues - set of pFix values, beginning from the optimal absolute up to
-    #               the extinction class
-    
-    # create array to store pFix values
-    pFixValues = np.zeros([nStates,1])
-    
-    # read values from csv file
-    with open(readFile,'r') as csvfile:
-        pfixOutput = csv.reader(csvfile)
-        for (line,row) in enumerate(pfixOutput):
-            pFixValues[line] = float(row[0])
-    
-    return pFixValues
-    
-#------------------------------------------------------------------------------

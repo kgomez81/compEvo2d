@@ -11,19 +11,17 @@ see Bertram & Masel 2019 for details of lottery model
 #                               Libraries   
 # --------------------------------------------------------------------------
 
-
 import matplotlib.pyplot as plt
 
 import sys
 sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
 
 
-from evoLibraries import evoObjects as evoObj            # my functions in a seperate file
+from evoLibraries import evoObjects as evoObj
 
-from evoLibraries.MarkovChain.MC_RM_class import *            # my functions in a seperate file
+from evoLibraries.MarkovChain import MC_RM_class as mcRM  
 
-import evoLibraries.MarkovChain
-import MarkovChain.MC_RM_class as mcRM
+import evoLibraries.MarkovChain.MC_RM_class as mcRM
 
 # --------------------------------------------------------------------------
 # Calculate Markov Chain Evolution Parameters - Panel (A)

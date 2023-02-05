@@ -24,40 +24,24 @@ class evoOptions:
     # evoOptions encapsulates all evolution parameters needed to build a 
     # Markov Chain model.
     
-    def __init__(self,paramFilePath,saveDataName,saveFigName,modelType,varNames,varBounds,yi_option):
+    # --------------------------------------------------------------------------
+    # Constructor
+    # --------------------------------------------------------------------------
+    
+    def __init__(self,paramFilePath,modelType):
+        # file path to csv with parameters
         self.paramFilePath  = paramFilePath
-        self.saveDataName   = saveDataName
-        self.saveFigName    = saveFigName
         
         # set model type (str = 'RM' or 'DRE') 
         self.modelType      = modelType
         
-        # set list of variable names that will be used to specify the grid
-        # and the bounds with increments needed to define the grid.
-        
-        # square array is built with first two parmeters, and second set are held constant.
-        # varNames[0][0] stored as X1_ARRY
-        # varNames[1][0] stored as X1_ref
-        # varNames[0][1] stored as X2_ARRY
-        # varNames[1][1] stored as X2_ref
-        self.varNames       = varNames
-        
-        # varBounds values define the min and max bounds of parameters that are used to 
-        # define the square grid. 
-        # varBounds[j][0] = min Multiple of parameter value in file (Xj variable)
-        # varBounds[j][1] = max Multiple of parameter value in file (Xj variable)
-        # varBounds[j][2] = number of increments from min to max (log scale) 
-        self.varBounds      = varBounds
-        
-        # set root solving option for equilibrium densities
-        # (1) low-density analytic approximation 
-        # (2) high-density analytic approximation
-        # (3) root solving numerical approximation
-        self.yi_option      = yi_option
-        
         # read the paremeter files and store as dictionary
-        self.params         = self.options_readParameterFile()
+        self.options_readParameterFile()
         
+    # --------------------------------------------------------------------------
+    # Methods
+    # --------------------------------------------------------------------------
+    
     def options_readParameterFile(self):
         # This function reads the parameter values a file and creates a dictionary
         # with the parameters and their values 
@@ -76,6 +60,39 @@ class evoOptions:
                 paramValue[line] = float(row[0])
         
         # create dictionary with values
-        paramDict = dict([[paramList[i],paramValue[i][0]] for i in range(len(paramValue))])
+        self.params = dict([[paramList[i],paramValue[i][0]] for i in range(len(paramValue))])
         
-        return paramDict
+        return None
+
+# --------------------------------------
+
+class evoGridOptions(evoOptions):
+    # evoGridOptions encapsulates evolution parameters and bounds to define 
+    # a grid of Markov Chain models for figures.
+    
+    def __init__(self,paramFilePath,modelType,saveDataName,saveFigName,varNames,varBounds):
+        
+        super().__init__(paramFilePath,modelType)
+        
+        # save path for array with MC sampling 
+        self.saveDataName   = saveDataName
+        
+        # set list of variable names that will be used to specify the grid
+        # and the bounds with increments needed to define the grid.
+        
+        # square array is built with first two parmeters, and second set are held constant.
+        # varNames[0][0] stored as X1_ARRY
+        # varNames[1][0] stored as X1_ref
+        # varNames[0][1] stored as X2_ARRY
+        # varNames[1][1] stored as X2_ref
+        self.varNames       = varNames
+        
+        # varBounds values define the min and max bounds of parameters that are used to 
+        # define the square grid. 
+        # varBounds[j][0] = min Multiple of parameter value in file (Xj variable)
+        # varBounds[j][1] = max Multiple of parameter value in file (Xj variable)
+        # varBounds[j][2] = number of increments from min to max (log scale) 
+        self.varBounds      = varBounds
+
+
+

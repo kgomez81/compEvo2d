@@ -11,13 +11,19 @@ see Bertram & Masel 2019 for details of lottery model
 #                               Libraries   
 # --------------------------------------------------------------------------
 
-import scipy as sp
-import numpy as np
+
 import matplotlib.pyplot as plt
 
 import sys
 sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
-from evoLibraries import evo_library as myfun            # my functions in a seperate file
+
+
+from evoLibraries import evoObjects as evoObj            # my functions in a seperate file
+
+from evoLibraries.MarkovChain.MC_RM_class import *            # my functions in a seperate file
+
+import evoLibraries.MarkovChain
+import MarkovChain.MC_RM_class as mcRM
 
 # --------------------------------------------------------------------------
 # Calculate Markov Chain Evolution Parameters - Panel (A)
@@ -41,40 +47,23 @@ from evoLibraries import evo_library as myfun            # my functions in a sep
 
 # The parameter file is read and a dictionary with their values is generated.
 workDir = 'D:/Documents/GitHub/compEvo2d/'
-paramFile = workDir + 'inputs/evoExp_RM_01_parameters.csv'
-params = myfun.read_parameterFile(paramFile)
+paramFilePath = workDir + 'inputs/evoExp_RM_01_parameters.csv'
+modelType = 'RM'
 
-# Calculate absolute fitness state space. This requires specificying:
-# dMax  - max size of death term that permits non-negative growth in abundances
-# di    - complete of death terms of the various absolute fitness states
-# iExt  - extinction class
-[dMax,di,iExt] = myfun.get_absoluteFitnessClasses(params['b'],params['dOpt'],params['sa'])
+mcParams = evoObj.evoOptions(paramFilePath, modelType)
 
-# pFix values from simulations are loaded for abs-fit mutations to states 0,...,iMax-1 
-pFixAbs_File = workDir + 'outputs/evoExp01_absPfix.csv'
-pFixAbs_i     = myfun.read_pFixOutputs(pFixAbs_File,iExt)
+mcModel1 = mcRM.mcEvoModel_RM(mcParams.params)
 
-# pFix values from simulations are loaded for rel-fit mutations at states 1,...,iMax 
-pFixRel_File = workDir + 'outputs/evoExp01_relPfix.csv'
-pFixRel_i    = myfun.read_pFixOutputs(pFixRel_File,iExt)
 
-# set root solving option for equilibrium densities
-# (1) low-density analytic approximation 
-# (2) high-density analytic approximation
-# (3) root solving numerical approximation
-yi_option = 3  
-
-[state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i,va_i,vr_i,ve_i] = \
-                    myfun.get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option)
 
 # --------------------------------------------------------------------------
 #                               Figure - Panel (A)
 # --------------------------------------------------------------------------
 fig1, (ax1,ax2) = plt.subplots(2,1,figsize=[7,12])
 
-ax1.plot(state_i,ve_i,color="black",linewidth=3,label=r'$v_e$')
-ax1.scatter(state_i,va_i,color="blue",s=8,label=r'$v_a$')
-ax1.scatter(state_i,vr_i,color="red",s=8,label=r'$v_r$')
+ax1.plot(       state_i,ve_i,color="black",linewidth=3,label=r'$v_e$')
+ax1.scatter(    state_i,va_i,color="blue",s=8,label=r'$v_a$')
+ax1.scatter(    state_i,vr_i,color="red",s=8,label=r'$v_r$')
 
 # axes and label adjustements
 ax1.set_xlim(-iExt-1,0)

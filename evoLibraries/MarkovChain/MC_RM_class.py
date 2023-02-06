@@ -35,8 +35,8 @@ class mcEvoModel_RM(mc.mcEvoModel):
     
     # state space evolution parameters
     # state_i # state number
-    # Ua_i    # absolute fitness mutation rate
-    # Ur_i    # relative fitness mutation rate
+    # Ud_i    # absolute fitness mutation rate
+    # Uc_i    # relative fitness mutation rate
     # eq_yi   # equilibrium density of fitness class i
     # eq_Ni   # equilibrium population size of fitness class i
     # sd_i    # selection coefficient of "d" trait beneficial mutation
@@ -47,8 +47,8 @@ class mcEvoModel_RM(mc.mcEvoModel):
     # pFix_c_i = np.zeros(self.di.shape) # pFix of "c" trait beneficial mutation
     
     # state space evolution rates
-    # va_i    # rate of adaptation in absolute fitness trait alone
-    # vr_i    # rate of adaptation in relative fitness trait alone
+    # vd_i    # rate of adaptation in absolute fitness trait alone
+    # vc_i    # rate of adaptation in relative fitness trait alone
     # ve_i    # rate of fitness decrease due to environmental degradation
     
     #------------------------------------------------------------------------------
@@ -98,8 +98,8 @@ class mcEvoModel_RM(mc.mcEvoModel):
         
         # state space evolution parameters
         self.state_i = np.zeros(self.di.size) # state number
-        self.Ua_i    = np.zeros(self.di.size) # absolute fitness mutation rate
-        self.Ur_i    = np.zeros(self.di.size) # relative fitness mutation rate
+        self.Ud_i    = np.zeros(self.di.size) # absolute fitness mutation rate
+        self.Uc_i    = np.zeros(self.di.size) # relative fitness mutation rate
         self.eq_yi   = np.zeros(self.di.size) # equilibrium density of fitness class i
         self.eq_Ni   = np.zeros(self.di.size) # equilibrium population size of fitness class i
         self.sd_i    = np.zeros(self.di.size) # selection coefficient of "d" trait beneficial mutation
@@ -110,8 +110,8 @@ class mcEvoModel_RM(mc.mcEvoModel):
         self.pFix_c_i = np.zeros(self.di.size) # pFix of "c" trait beneficial mutation
         
         # state space evolution rates
-        self.va_i    = np.zeros(self.di.size) # rate of adaptation in absolute fitness trait alone
-        self.vr_i    = np.zeros(self.di.size) # rate of adaptation in relative fitness trait alone
+        self.vd_i    = np.zeros(self.di.size) # rate of adaptation in absolute fitness trait alone
+        self.vc_i    = np.zeros(self.di.size) # rate of adaptation in relative fitness trait alone
         self.ve_i    = np.zeros(self.di.size) # rate of fitness decrease due to environmental degradation
         
         return None
@@ -135,8 +135,8 @@ class mcEvoModel_RM(mc.mcEvoModel):
             self.state_i[ii] = -(ii+1)
             
             # mutation rates (per birth per generation - NEED TO CHECK IF CORRECT)
-            self.Ua_i[ii]    = self.params['UaMax']*float(ii+1)/self.get_iExt()
-            self.Ur_i[ii]    = self.params['Ur']
+            self.Ud_i[ii]    = self.params['UaMax']*float(ii+1)/self.get_iExt()
+            self.Uc_i[ii]    = self.params['Ur']
             
             # population sizes and densities 
             self.eq_yi[ii]   = lmFun.get_eqPopDensity(self.params['b'],self.di[ii],yi_option)

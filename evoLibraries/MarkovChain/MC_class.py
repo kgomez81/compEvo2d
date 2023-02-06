@@ -40,8 +40,8 @@ class mcEvoModel(ABC):
         
         # state space evolution parameters
         self.state_i = np.zeros(self.di.shape) # state number
-        self.Ua_i    = np.zeros(self.di.shape) # absolute fitness mutation rate
-        self.Ur_i    = np.zeros(self.di.shape) # relative fitness mutation rate
+        self.Ud_i    = np.zeros(self.di.shape) # absolute fitness mutation rate
+        self.Uc_i    = np.zeros(self.di.shape) # relative fitness mutation rate
         self.eq_yi   = np.zeros(self.di.shape) # equilibrium density of fitness class i
         self.eq_Ni   = np.zeros(self.di.shape) # equilibrium population size of fitness class i
         self.sd_i    = np.zeros(self.di.shape) # selection coefficient of "d" trait beneficial mutation
@@ -52,8 +52,8 @@ class mcEvoModel(ABC):
         self.pFix_c_i = np.zeros(self.di.shape) # pFix of "c" trait beneficial mutation
         
         # state space evolution rates
-        self.va_i    = np.zeros(self.di.shape) # rate of adaptation in absolute fitness trait alone
-        self.vr_i    = np.zeros(self.di.shape) # rate of adaptation in relative fitness trait alone
+        self.vd_i    = np.zeros(self.di.shape) # rate of adaptation in absolute fitness trait alone
+        self.vc_i    = np.zeros(self.di.shape) # rate of adaptation in relative fitness trait alone
         self.ve_i    = np.zeros(self.di.shape) # rate of fitness decrease due to environmental degradation
     
     #------------------------------------------------------------------------------
@@ -92,13 +92,13 @@ class mcEvoModel(ABC):
         for ii in range(self.di.size):
             # absolute fitness rate of adaptation ( on time scale of generations)
             self.va_i = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
-                                               self.sa_i[ii], \
+                                               self.sd_i[ii], \
                                                self.Ua_i[ii], \
                                                self.pFixAbs_i[ii])
                 
             # relative fitness rate of adaptation ( on time scale of generations)
             self.vr_i = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
-                                               self.sr_i[ii], \
+                                               self.sc_i[ii], \
                                                self.Ur_i[ii], \
                                                self.pFixRel_i[ii])
                 

@@ -85,24 +85,28 @@ def calc_pFix_FSA(b,T,d,c,kMax):
     else:
         return 0
     
-    # mutant lineage's rate of acquisition for territories (one mutant adult)
-    lMut_1 = ( (1-yEq)/yEq ) * juvCompRateFactor * np.exp(-b/T)
-    
-    # calculate coefficients of the first step analysis polynomial
-    # include coefficients up to kMax order 
-    coeffFSA = [ pmf_1tok_MutantAdults(ii,d[1],lMut_1) for ii in range(kMax+1) ]
-    
-    coeffFSA[1] = coeffFSA[1]-1  # subtract one for fix point equation 
-    
-    # define First step analysis calculate 
-    polynomialFSA = Polynomial(coeffFSA) 
-    
-    # find root of FSA poly to get probability of extinction 
-    pExt = opt.broyden1(polynomialFSA,[0.1], f_tol=1e-14)
-    
-    # calculate pFix 
-    pFix = 1-pExt
-    
+    if (yEq != 0):
+        
+        # mutant lineage's rate of acquisition for territories (one mutant adult)
+        lMut_1 = ( (1-yEq)/yEq ) * juvCompRateFactor * np.exp(-b/T)
+        
+        # calculate coefficients of the first step analysis polynomial
+        # include coefficients up to kMax order 
+        coeffFSA = [ pmf_1tok_MutantAdults(ii,d[1],lMut_1) for ii in range(kMax+1) ]
+        
+        coeffFSA[1] = coeffFSA[1]-1  # subtract one for fix point equation 
+        
+        # define First step analysis calculate 
+        polynomialFSA = Polynomial(coeffFSA) 
+        
+        # find root of FSA poly to get probability of extinction 
+        pExt = opt.broyden1(polynomialFSA,[0.1], f_tol=1e-14)
+        
+        # calculate pFix 
+        pFix = 1-pExt
+    else:
+        pFix = 0
+
     return pFix
     
 #------------------------------------------------------------------------------

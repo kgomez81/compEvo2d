@@ -19,8 +19,8 @@ import csv
 
 from abc import ABC, abstractmethod
 
-import LotteryModel.LM_functions as lmFun
-import RateOfAdapt.ROA_functions as roaFun
+import evoLibraries.LotteryModel.LM_functions as lmFun
+import evoLibraries.RateOfAdapt.ROA_functions as roaFun
 
 class mcEvoModel(ABC):
     # ABSTRACT class used to prototype the MC classes for RM and DRE

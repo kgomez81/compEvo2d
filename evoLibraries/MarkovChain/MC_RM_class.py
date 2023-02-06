@@ -16,9 +16,9 @@ variable density lottery model.
 
 import numpy as np
 
-import MarkovChain.MC_class as mc
-import LotteryModel.LM_functions as lmFun
-import LotteryModel.LM_pFix_FSA as lmPfix
+import evoLibraries.MarkovChain.MC_class as mc
+import evoLibraries.LotteryModel.LM_functions as lmFun
+import evoLibraries.LotteryModel.LM_pFix_FSA as lmPfix
 
 # *****************************************************************************
 # Markov Chain Class - Running Out of Mutations (RM)
@@ -61,7 +61,7 @@ class mcEvoModel_RM(mc.mcEvoModel):
         super().__init__(params)            # dictionary with evo parameters
         
         # Load absolute fitness landscape (array of di terms)
-        self.di = self.get_absoluteFitnessClasses() 
+        self.get_absoluteFitnessClasses() 
         
         # update parameter arrays above
         self.get_stateSpaceEvoParameters()      
@@ -97,22 +97,22 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # that store evolution parameters and rates
         
         # state space evolution parameters
-        self.state_i = np.zeros(self.di.shape) # state number
-        self.Ua_i    = np.zeros(self.di.shape) # absolute fitness mutation rate
-        self.Ur_i    = np.zeros(self.di.shape) # relative fitness mutation rate
-        self.eq_yi   = np.zeros(self.di.shape) # equilibrium density of fitness class i
-        self.eq_Ni   = np.zeros(self.di.shape) # equilibrium population size of fitness class i
-        self.sd_i    = np.zeros(self.di.shape) # selection coefficient of "d" trait beneficial mutation
-        self.sc_i    = np.zeros(self.di.shape) # selection coefficient of "c" trait beneficial mutation
+        self.state_i = np.zeros(self.di.size) # state number
+        self.Ua_i    = np.zeros(self.di.size) # absolute fitness mutation rate
+        self.Ur_i    = np.zeros(self.di.size) # relative fitness mutation rate
+        self.eq_yi   = np.zeros(self.di.size) # equilibrium density of fitness class i
+        self.eq_Ni   = np.zeros(self.di.size) # equilibrium population size of fitness class i
+        self.sd_i    = np.zeros(self.di.size) # selection coefficient of "d" trait beneficial mutation
+        self.sc_i    = np.zeros(self.di.size) # selection coefficient of "c" trait beneficial mutation
         
         # state space pFix values
-        self.pFix_d_i = np.zeros(self.di.shape) # pFix of "d" trait beneficial mutation
-        self.pFix_c_i = np.zeros(self.di.shape) # pFix of "c" trait beneficial mutation
+        self.pFix_d_i = np.zeros(self.di.size) # pFix of "d" trait beneficial mutation
+        self.pFix_c_i = np.zeros(self.di.size) # pFix of "c" trait beneficial mutation
         
         # state space evolution rates
-        self.va_i    = np.zeros(self.di.shape) # rate of adaptation in absolute fitness trait alone
-        self.vr_i    = np.zeros(self.di.shape) # rate of adaptation in relative fitness trait alone
-        self.ve_i    = np.zeros(self.di.shape) # rate of fitness decrease due to environmental degradation
+        self.va_i    = np.zeros(self.di.size) # rate of adaptation in absolute fitness trait alone
+        self.vr_i    = np.zeros(self.di.size) # rate of adaptation in relative fitness trait alone
+        self.ve_i    = np.zeros(self.di.size) # rate of fitness decrease due to environmental degradation
         
         return None
 
@@ -140,7 +140,7 @@ class mcEvoModel_RM(mc.mcEvoModel):
             
             # population sizes and densities 
             self.eq_yi[ii]   = lmFun.get_eqPopDensity(self.params['b'],self.di[ii],yi_option)
-            self.eq_Ni[ii]   = self.params['T']*lmFun.eq_yi[ii]
+            self.eq_Ni[ii]   = self.params['T']*self.eq_yi[ii]
             
             # selection coefficients ( time scale = 1 generation)
             self.sc_i[ii]    = lmFun.get_c_SelectionCoeff(self.params['b'],self.eq_yi[ii], \

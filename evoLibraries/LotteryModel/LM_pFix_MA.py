@@ -8,6 +8,8 @@ Project: Two trait adaptation: Relative versus absolute fitness
 Description:
 Defines the basics functions used in all scripts that process matlab
 data and create figures in the mutation-driven adaptation manuscript.
+
+THIS FUNCTION STILL NEEDS TO BE COMPLETED
 """
 # *****************************************************************************
 # libraries
@@ -15,7 +17,8 @@ data and create figures in the mutation-driven adaptation manuscript.
 
 import numpy as np
 import scipy.stats as st
-import LM_functions as lmFun
+
+from evoLibraries.LotteryModel import LM_functions as lmFun
 
 # from sympy import Matrix
 # from evoLibraries import constants as c 

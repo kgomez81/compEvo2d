@@ -15,9 +15,12 @@ data and create figures in the mutation-driven adaptation manuscript.
 
 import numpy as np
 import scipy.stats as st
-import LM_functions as lmFun
+
+
 import scipy.optimize as opt
 from numpy.polynomial import Polynomial
+
+from evoLibraries.LotteryModel import LM_functions as lmFun
 
 #------------------------------------------------------------------------------
 #   Functions to calculate the probability of fixation (First Step Analysis)

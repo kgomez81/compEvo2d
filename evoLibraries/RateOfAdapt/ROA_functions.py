@@ -15,7 +15,7 @@ data and create figures in the mutation-driven adaptation manuscript.
 
 import numpy as np
 
-from evoLibraries import constants as c 
+from evoLibraries import constants as const 
 
 # *****************************************************************************
 # FUNCTIONS TO GET QUANTITIES FROM DESAI AND FISHER 2007
@@ -190,15 +190,15 @@ def get_regimeID(N,s,U,pFix):
     Tswp = (1/s)*np.log(N*pFix)
         
     # calculate rate of adaptation based on regime
-    if (Test >= Tswp/c.CI_TIMESCALE_TRANSITION):
+    if (Test >= Tswp/const.CI_TIMESCALE_TRANSITION):
         # successional, establishment time scale exceeds sweep time scale
         regID = 1
         
-    elif (s > c.MM_REGIME_MULTIPLE*U) and (Test <= c.CI_TIMESCALE_TRANSITION*Tswp):
+    elif (s > const.MM_REGIME_MULTIPLE*U) and (Test <= const.CI_TIMESCALE_TRANSITION*Tswp):
         # multiple mutations, selection time scale smaller than  mutation time scale
         regID = 2
         
-    elif (U <= c.DM_REGIME_MULTIPLE*s) and (Test <= c.CI_TIMESCALE_TRANSITION*Tswp):
+    elif (U <= const.DM_REGIME_MULTIPLE*s) and (Test <= const.CI_TIMESCALE_TRANSITION*Tswp):
         # diffusive mutations, 
         regID = 3
     

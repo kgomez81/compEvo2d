@@ -17,9 +17,9 @@ variable density lottery model.
 import numpy as np
 import scipy.stats as st   
 
-import MarkovChain.MC_class as mc
-import LotteryModel.LM_functions as lmFun
-import LotteryModel.LM_pFix_FSA as lmPfix
+import evoLibraries.MarkovChain.MC_class as mc
+import evoLibraries.LotteryModel.LM_functions as lmFun
+import evoLibraries.LotteryModel.LM_pFix_FSA as lmPfix
 
 # *****************************************************************************
 # Markov Chain Class - Diminishing Returns Epistasis (DRE)
@@ -62,7 +62,7 @@ class mcEvoModel_DRE(mc.MC_class):
         super().__init__(params)            # dictionary with evo parameters
         
         # Load absolute fitness landscape (array of di terms)
-        self.di = self.get_absoluteFitnessClasses() 
+        self.get_absoluteFitnessClasses() 
         
         # update parameter arrays above
         self.get_stateSpaceEvoParameters()      # update parameter arrays above

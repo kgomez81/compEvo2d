@@ -27,3 +27,13 @@ plt.scatter(di[1:],va_i)
 plt.scatter(di[1:],vr_i)
 plt.ticklabel_format(axis="both", style="sci",scilimits=(0,0))
 plt.ylim([0,1.5*max([max(va_i),max(vr_i)])])
+
+
+# pfix versus sel coeff
+fig,ax = plt.subplots(1,1,figsize=[7,7])
+ax.plot(mcModel1.state_i,mcModel1.pFix_c_i,color='red')
+ax.plot(mcModel1.state_i,mcModel1.sc_i,color='blue')
+
+fig,ax = plt.subplots(1,1,figsize=[7,7])
+ax.plot(mcModel1.state_i,mcModel1.pFix_d_i,color='red')
+ax.plot(mcModel1.state_i,mcModel1.sd_i,color='blue')

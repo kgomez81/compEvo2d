@@ -13,8 +13,10 @@ see Bertram & Masel 2019 for details of lottery model
 
 import matplotlib.pyplot as plt
 
+import os
 import sys
 sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d\\evoLibraries')
+
 
 from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_RM_class as mcRM
@@ -40,30 +42,28 @@ from evoLibraries.MarkovChain import MC_RM_class as mcRM
 #
 
 # The parameter file is read and a dictionary with their values is generated.
-workDir = 'D:/Documents/GitHub/compEvo2d/'
-paramFilePath = workDir + 'inputs/evoExp_RM_01_parameters.csv'
+paramFilePath = os.getcwd()+'/inputs/evoExp_RM_01_parameters.csv'
 modelType = 'RM'
 
-mcParams = evoObj.evoOptions(paramFilePath, modelType)
-
-mcModel1 = mcRM.mcEvoModel_RM(mcParams.params)
-
-
+mcParams1 = evoObj.evoOptions(paramFilePath, modelType)
+mcModel1 = mcRM.mcEvoModel_RM(mcParams1.params)
 
 # --------------------------------------------------------------------------
 #                               Figure - Panel (A)
 # --------------------------------------------------------------------------
 fig1, (ax1,ax2) = plt.subplots(2,1,figsize=[7,12])
-
-ax1.plot(       state_i,ve_i,color="black",linewidth=3,label=r'$v_e$')
-ax1.scatter(    state_i,va_i,color="blue",s=8,label=r'$v_a$')
-ax1.scatter(    state_i,vr_i,color="red",s=8,label=r'$v_r$')
+ax1.plot(       mcModel1.state_i, \
+                mcModel1.ve_i   , color="black",linewidth=3,label=r'$v_e$')
+ax1.scatter(    mcModel1.state_i, \
+                mcModel1.vd_i,    color="blue",s=8,label=r'$v_d$')
+ax1.scatter(    mcModel1.state_i, \
+                mcModel1.vc_i,    color="red",s=8,label=r'$v_r$')
 
 # axes and label adjustements
-ax1.set_xlim(-iExt-1,0)
+ax1.set_xlim(-mcModel1.get_iExt(),0)
 ax1.set_ylim(0,2.52e-4)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
 
-xTickMax = int(iExt/25+1)
+xTickMax = int(mcModel1.get_iExt()/25+1)
 ax1.set_xticks([-25*i for i in range(0,xTickMax)])
 ax1.set_xticklabels([str(25*i) for i in range(0,xTickMax)],fontsize=16)
 
@@ -88,33 +88,27 @@ ax1.annotate("", xy=(-87,0.7e-4), xytext=(-72, 0.7e-4),arrowprops={'arrowstyle':
 # Recalculate Markov Chain Evolution Parameters - Panel (B)
 # --------------------------------------------------------------------------
 
-paramFile = workDir + 'inputs/evoExp_RM_02_parameters.csv'
-params = myfun.read_parameterFile(paramFile)
+paramFilePath = os.getcwd()+'/inputs/evoExp_RM_02_parameters.csv'
+modelType = 'RM'
 
-[dMax,di,iExt] = myfun.get_absoluteFitnessClasses(params['b'],params['dOpt'],params['sa'])
-
-pFixAbs_File = workDir + 'outputs/evoExp01_absPfix.csv'
-pFixAbs_i     = myfun.read_pFixOutputs(pFixAbs_File,iExt)
-
-pFixRel_File = workDir + 'outputs/evoExp01_relPfix.csv'
-pFixRel_i    = myfun.read_pFixOutputs(pFixRel_File,iExt)
-
-# Calculate all Evo parameters for Markov Chain
-[state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i,va_i,vr_i,ve_i] = \
-                    myfun.get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option)
+mcParams2 = evoObj.evoOptions(paramFilePath, modelType)
+mcModel2 = mcRM.mcEvoModel_RM(mcParams2.params)
                     
 # --------------------------------------------------------------------------
 #                               Figure - Panel (B)
 # --------------------------------------------------------------------------
-ax2.plot(state_i,ve_i,color="black",linewidth=3,label=r'$v_e$')
-ax2.scatter(state_i,va_i,color="blue",s=8,label=r'$v_a$')
-ax2.scatter(state_i,vr_i,color="red",s=8,label=r'$v_r$')
+ax2.plot(   mcModel2.state_i, 
+            mcModel2.vd_i,  color="black",linewidth=3,label=r'$v_e$')
+ax2.scatter(mcModel2.state_i, \
+            mcModel2.vd_i,  color="blue",s=8,label=r'$v_d$')
+ax2.scatter(mcModel2.state_i, \
+            mcModel2.vc_i,color="red",s=8,label=r'$v_c$')
 
 # axes and label adjustements
-ax2.set_xlim(-iExt-1,0)
+ax2.set_xlim(-mcModel2.get_iExt(),0)
 ax2.set_ylim(0,2.52e-4)       # 1.5*max([max(va_i),max(vr_i)])
 
-xTickMax = int(iExt/25+1)
+xTickMax = int(mcModel2.get_iExt()/25+1)
 ax2.set_xticks([-25*i for i in range(0,xTickMax)])
 ax2.set_xticklabels([str(25*i) for i in range(0,xTickMax)],fontsize=16)
 
@@ -136,4 +130,4 @@ ax2.annotate("", xy=(-84,0.7e-4), xytext=(-99,0.7e-4),arrowprops={'arrowstyle':'
 
 # save figure
 plt.tight_layout()
-fig1.savefig(workDir + 'figures/MainDoc/fig_MarkovChain_VaVeVrIntersection.pdf')
+fig1.savefig(os.getcwd() + 'figures/MainDoc/fig_MarkovChain_VaVeVrIntersection.pdf')

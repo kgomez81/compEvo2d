@@ -36,8 +36,8 @@ class mcEvoModel_DRE(mc.MC_class):
     
     # state space evolution parameters
     # state_i # state number
-    # Ua_i    # absolute fitness mutation rate
-    # Ur_i    # relative fitness mutation rate
+    # Ud_i    # absolute fitness mutation rate
+    # Uc_i    # relative fitness mutation rate
     # eq_yi   # equilibrium density of fitness class i
     # eq_Ni   # equilibrium population size of fitness class i
     # sd_i    # selection coefficient of "d" trait beneficial mutation
@@ -48,8 +48,8 @@ class mcEvoModel_DRE(mc.MC_class):
     # pFix_c_i = np.zeros(self.di.shape) # pFix of "c" trait beneficial mutation
     
     # state space evolution rates
-    # va_i    # rate of adaptation in absolute fitness trait alone
-    # vr_i    # rate of adaptation in relative fitness trait alone
+    # vd_i    # rate of adaptation in absolute fitness trait alone
+    # vc_i    # rate of adaptation in relative fitness trait alone
     # ve_i    # rate of fitness decrease due to environmental degradation
     
     #------------------------------------------------------------------------------
@@ -150,8 +150,8 @@ class mcEvoModel_DRE(mc.MC_class):
             self.state_i[ii] = ii
             
             # mutation rates (per birth per generation - NEED TO CHECK IF CORRECT)
-            self.Ua_i[ii]    = self.params['Ua']
-            self.Ur_i[ii]    = self.params['Ur']
+            self.Ua_i[ii]    = self.params['Ud']
+            self.Ur_i[ii]    = self.params['Uc']
             
             # population sizes and densities 
             self.eq_yi[ii]   = lmFun.get_eqPopDensity(self.params['b'],self.di[ii],yi_option)
@@ -159,7 +159,7 @@ class mcEvoModel_DRE(mc.MC_class):
             
             # selection coefficients ( time scale = 1 generation)
             self.sc_i[ii]    = lmFun.get_c_SelectionCoeff(self.params['b'],self.eq_yi[ii], \
-                                                          self.params['cr'],self.di[ii])
+                                                          self.params['cp'],self.di[ii])
             # calculation for d-selection coefficient cannot be performed 
             if (ii < self.di.size): 
                 self.sd_i[ii]   = lmFun.get_d_SelectionCoeff(self.di[ii],self.di[ii+1])
@@ -213,7 +213,7 @@ class mcEvoModel_DRE(mc.MC_class):
             # pFix c-trait beneficial mutation
             # NOTE: second array entry of cArry corresponds to mutation
             dArry = np.array( [self.di[ii], self.di[ii]         ] )
-            cArry = np.array( [1          , 1+self.params['cr'] ] )  # mutation in c-trait
+            cArry = np.array( [1          , 1+self.params['cp'] ] )  # mutation in c-trait
             self.pFix_d_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
                                                          self.params['T'], \
                                                          dArry, \

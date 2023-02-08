@@ -25,19 +25,19 @@ from evoLibraries.RateOfAdapt import ROA_functions as roaFun
 # *****************************************************************************
 
 
-def get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i, N_i):
+def get_intersection_rho(vd_i, vc_i, sd_i, Ud_i, Uc_i, sc_i, N_i):
     # This function assumes that the intersection occurs in the 
     # multiple mutations regime. This quantity is irrelevant when in
     # the successional regime since there is no interference between 
     # evolution in traits.
         
     # find index that minimizes |va-vr|, but exclude extinction class (:-1)
-    idxMin = np.argmin(np.abs(np.asarray(va_i[0:-1])-np.asarray(vr_i[0:-1])))
+    idxMin = np.argmin(np.abs(np.asarray(vd_i[0:-1])-np.asarray(vc_i[0:-1])))
     
-    sa = sa_i[idxMin]
-    Ua = Ua_i[idxMin]
-    sr = sr_i[idxMin]
-    Ur = Ur_i[idxMin]
+    sd = sd_i[idxMin]
+    Ud = Ud_i[idxMin]
+    sc = sc_i[idxMin]
+    Uc = Uc_i[idxMin]
     Npop = N_i[idxMin]
 
     # calculate the regime IDs for each trait
@@ -47,8 +47,8 @@ def get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i, N_i):
     #  3: diffusion
     # -1: regime undetermined, i.e. in transition region   
         
-    regimeID_a = roaFun.get_regimeID(Npop,sa,Ua,sa)
-    regimeID_r = roaFun.get_regimeID(Npop,sr,Ur,sr)
+    regimeID_a = roaFun.get_regimeID(Npop,sd,Ud,sd)
+    regimeID_r = roaFun.get_regimeID(Npop,sc,Uc,sc)
 
     
     # calculate the appropriate rho
@@ -58,39 +58,39 @@ def get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i, N_i):
     
     elif (regimeID_a == 2) and (regimeID_r == 2):
         # both traits in multiple mutations regime
-        rho = (sr/np.log(sr/Ur))**2 / (sa/np.log(sa/Ua))**2
+        rho = (sc/np.log(sc/Uc))**2 / (sd/np.log(sd/Ud))**2
         
     elif (regimeID_a == 3) and (regimeID_r == 2):
         # abs trait in diffusion and rel trait in multiple mutations regime
-        Da = 0.5*Ua*sa**2
+        Da = 0.5*Ud*sd**2
         
-        rho = (sr/np.log(sr/Ur))**2 / (Da**(2.0/3.0)/(3*np.log(Da**(1.0/3.0)*Npop)**(2.0/3.0)))               
+        rho = (sc/np.log(sc/Uc))**2 / (Da**(2.0/3.0)/(3*np.log(Da**(1.0/3.0)*Npop)**(2.0/3.0)))               
         
     elif (regimeID_a == 2) and (regimeID_r == 3):
         # rel trait in diffusion and abs trait in multiple mutations regime
-        Dr = 0.5*Ur*sr**2
+        Dr = 0.5*Uc*sc**2
         
-        rho = (Dr**(2.0/3.0)/(3*np.log(Dr**(1.0/3.0)*Npop)**(2.0/3.0))) / (sa/np.log(sa/Ua))**2
+        rho = (Dr**(2.0/3.0)/(3*np.log(Dr**(1.0/3.0)*Npop)**(2.0/3.0))) / (sd/np.log(sd/Ud))**2
         
     elif (regimeID_a == 3) and (regimeID_r == 3):
         # both traits in diffusion
-        Da = 0.5*Ua*sa**2
-        Dr = 0.5*Ur*sr**2
+        Da = 0.5*Ud*sd**2
+        Dr = 0.5*Uc*sc**2
         
         rho = (Dr**(2.0/3.0)/(3*np.log(Dr**(1.0/3.0)*Npop)**(2.0/3.0))) / (Da**(2.0/3.0)/(3*np.log(Da**(1.0/3.0)*Npop)**(2.0/3.0)))
         
     else:
         rho = np.nan
             
-    return [rho, sa, Ua, sr, Ur]
+    return [rho, sd, Ud, sc, Uc]
 
 #------------------------------------------------------------------------------
 
-def get_intersection_popDensity(va_i, vr_i, eq_yi):
+def get_intersection_popDensity(vd_i, vc_i, eq_yi):
     # function to calculate the intersection equilibrium density
         
-    # find index that minimizes |va-vr| but exclude extinction class (:-1)
-    idxMin = np.argmin(np.abs(np.asarray(va_i[0:-1])-np.asarray(vr_i[0:-1])))
+    # find index that minimizes |vd-vc| but exclude extinction class (:-1)
+    idxMin = np.argmin(np.abs(np.asarray(vd_i[0:-1])-np.asarray(vc_i[0:-1])))
     
     # Definition of the gamma at intersection in paper
     yiInt = eq_yi[idxMin]
@@ -148,6 +148,8 @@ def get_contourPlot_arrayData(myOptions):
     # Calculated rho values for T vs 2nd parameter variable
     # --------------------------------------------------------------------------
     
+    # THIS WHOLE SECTION NEEDS TO BE REWRITTEN
+    
     for ii in range(int(X1_ARRY.shape[0])):
         for jj in range(int(X2_ARRY.shape[1])):
             
@@ -161,7 +163,7 @@ def get_contourPlot_arrayData(myOptions):
             
             # Calculate absolute fitness state space. 
             if myOptions.modelType == 'RM':
-                [dMax,di,iMax] = get_absoluteFitnessClasses(paramsTemp['b'],paramsTemp['dOpt'],paramsTemp['sa'])
+                [dMax,di,iMax] = get_absoluteFitnessClasses(paramsTemp['b'],paramsTemp['dOpt'],paramsTemp['sd'])
                 [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i] = get_MChainPopParameters(paramsTemp,di,iMax,myOptions.yi_option)        
             else:
                 iStop = np.log(0.01)/np.log(myOptions.params['alpha'])-1  # stop at i steps to get di within 5% of d0, i.e. (di-d0)/(dMax-d0) = 0.05.

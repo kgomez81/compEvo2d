@@ -48,9 +48,9 @@ class evoOptions:
     
         # create array to store values and define the parameter names
         if self.modelType == 'RM':
-            paramList = ['T','b','dOpt','sa','UaMax','Uad','cr','Ur','Urd','R']
+            paramList = ['T','b','dOpt','sd','UdMax','UdDel','cp','Uc','UcDel','R']
         else:
-            paramList = ['T','b','dOpt','alpha','Ua','Uad','cr','Ur','Urd','R']
+            paramList = ['T','b','dOpt','alpha','Ud','UdDel','cp','Uc','UcDel','R']
         paramValue = np.zeros([len(paramList),1])
         
         # read values from csv file

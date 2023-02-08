@@ -88,7 +88,7 @@ class mcEvoModel_RM(mc.mcEvoModel):
         
         while (di[-1] < dMax):
             # loop until at dMax or greater (max death term for viable pop)
-            di = di+[di[-1]*(1+self.params['sa']*(di[-1]-1))]
+            di = di+[di[-1]*(1+self.params['sd']*(di[-1]-1))]
         
         # FinallRemove dOpt from state space
         self.di = np.asarray(di[1:])
@@ -135,8 +135,8 @@ class mcEvoModel_RM(mc.mcEvoModel):
             self.state_i[ii] = -(ii+1)
             
             # mutation rates (per birth per generation - NEED TO CHECK IF CORRECT)
-            self.Ud_i[ii]    = self.params['UaMax']*float(ii+1)/self.get_iExt()
-            self.Uc_i[ii]    = self.params['Ur']
+            self.Ud_i[ii]    = self.params['UdMax']*float(ii+1)/self.get_iExt()
+            self.Uc_i[ii]    = self.params['Uc']
             
             # population sizes and densities 
             self.eq_yi[ii]   = lmFun.get_eqPopDensity(self.params['b'],self.di[ii],yi_option)
@@ -144,8 +144,8 @@ class mcEvoModel_RM(mc.mcEvoModel):
             
             # selection coefficients ( time scale = 1 generation)
             self.sc_i[ii]    = lmFun.get_c_SelectionCoeff(self.params['b'],self.eq_yi[ii], \
-                                                          self.params['cr'],self.di[ii])
-            self.sd_i[ii]    = self.params['sa']    # di defined for constant selection coeff
+                                                          self.params['cp'],self.di[ii])
+            self.sd_i[ii]    = self.params['sd']    # di defined for constant selection coeff
             
         return None 
 
@@ -180,7 +180,7 @@ class mcEvoModel_RM(mc.mcEvoModel):
                 dArry = np.array( [self.di[ii], self.di[ii-1]       ] )
             cArry = np.array( [1, 1] )
             
-            self.pFix_c_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
+            self.pFix_d_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
                                                          self.params['T'], \
                                                          dArry, \
                                                          cArry, \
@@ -188,8 +188,8 @@ class mcEvoModel_RM(mc.mcEvoModel):
             # pFix c-trait beneficial mutation
             # NOTE: second array entry of cArry corresponds to mutation
             dArry = np.array( [self.di[ii], self.di[ii]         ] )
-            cArry = np.array( [1          , 1+self.params['cr'] ] )  # mutation in c-trait
-            self.pFix_d_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
+            cArry = np.array( [1          , 1+self.params['cp'] ] )  # mutation in c-trait
+            self.pFix_c_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
                                                          self.params['T'], \
                                                          dArry, \
                                                          cArry, \

@@ -62,7 +62,7 @@ def calc_pFix_FSA(b,T,d,c,kMax):
     yEq = lmFun.get_eqPopDensity(b,d[0],yi_option)
     
     # determine the type of beneficial mutation 
-    if ( (d[1] < d[0]) & (c[1] > c[0]) ):
+    if ( (d[1] < d[0]) & (c[1] == c[0]) ):
         # benficial mutation in d-trait
         juvCompRateFactor = ( 1-np.exp(-b*yEq) )
         

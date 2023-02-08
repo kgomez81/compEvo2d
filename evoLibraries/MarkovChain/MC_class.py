@@ -91,20 +91,20 @@ class mcEvoModel(ABC):
         # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
         for ii in range(self.di.size):
             # absolute fitness rate of adaptation ( on time scale of generations)
-            self.va_i = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
+            self.vd_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
                                                self.sd_i[ii], \
-                                               self.Ua_i[ii], \
-                                               self.pFixAbs_i[ii])
+                                               self.Ud_i[ii], \
+                                               self.pFix_d_i[ii])
                 
             # relative fitness rate of adaptation ( on time scale of generations)
-            self.vr_i = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
+            self.vc_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
                                                self.sc_i[ii], \
-                                               self.Ur_i[ii], \
-                                               self.pFixRel_i[ii])
+                                               self.Uc_i[ii], \
+                                               self.pFix_c_i[ii])
                 
             # rate of fitness decrease due to environmental change ( on time scale of generations)
             # fitness assumed to decrease by sa = absolute fitness increment.
-            self.ve_i = self.params['sa'] * self.params['R'] * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
+            self.ve_i[ii] = self.params['sd'] * self.params['R'] * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
             
         return None
     

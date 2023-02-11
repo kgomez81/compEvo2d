@@ -17,7 +17,6 @@ import os
 import sys
 sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d\\evoLibraries')
 
-
 from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_RM_class as mcRM
 
@@ -47,6 +46,16 @@ modelType = 'RM'
 
 mcParams1 = evoObj.evoOptions(paramFilePath, modelType)
 mcModel1 = mcRM.mcEvoModel_RM(mcParams1.params)
+
+# --------------------------------------------------------------------------
+# Recalculate Markov Chain Evolution Parameters - Panel (B)
+# --------------------------------------------------------------------------
+
+paramFilePath = os.getcwd()+'/inputs/evoExp_RM_02_parameters.csv'
+modelType = 'RM'
+
+mcParams2 = evoObj.evoOptions(paramFilePath, modelType)
+mcModel2 = mcRM.mcEvoModel_RM(mcParams2.params)
 
 # --------------------------------------------------------------------------
 #                               Figure - Panel (A)
@@ -83,22 +92,12 @@ ax1.annotate("", xy=(-87,0.7e-4), xytext=(-72, 0.7e-4),arrowprops={'arrowstyle':
 #plt.text(-84,3.10e-4,r'$i_{ext}=180$',fontsize = 18)
 #plt.text(-190,5.50e-4,r'$\times 10^{-4}$', fontsize = 20)
 # plt.text(-175,5.15e-4,r'(A)', fontsize = 22)
-
-# --------------------------------------------------------------------------
-# Recalculate Markov Chain Evolution Parameters - Panel (B)
-# --------------------------------------------------------------------------
-
-paramFilePath = os.getcwd()+'/inputs/evoExp_RM_02_parameters.csv'
-modelType = 'RM'
-
-mcParams2 = evoObj.evoOptions(paramFilePath, modelType)
-mcModel2 = mcRM.mcEvoModel_RM(mcParams2.params)
                     
 # --------------------------------------------------------------------------
 #                               Figure - Panel (B)
 # --------------------------------------------------------------------------
 ax2.plot(   mcModel2.state_i, 
-            mcModel2.vd_i,  color="black",linewidth=3,label=r'$v_e$')
+            mcModel2.ve_i,  color="black",linewidth=3,label=r'$v_e$')
 ax2.scatter(mcModel2.state_i, \
             mcModel2.vd_i,  color="blue",s=8,label=r'$v_d$')
 ax2.scatter(mcModel2.state_i, \
@@ -130,4 +129,4 @@ ax2.annotate("", xy=(-84,0.7e-4), xytext=(-99,0.7e-4),arrowprops={'arrowstyle':'
 
 # save figure
 plt.tight_layout()
-fig1.savefig(os.getcwd() + 'figures/MainDoc/fig_MarkovChain_VaVeVrIntersection.pdf')
+fig1.savefig(os.getcwd() + '/figures/MainDoc/fig_MarkovChain_VaVeVrIntersection.pdf')

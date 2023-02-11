@@ -21,8 +21,8 @@ def selCoeff_k(dj1,dj2):
     return sj
 
 nCnt = 100
-de = 3.1
-do = 1.1
+de = 3.00  # requires b = 2
+do = 1.02  #  dOpt = 1.02
 alpha1 = 0.75
 alpha2 = 0.85
 alpha3 = 0.95

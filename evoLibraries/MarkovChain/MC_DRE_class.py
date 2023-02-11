@@ -20,12 +20,13 @@ import scipy.stats as st
 import evoLibraries.MarkovChain.MC_class as mc
 import evoLibraries.LotteryModel.LM_functions as lmFun
 import evoLibraries.LotteryModel.LM_pFix_FSA as lmPfix
+import evoLibraries.RateOfAdapt.ROA_functions as roaFun
 
 # *****************************************************************************
 # Markov Chain Class - Diminishing Returns Epistasis (DRE)
 # *****************************************************************************
 
-class mcEvoModel_DRE(mc.MC_class):
+class mcEvoModel_DRE(mc.mcEvoModel):
     # class used to encaptulate all of evolution parameters for an Markov Chain (MC)
     # representing a diminishing returns epistasis evolution model.
     
@@ -71,7 +72,7 @@ class mcEvoModel_DRE(mc.MC_class):
         self.get_stateSpacePfixValues()         # update pFix arrays (expand later to include options)    
         
         # update evolution rate arrays above
-        super().get_stateSpaceEvoRates()           # update evolution rate arrays above
+        self.get_stateSpaceEvoRates()           # update evolution rate arrays above
         
     #------------------------------------------------------------------------------
     # Definitions for abstract methods
@@ -85,25 +86,35 @@ class mcEvoModel_DRE(mc.MC_class):
         #
         # Note: the state space order for DRE is reversed from RM
         
-        # define lowerbound for selection coefficients
-        minSelCoeff = 1/self.params['T']   # lower bound on neutral limit   
-        
         # Recursively calculate set of absolute fitness classes 
         dMax        = self.params['b']+1
         di          = [dMax]
         getNext_di  = True
-        ii          = 1             
+        ii          = 1         
+        iiStart     = 10
+        yi_option   = 1         # option 1, analytic approx of eq. density near opt
+        cdf_option  = 'logCDF'
+        
+        # define lowerbound for selection coefficients and how small the di
+        # selection coeffient should be w.r.t ci selection coefficient
+        minSelCoeff_d = 1/self.params['T']   # lower bound on neutral limit   
+        minSelCoeff_c = 0.1*lmFun.get_c_SelectionCoeff(self.params['b'], \
+                                   lmFun.get_eqPopDensity(self.params['b'],self.params['dOpt'],yi_option), \
+                                   self.params['cp'], \
+                                   self.params['dOpt'])
         
         while (getNext_di):
 
-            # get next d-term using log series CDF
-            dNext = dMax*(self.params['dOpt']/dMax)**st.logser.cdf(ii,self.params['alpha'])
+            # get next d-term using the selected CDF
+            dNext = dMax*(self.params['dOpt']/dMax)**self.mcDRE_CDF(ii,iiStart,cdf_option)
             
-            selCoeff_ii = lmFun.get_d_SelectionCoeff(di[-1],dNext) 
+            selCoeff_d_ii = lmFun.get_d_SelectionCoeff(di[-1],dNext) 
             
-            if (selCoeff_ii > minSelCoeff):
+            
+            if ( (selCoeff_d_ii > minSelCoeff_d) and (selCoeff_d_ii > minSelCoeff_c) ):
                 # selection coefficient above threshold, so ad dNext 
                 di = di + [ dNext ]
+                ii = ii + 1
             else:
                 # size of selection coefficient fell below threshold
                 getNext_di = False
@@ -113,8 +124,8 @@ class mcEvoModel_DRE(mc.MC_class):
         
         # state space evolution parameters
         self.state_i = np.zeros(self.di.shape) # state number
-        self.Ua_i    = np.zeros(self.di.shape) # absolute fitness mutation rate
-        self.Ur_i    = np.zeros(self.di.shape) # relative fitness mutation rate
+        self.Ud_i    = np.zeros(self.di.shape) # absolute fitness mutation rate
+        self.Uc_i    = np.zeros(self.di.shape) # relative fitness mutation rate
         self.eq_yi   = np.zeros(self.di.shape) # equilibrium density of fitness class i
         self.eq_Ni   = np.zeros(self.di.shape) # equilibrium population size of fitness class i
         self.sd_i    = np.zeros(self.di.shape) # selection coefficient of "d" trait beneficial mutation
@@ -125,8 +136,8 @@ class mcEvoModel_DRE(mc.MC_class):
         self.pFix_c_i = np.zeros(self.di.shape) # pFix of "c" trait beneficial mutation
         
         # state space evolution rates
-        self.va_i    = np.zeros(self.di.shape) # rate of adaptation in absolute fitness trait alone
-        self.vr_i    = np.zeros(self.di.shape) # rate of adaptation in relative fitness trait alone
+        self.vd_i    = np.zeros(self.di.shape) # rate of adaptation in absolute fitness trait alone
+        self.vc_i    = np.zeros(self.di.shape) # rate of adaptation in relative fitness trait alone
         self.ve_i    = np.zeros(self.di.shape) # rate of fitness decrease due to environmental degradation
         
         return None
@@ -150,18 +161,19 @@ class mcEvoModel_DRE(mc.MC_class):
             self.state_i[ii] = ii
             
             # mutation rates (per birth per generation - NEED TO CHECK IF CORRECT)
-            self.Ua_i[ii]    = self.params['Ud']
-            self.Ur_i[ii]    = self.params['Uc']
+            self.Ud_i[ii]    = self.params['Ud']
+            self.Uc_i[ii]    = self.params['Uc']
             
             # population sizes and densities 
             self.eq_yi[ii]   = lmFun.get_eqPopDensity(self.params['b'],self.di[ii],yi_option)
-            self.eq_Ni[ii]   = self.params['T']*lmFun.eq_yi[ii]
+            self.eq_Ni[ii]   = self.params['T']*self.eq_yi[ii]
             
             # selection coefficients ( time scale = 1 generation)
             self.sc_i[ii]    = lmFun.get_c_SelectionCoeff(self.params['b'],self.eq_yi[ii], \
                                                           self.params['cp'],self.di[ii])
             # calculation for d-selection coefficient cannot be performed 
-            if (ii < self.di.size): 
+            if (ii < self.get_iMax()):
+                # di size include 0 index so we can only go up to di.size-1
                 self.sd_i[ii]   = lmFun.get_d_SelectionCoeff(self.di[ii],self.di[ii+1])
             else:
                 # we don't story the next di term due to cutoff for the threshold
@@ -205,7 +217,7 @@ class mcEvoModel_DRE(mc.MC_class):
                 
             cArry = np.array( [1, 1] )
             
-            self.pFix_c_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
+            self.pFix_d_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
                                                          self.params['T'], \
                                                          dArry, \
                                                          cArry, \
@@ -214,23 +226,43 @@ class mcEvoModel_DRE(mc.MC_class):
             # NOTE: second array entry of cArry corresponds to mutation
             dArry = np.array( [self.di[ii], self.di[ii]         ] )
             cArry = np.array( [1          , 1+self.params['cp'] ] )  # mutation in c-trait
-            self.pFix_d_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
+            self.pFix_c_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
                                                          self.params['T'], \
                                                          dArry, \
                                                          cArry, \
                                                          kMax)
         return None
     
+    #------------------------------------------------------------------------------
+    
+    def get_stateSpaceEvoRates(self):
+        
+        # calculate evolution parameters for each of the states in the markov chain model
+        # the evolution parameters are calculated along the absolute fitness state space
+        # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
+        for ii in range(self.di.size):
+            # absolute fitness rate of adaptation ( on time scale of generations)
+            self.vd_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
+                                               self.sd_i[ii], \
+                                               self.Ud_i[ii], \
+                                               self.pFix_d_i[ii])
+                
+            # relative fitness rate of adaptation ( on time scale of generations)
+            self.vc_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
+                                               self.sc_i[ii], \
+                                               self.Uc_i[ii], \
+                                               self.pFix_c_i[ii])
+                
+            # rate of fitness decrease due to environmental change ( on time scale of generations)
+            # fitness assumed to decrease by sa = absolute fitness increment.
+            self.ve_i[ii] = self.get_first_sd() * self.params['R'] \
+                                    * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
+            
+        return None
 
     # ------------------------------------------------------------------------------
     #  List of conrete methods from MC class
     # ------------------------------------------------------------------------------
-    
-    " def get_stateSpaceEvoRates(self):                                                     "
-    "                                                                                       "
-    "     calculate evolution parameters for each of the states in the markov chain model   "
-    "     the evolution parameters are calculated along the absolute fitness state space    "
-    "     beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)     "
     
     " def read_pFixOutputs(self,readFile,nStates):                                          "
     "                                                                                       "
@@ -245,8 +277,9 @@ class mcEvoModel_DRE(mc.MC_class):
     def get_iMax(self):
         
         # get the last state space closest the optimum
-        # Note: di begins with dExt, but does not include dOpt
-        iMax = (self.di.size)
+        # Note: di begins with dExt <-> i=0, so the last di is di.size-1
+        # and never includes dOpt
+        iMax = (self.di.size-1)
         
         return iMax
     
@@ -260,5 +293,33 @@ class mcEvoModel_DRE(mc.MC_class):
         di_last = self.di[0]*(self.params['dOpt']/self.di[0])**st.logser.cdf(self.get_iMax()+1,self.params['alpha'])
         
         return di_last
+    
+    #------------------------------------------------------------------------------
+    
+    def get_first_sd(self):
+        # get_first_sd calculates the first coefficient of the DRE fitness 
+        # landscape, i.e., the selection coefficent of the "d" beneficial 
+        # mutation after dExt
+        
+        first_sd = lmFun.get_d_SelectionCoeff(self.di[0],self.di[1])
+        
+        return first_sd
+    
+    #------------------------------------------------------------------------------
+    
+    def mcDRE_CDF(self,jj,jjStart,cdfOption):
+        # mcDRE_CDF calculates the CDF value of a two parameter CDF function
+        # alpha for decay and jjStart for offset of CDF, i.e. we use:
+        #
+        # F*(jj;alpha,jjStart) = ( F(jj) - F(jjStart) ) / ( 1 - F(jjStart) )
+        
+        if (cdfOption == 'logCDF'):
+            Fjj = st.logser.cdf(jj,self.params['alpha'])
+        elif (cdfOption == 'geomCDF'):
+            Fjj = st.geom.cdf(jj,1-self.params['alpha'])
+        else:
+            Fjj = st.logser.cdf(jj,self.params['alpha'])  # default to log series CDF
+        
+        return Fjj
     
     #------------------------------------------------------------------------------

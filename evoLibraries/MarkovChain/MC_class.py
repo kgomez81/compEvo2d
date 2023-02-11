@@ -19,9 +19,6 @@ import csv
 
 from abc import ABC, abstractmethod
 
-import evoLibraries.LotteryModel.LM_functions as lmFun
-import evoLibraries.RateOfAdapt.ROA_functions as roaFun
-
 class mcEvoModel(ABC):
     # ABSTRACT class used to prototype the MC classes for RM and DRE
     #
@@ -77,37 +74,18 @@ class mcEvoModel(ABC):
     
     @abstractmethod
     def get_stateSpacePfixValues(self):
-        "Method that defines the arrays for evolution rates at each state"
+        "Method that defines the arrays for pfix values at each state"
         pass
         
     #------------------------------------------------------------------------------
-    # Concrete methods (common to both RM and DR MC class implementations)
-    #------------------------------------------------------------------------------
-
-    def get_stateSpaceEvoRates(self):
-        
-        # calculate evolution parameters for each of the states in the markov chain model
-        # the evolution parameters are calculated along the absolute fitness state space
-        # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
-        for ii in range(self.di.size):
-            # absolute fitness rate of adaptation ( on time scale of generations)
-            self.vd_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
-                                               self.sd_i[ii], \
-                                               self.Ud_i[ii], \
-                                               self.pFix_d_i[ii])
-                
-            # relative fitness rate of adaptation ( on time scale of generations)
-            self.vc_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
-                                               self.sc_i[ii], \
-                                               self.Uc_i[ii], \
-                                               self.pFix_c_i[ii])
-                
-            # rate of fitness decrease due to environmental change ( on time scale of generations)
-            # fitness assumed to decrease by sa = absolute fitness increment.
-            self.ve_i[ii] = self.params['sd'] * self.params['R'] * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
-            
-        return None
     
+    @abstractmethod
+    def get_stateSpaceEvoRates(self):
+        "Method that defines the arrays for evolution rates at each state"
+        pass
+    
+    #------------------------------------------------------------------------------
+    # Concrete methods (common to both RM and DR MC class implementations)
     #------------------------------------------------------------------------------
         
     def read_pFixOutputs(self,readFile,nStates):

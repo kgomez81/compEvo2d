@@ -19,6 +19,7 @@ import numpy as np
 import evoLibraries.MarkovChain.MC_class as mc
 import evoLibraries.LotteryModel.LM_functions as lmFun
 import evoLibraries.LotteryModel.LM_pFix_FSA as lmPfix
+import evoLibraries.RateOfAdapt.ROA_functions as roaFun
 
 # *****************************************************************************
 # Markov Chain Class - Running Out of Mutations (RM)
@@ -70,7 +71,7 @@ class mcEvoModel_RM(mc.mcEvoModel):
         self.get_stateSpacePfixValues()         
         
         # update evolution rate arrays above
-        super().get_stateSpaceEvoRates()           
+        self.get_stateSpaceEvoRates()           
         
     #------------------------------------------------------------------------------
     # Definitions for abstract methods
@@ -196,16 +197,35 @@ class mcEvoModel_RM(mc.mcEvoModel):
                                                          kMax)
         return None
     
+    #------------------------------------------------------------------------------
+    
+    def get_stateSpaceEvoRates(self):
+        
+        # calculate evolution parameters for each of the states in the markov chain model
+        # the evolution parameters are calculated along the absolute fitness state space
+        # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
+        for ii in range(self.di.size):
+            # absolute fitness rate of adaptation ( on time scale of generations)
+            self.vd_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
+                                               self.sd_i[ii], \
+                                               self.Ud_i[ii], \
+                                               self.pFix_d_i[ii])
+                
+            # relative fitness rate of adaptation ( on time scale of generations)
+            self.vc_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
+                                               self.sc_i[ii], \
+                                               self.Uc_i[ii], \
+                                               self.pFix_c_i[ii])
+                
+            # rate of fitness decrease due to environmental change ( on time scale of generations)
+            # fitness assumed to decrease by sa = absolute fitness increment.
+            self.ve_i[ii] = self.params['sd'] * self.params['R'] * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
+            
+        return None
+    
     # ------------------------------------------------------------------------------
     #  List of conrete methods from MC class
     # ------------------------------------------------------------------------------
-    
-    " def get_stateSpaceEvoRates(self):                                                     "
-    "                                                                                       "
-    "     calculate evolution parameters for each of the states in the markov chain model   "
-    "     the evolution parameters are calculated along the absolute fitness state space    "
-    "     beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)     "
-    
 
     " def read_pFixOutputs(self,readFile,nStates):                                          "
     "                                                                                       "

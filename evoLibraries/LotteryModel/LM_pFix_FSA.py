@@ -16,7 +16,6 @@ data and create figures in the mutation-driven adaptation manuscript.
 import numpy as np
 import scipy.stats as st
 
-
 import scipy.optimize as opt
 from numpy.polynomial import Polynomial
 

@@ -66,8 +66,8 @@ from evoLibraries.MarkovChain import MC_RM_class as mcRM
 paramFilePath = os.getcwd()+'/inputs/evoExp_RM_01_parameters.csv'
 modelType = 'RM'
 
-mcParams1 = evoObj.evoOptions(paramFilePath, modelType)
-mcModel1 = mcRM.mcEvoModel_RM(mcParams1.params)
+mcParams_rm = evoObj.evoOptions(paramFilePath, modelType)
+mcModel_rm = mcRM.mcEvoModel_RM(mcParams_rm.params)
 
 
 
@@ -97,8 +97,8 @@ from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
 paramFilePath = os.getcwd()+'/inputs/evoExp_DRE_02_parameters.csv'
 modelType = 'DRE'
 
-mcParams1 = evoObj.evoOptions(paramFilePath, modelType)
-mcModel1 = mcDRE.mcEvoModel_DRE(mcParams1.params)
+mcParams_dre = evoObj.evoOptions(paramFilePath, modelType)
+mcModel_dre = mcDRE.mcEvoModel_DRE(mcParams_dre.params)
 
 
 # -----------------------------------------------------
@@ -149,6 +149,13 @@ plt.plot(mcModel2.vd_i,mcModel2.vc_i)
 
 plt.scatter(mcModel2.Ud_i,mcModel2.Uc_i)
 
+fig,(ax1,ax2) = plt.subplots(2,1,figsize=[7,10])
+ax1.scatter(mcModel_rm.state_i,mcModel_rm.di)
+ax2.scatter(mcModel_dre.state_i,mcModel_dre.di)
+
+fig,(ax1,ax2) = plt.subplots(2,1,figsize=[7,10])
+ax1.scatter(mcModel_rm.di,mcModel_rm.sc_i)
+ax2.scatter(mcModel_dre.di,mcModel_dre.sc_i)
 
 # -----------------------------------------------------
 
@@ -180,7 +187,7 @@ def myCDF(jj,alpha,cdfOption):
 nCnt = 200
 de = 3.0
 do = 1.02
-jjStart = 0
+jjStart = 10
 alpha1 = 0.75
 alpha2 = 0.85
 alpha3 = 0.95

@@ -130,4 +130,4 @@ ax2.annotate("", xy=(230,0.5e-5), xytext=(190,0.5e-5),arrowprops={'arrowstyle':'
 
 # save figure
 plt.tight_layout()
-fig1.savefig(os.getcwd() + '/figures/MainDoc/fig_MarkovChain_VaVeVrIntersectionDRE.pdf')
+# fig1.savefig(os.getcwd() + '/figures/MainDoc/fig_MarkovChain_VaVeVrIntersectionDRE.pdf')

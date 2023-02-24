@@ -39,18 +39,6 @@ ax.plot(mcModel1.state_i,mcModel1.pFix_d_i,color='red')
 ax.plot(mcModel1.state_i,mcModel1.sd_i,color='blue')
 
 # -----------------------------------------------------
-# RM model set ups
-# T   = 1e9          # carrying capacity
-# b   = 2.0          # birth rate
-# do  = 100/98.0     # minimum death rate / death rate of optimal genotype
-# sa  = 1e-2         # selection coefficient of beneficial mutation in 
-# Ua  = 1e-5         # max beneficial mutation rate in trait "d"
-# Uad = 1e-5         # deleterious mutation rate in trait "d"
-# cr  = 0.175        # increment to "c" is (1+cr)
-# Ur  = 1e-5         # beneficial mutation rate in trait "c"
-# Urd = 1e-5         # deleterious mutation rate in trait "c"
-# R  = 1/130.0      # rate of environmental change per iteration
-#
 
 import matplotlib.pyplot as plt
 
@@ -60,7 +48,7 @@ sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d\\evoLibraries')
 
 from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_RM_class as mcRM
-
+from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
 
 # The parameter file is read and a dictionary with their values is generated.
 paramFilePath = os.getcwd()+'/inputs/evoExp_RM_01_parameters.csv'
@@ -69,29 +57,6 @@ modelType = 'RM'
 mcParams_rm = evoObj.evoOptions(paramFilePath, modelType)
 mcModel_rm = mcRM.mcEvoModel_RM(mcParams_rm.params)
 
-
-
-# -----------------------------------------------------
-# DRE model setups
-# T   = 1e9          # carrying capacity
-# b   = 2.0          # birth rate
-# do  = 100/98.0     # minimum death rate / death rate of optimal genotype
-# alpha  = 0.99      # selection coefficient of beneficial mutation in 
-# Ua  = 1e-5         # beneficial mutation rate in trait "d"
-# Uad = 1e-5         # deleterious mutation rate in trait "d"
-# cr  = 0.175        # increment to "c" is (1+cr)
-# Ur  = 1e-5         # beneficial mutation rate in trait "c"
-# Urd = 1e-5         # deleterious mutation rate in trait "c"
-# R  = 1/130.0       # rate of environmental change per iteration
-
-import matplotlib.pyplot as plt
-
-import os
-import sys
-sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
-
-from evoLibraries import evoObjects as evoObj
-from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
 
 # The parameter file is read and a dictionary with their values is generated.
 paramFilePath = os.getcwd()+'/inputs/evoExp_DRE_02_parameters.csv'
@@ -149,13 +114,15 @@ plt.plot(mcModel2.vd_i,mcModel2.vc_i)
 
 plt.scatter(mcModel2.Ud_i,mcModel2.Uc_i)
 
+# -----------------------------------------------
+
 fig,(ax1,ax2) = plt.subplots(2,1,figsize=[7,10])
 ax1.scatter(mcModel_rm.state_i,mcModel_rm.di)
 ax2.scatter(mcModel_dre.state_i,mcModel_dre.di)
 
 fig,(ax1,ax2) = plt.subplots(2,1,figsize=[7,10])
-ax1.scatter(mcModel_rm.di,mcModel_rm.sc_i)
-ax2.scatter(mcModel_dre.di,mcModel_dre.sc_i)
+ax1.scatter(mcModel_rm.di,mcModel_rm.sd_i)
+ax2.scatter(mcModel_dre.di,mcModel_dre.sd_i)
 
 # -----------------------------------------------------
 

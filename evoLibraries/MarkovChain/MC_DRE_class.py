@@ -106,7 +106,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         while (getNext_di):
 
             # get next d-term using the selected CDF
-            dNext = dMax*(self.params['dOpt']/dMax)**self.mcDRE_CDF(ii,iiStart,cdf_option)
+            dNext = dMax*(self.params['dOpt']/dMax)**self.mcDRE_CDF(ii)
             
             selCoeff_d_ii = lmFun.get_d_SelectionCoeff(di[-1],dNext) 
             
@@ -212,7 +212,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
                 # if at first state space, then use dOpt since it is not in the di array
                 dArry = np.array( [self.di[ii], self.get_last_di()  ] )
             else:
-                # if not at first state space then evolution goes from ii -> ii-1
+                # if not at first state space then evolution goes from ii -> ii+1
                 dArry = np.array( [self.di[ii], self.di[ii+1]       ] )
                 
             cArry = np.array( [1, 1] )
@@ -255,7 +255,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
                 
             # rate of fitness decrease due to environmental change ( on time scale of generations)
             # fitness assumed to decrease by sa = absolute fitness increment.
-            self.ve_i[ii] = self.get_first_sd() * self.params['R'] \
+            self.ve_i[ii] = self.params['se'] * self.params['R'] \
                                     * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
             
         return None
@@ -290,7 +290,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # occasionally need it to calculate pfix and the rate of adaption.
         
         # get next d-term after last di, using log series CDF
-        di_last = self.di[0]*(self.params['dOpt']/self.di[0])**st.logser.cdf(self.get_iMax()+1,self.params['alpha'])
+        di_last = self.di[0]*(self.params['dOpt']/self.di[0])**self.mcDRE_CDF(self.get_iMax()+1)
         
         return di_last
     
@@ -307,18 +307,25 @@ class mcEvoModel_DRE(mc.mcEvoModel):
     
     #------------------------------------------------------------------------------
     
-    def mcDRE_CDF(self,jj,jjStart,cdfOption):
+    def mcDRE_CDF(self,jj):
         # mcDRE_CDF calculates the CDF value of a two parameter CDF function
         # alpha for decay and jjStart for offset of CDF, i.e. we use:
         #
-        # F*(jj;alpha,jjStart) = ( F(jj) - F(jjStart) ) / ( 1 - F(jjStart) )
+        # F*(jj;alpha,jjStart) = ( F(jj+jjStart) - F(jjStart) ) / ( 1 - F(jjStart) )
+        #
+        # cdfOption: 1 = logCDF, 2 = geomCDF
         
-        if (cdfOption == 'logCDF'):
-            Fjj = st.logser.cdf(jj,self.params['alpha'])
-        elif (cdfOption == 'geomCDF'):
-            Fjj = st.geom.cdf(jj,1-self.params['alpha'])
+        alpha = self.params['alpha']
+        jjStart = self.params['jStart']
+        
+        
+        if (self.params['cdfOption'] == 1):
+            Fjj = (st.logser.cdf(jj+jjStart,alpha)-st.logser.cdf(jjStart,alpha))/(1-st.logser.cdf(jjStart,alpha)) 
+        elif (self.params['cdfOption'] == 2):
+            Fjj = (st.geom.cdf(jj+jjStart,1-alpha)-st.geom.cdf(jjStart,1-alpha))/(1-st.geom.cdf(jjStart,1-alpha))
         else:
-            Fjj = st.logser.cdf(jj,self.params['alpha'])  # default to log series CDF
+            # default to log series CDF
+            Fjj = (st.logser.cdf(jj+jjStart,alpha)-st.logser.cdf(jjStart,alpha))/(1-st.logser.cdf(jjStart,alpha)) 
         
         return Fjj
     

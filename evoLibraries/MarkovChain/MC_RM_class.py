@@ -91,7 +91,7 @@ class mcEvoModel_RM(mc.mcEvoModel):
             # loop until at dMax or greater (max death term for viable pop)
             di = di+[di[-1]*(1+self.params['sd']*(di[-1]-1))]
         
-        # FinallRemove dOpt from state space
+        # Finally remove dOpt from state space
         self.di = np.asarray(di[1:])
         
         # Now that the state space is defined, adjust the size of all other arrays
@@ -219,7 +219,7 @@ class mcEvoModel_RM(mc.mcEvoModel):
                 
             # rate of fitness decrease due to environmental change ( on time scale of generations)
             # fitness assumed to decrease by sa = absolute fitness increment.
-            self.ve_i[ii] = self.params['sd'] * self.params['R'] * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
+            self.ve_i[ii] = self.params['se'] * self.params['R'] * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
             
         return None
     

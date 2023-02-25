@@ -21,6 +21,15 @@ see Bertram & Masel 2019 for details of lottery model
 
 import scipy as sp
 import numpy as np
+
+import os
+import sys
+sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d\\evoLibraries')
+
+from evoLibraries import evoObjects as evoObj
+from evoLibraries.MarkovChain import MC_RM_class as mcRM
+
+
 import matplotlib.pyplot as plt
 import evo_library as myfun            # my functions in a seperate file
 from matplotlib.lines import Line2D
@@ -46,8 +55,15 @@ from matplotlib.lines import Line2D
 #
 
 # The parameter file is read and a dictionary with their values is generated.
-paramFile = 'inputs/evoExp_RM_02_parameters.csv'
-params = myfun.read_parameterFile(paramFile)
+paramFilePath1 = os.getcwd()+'/inputs/evoExp_RM_01_parameters.csv'
+modelType = 'RM'
+
+# define grid of evolution parameters. 
+
+mcParams1 = evoObj.evoOptions(paramFilePath1, modelType)
+mcModel1 = mcRM.mcEvoModel_RM(mcParams1.params)
+
+
 
 # Calculate absolute fitness state space. This requires specificying:
 # dMax  - max size of death term that permits non-negative growth in abundances

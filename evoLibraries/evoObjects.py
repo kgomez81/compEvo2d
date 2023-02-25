@@ -70,6 +70,10 @@ class evoGridOptions(evoOptions):
     # evoGridOptions encapsulates evolution parameters and bounds to define 
     # a grid of Markov Chain models for figures.
     
+    # --------------------------------------------------------------------------
+    # Constructor
+    # --------------------------------------------------------------------------
+    
     def __init__(self,paramFilePath,modelType,saveDataName,saveFigName,varNames,varBounds):
         
         super().__init__(paramFilePath,modelType)
@@ -93,6 +97,12 @@ class evoGridOptions(evoOptions):
         # varBounds[j][1] = max Multiple of parameter value in file (Xj variable)
         # varBounds[j][2] = number of increments from min to max (log scale) 
         self.varBounds      = varBounds
-
-
-
+        
+    # --------------------------------------------------------------------------
+    # Methods
+    # --------------------------------------------------------------------------
+    
+    def get_params_ij(ii,jj):
+        # get_params_ij set the center param list for 
+        
+        return params_ij

@@ -165,29 +165,41 @@ def get_eqPopDensity(b,di,option):
 #------------------------------------------------------------------------------
 
 def get_d_SelectionCoeff(dWt,dMt):
+    # Calculate the "d" selection coefficient for the Bertram & Masel variable 
+    # density lottery model
+    #
     # Inputs:
-    #- d1 wild type death term 
-    #- d2 mutant type death term
+    #- dWt wild type death term 
+    #- dMt mutant type death term
     #
     # Outputs:
-    #- selCoeff (rate of frequncy increase per generation)
+    #- sd (rate of frequency increase per generation)
     #
-   
-    selCoeff = (dWt-dMt)/(dMt*(dMt-1))
     
-    return selCoeff    
+    r_abs = (dWt-dMt)/dMt    # more numerically accurate than dWt/dMt-1
+    
+    # get time-scale of a generation
+    tau = get_iterationsPerGenotypeGeneration(dMt)
+    
+    # re-scale time to get rate of increase in frequency per generation
+    sd = r_abs * tau
+    
+    return sd
 
 #------------------------------------------------------------------------------
     
-def get_c_SelectionCoeff(b,y,cr,d_i):
+def get_c_SelectionCoeff(b,y,cr,dMt):
     # Calculate the "c" selection coefficient for the Bertram & Masel variable 
-    # density lottery model for choice of ci = (1+sr)^i
+    # density lottery model for choice of ci = (1+c+)^i. We use the multiplicative
+    # model of ci increments because the Bertram & Masel variable density lottery
+    # model is discrete.
+    # 
     #
     # Inputs:
     # b - juvenile birth rate
     # y - equilibrium population density
     # cr - increase to ci from a single beneficial mutation is (1+cr)
-    # d_i - death term of the mutant class
+    # dMt - death term of the mutant class
     #
     # Output: 
     # sr - selection coefficient of beneficial mutation in "c" trait
@@ -202,10 +214,11 @@ def get_c_SelectionCoeff(b,y,cr,d_i):
     r_rel = cr*(1-y)*(1-(1+b*y)*np.exp(-b*y))/(y+(1-y)*(1-np.exp(-b)))*\
                     (b*y-1+np.exp(-b*y))/(b*y*(1-np.exp(-b*y))+cr*(1-(1+b*y)*np.exp(-b*y)))
     
-    # re-scale time to get rate of increase in frequency per generation
-    tau_i = get_iterationsPerGenotypeGeneration(d_i)
+    # get time-scale of a generation
+    tau = get_iterationsPerGenotypeGeneration(dMt)
     
-    sr = r_rel*tau_i
+    # re-scale time to get rate of increase in frequency per generation
+    sr = r_rel * tau
     
     return sr
 

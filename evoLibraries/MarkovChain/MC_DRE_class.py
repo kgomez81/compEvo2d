@@ -91,9 +91,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         di          = [dMax]
         getNext_di  = True
         ii          = 1         
-        iiStart     = 10
         yi_option   = 1         # option 1, analytic approx of eq. density near opt
-        cdf_option  = 'logCDF'
         
         # define lowerbound for selection coefficients and how small the di
         # selection coeffient should be w.r.t ci selection coefficient
@@ -240,12 +238,43 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # calculate evolution parameters for each of the states in the markov chain model
         # the evolution parameters are calculated along the absolute fitness state space
         # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
+        #
+        # IMPORTANT: from the popgen perspective, the rates of adaptation that are calculated
+        #            will not be on the same time-scale, and therefore, some need to be 
+        #            rescaled accordingly to get properly compare them to one another.
+        #
+        #            vc - time-scale is one generation of mutant = 1/(d_i - 1)
+        #            vd - time-scale is one generation of mutant = 1/(d_{i+1} - 1) 
+        #
+        #            to resolve the different time scales, we set everything to the time-scale
+        #            of the wild type's generation time 1/(d_i -1)
+        # 
+        # NOTE:      di's do not include dOpt, and dExt = d[0] < d[1] < ... < d[iMax] < ... < dOpt. 
+        # 
         for ii in range(self.di.size):
+            
+            # check if the current di term is the last (ii=iMax), in which case, a beneficial
+            # mutation in d moves you what would have been di[iMax+1] if the sequence continued.
+            if (ii ==  self.get_iMax()):
+                di_curr = self.di[ii]
+                di_next = self.get_last_di()
+            else:
+                di_curr = self.di[ii]
+                di_next = self.di[ii+1]
+            
+            # calculate rescaling factor to change vd from time scale of mutant lineage's generation time
+            # to time-scale of wild type's generation time.
+            # 
+            #       rescaleFactor = (1 gen mutant)/(1 gen wild type) = ( d_i - 1 )/( d_{i-1} - 1 )
+            #
+            rescaleFactor_vd = lmFun.get_iterationsPerGenotypeGeneration(di_next) / \
+                                    lmFun.get_iterationsPerGenotypeGeneration(di_curr)
+                
             # absolute fitness rate of adaptation ( on time scale of generations)
             self.vd_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
                                                self.sd_i[ii], \
                                                self.Ud_i[ii], \
-                                               self.pFix_d_i[ii])
+                                               self.pFix_d_i[ii]) * rescaleFactor_vd
                 
             # relative fitness rate of adaptation ( on time scale of generations)
             self.vc_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \

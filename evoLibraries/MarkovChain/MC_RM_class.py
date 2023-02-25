@@ -204,21 +204,56 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # calculate evolution parameters for each of the states in the markov chain model
         # the evolution parameters are calculated along the absolute fitness state space
         # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
+        #
+        # IMPORTANT: from the popgen perspective, the rates of adaptation that are calculated
+        #            will not be on the same time-scale, and therefore, some need to be 
+        #            rescaled accordingly to get properly compare them to one another.
+        #
+        #            vc - time-scale is one generation of mutant = 1/(d_i - 1)
+        #            vd - time-scale is one generation of mutant = 1/(d_{i-1} - 1) 
+        #
+        #            to resolve the different time scales, we set everything to the time-scale
+        #            of the wild type's generation time 1/(d_i -1)
+        # 
+        # NOTE:      di's do not include dOpt, and dExt = d[iExt] < ... < d[1] < d[0] < dOpt. 
+        # 
         for ii in range(self.di.size):
-            # absolute fitness rate of adaptation ( on time scale of generations)
+            
+            # check if the current di term is the first (ii=0), in which case, a beneficial
+            # mutation in d moves you to dOpt.
+            if (ii == 0):
+                di_curr = self.di[ii]           # wild type
+                di_next = self.params['dOpt']   # mutant
+            else:
+                di_curr = self.di[ii]           # wild type
+                di_next = self.di[ii-1]         # mutant
+            
+            # calculate rescaling factor to change vd from time scale of mutant lineage's generation time
+            # to time-scale of wild type's generation time.
+            # 
+            #       rescaleFactor = (1 gen mutant)/(1 gen wild type) = ( d_i - 1 )/( d_{i-1} - 1 )
+            #
+            rescaleFactor_vd = lmFun.get_iterationsPerGenotypeGeneration(di_next) / \
+                                    lmFun.get_iterationsPerGenotypeGeneration(di_curr)
+            
+            # absolute fitness rate of adaptation ( on time scale of generations - mutant in d )
             self.vd_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
                                                self.sd_i[ii], \
                                                self.Ud_i[ii], \
-                                               self.pFix_d_i[ii])
+                                               self.pFix_d_i[ii]) * rescaleFactor_vd
                 
-            # relative fitness rate of adaptation ( on time scale of generations)
+            # relative fitness rate of adaptation ( on time scale of generations - mutant in c )
             self.vc_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
                                                self.sc_i[ii], \
                                                self.Uc_i[ii], \
                                                self.pFix_c_i[ii])
                 
             # rate of fitness decrease due to environmental change ( on time scale of generations)
-            # fitness assumed to decrease by sa = absolute fitness increment.
+            # fitness assumed to decrease by the parameter se (fitness decrease).
+            #
+            # NOTE: We use the wild types generation time scale to rescale ve here, as with other rates.
+            #       
+            
             self.ve_i[ii] = self.params['se'] * self.params['R'] * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
             
         return None
@@ -245,3 +280,4 @@ class mcEvoModel_RM(mc.mcEvoModel):
         return self.di.size
     
     #------------------------------------------------------------------------------
+    

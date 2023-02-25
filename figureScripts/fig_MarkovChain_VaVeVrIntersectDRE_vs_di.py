@@ -60,81 +60,87 @@ mcModel2 = mcDRE.mcEvoModel_DRE(mcParams2.params)
 # --------------------------------------------------------------------------
 fig1, (ax1,ax2) = plt.subplots(2,1,figsize=[7,12])
 
-ax1.plot(   mcModel1.di, \
-            mcModel1.ve_i,color="black",linewidth=3,label=r'$v_e$')
-ax1.scatter(mcModel1.di, \
-            mcModel1.vd_i,color="blue",s=8,label=r'$v_d$')
-ax1.scatter(mcModel1.di, \
-            mcModel1.vc_i,color="red",s=8,label=r'$v_c$')
+ax1.plot(   -mcModel1.di, \
+             mcModel1.ve_i,color="black",linewidth=3,label=r'$v_e$')
+ax1.scatter(-mcModel1.di, \
+             mcModel1.vd_i,color="blue",s=8,label=r'$v_d$')
+ax1.scatter(-mcModel1.di, \
+             mcModel1.vc_i,color="red",s=8,label=r'$v_c$')
 
 # axes and label adjustements
-# iMax = mcModel1.get_iMax()
-ax1.set_xlim(mcModel1.params['b']+1,mcModel1.params['dOpt'])
+# NOTE: axis order reversed to make graph easier to read/compare
+xLb = -(mcModel1.params['b']+1)
+xUb = -mcModel1.params['dOpt']
+xCnt = int((xUb-xLb)/0.5)+1
+
+ax1.set_xlim(xLb,xUb)
 ax1.set_ylim(0,2.25e-4)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
 
-# xTickMax = int(iMax/100+1)
-# ax1.set_xticks([100*i for i in range(0,xTickMax)])
-# ax1.set_xticklabels(["" for i in range(0,xTickMax)],fontsize=16)
-
+ax1.set_xticks([xLb+0.5*i for i in range(0,xCnt)])
+ax1.set_xticklabels(["" for i in range(0,xCnt)],fontsize=16)
 ax1.set_yticks([5e-5*i for i in range(0,5)])
 ax1.set_yticklabels([str(5*i/10.0) for i in range(0,5)],fontsize=16)
+# ax1.set_yticklabels(["" for i in range(0,5)],fontsize=16)
 
-#ax1.set_xlabel(r'Absolute fitness class',fontsize=20,labelpad=8)
 ax1.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 ax1.legend(fontsize = 14,ncol=1,loc='center left')
 
 # annotations
-iEq1 = 70
+iEq1 = 71
 vEq1 = 0.85e-4
 arrwLngth1 = 30
-diEq1 = mcModel1.di[iEq1]
+diEq1 = -mcModel1.di[iEq1]
 ax1.plot([diEq1,diEq1],[0,vEq1],c="black",linewidth=2,linestyle='--')
 # ax1.annotate("", xy=(iEq1,1.3e-5), xytext=(iEq1-arrwLngth1,1.3e-5),arrowprops={'arrowstyle':'-|>','lw':4,'color':'blue'})
 # ax1.annotate("", xy=(iEq1,1.3e-5), xytext=(iEq1+arrwLngth1,1.3e-5),arrowprops={'arrowstyle':'-|>','lw':4})
 ##plt.text(-84,3.29e-4,r'$i^*=88$',fontsize = 18)
 ##plt.text(-84,3.10e-4,r'$i_{ext}=180$',fontsize = 18)
 ##plt.text(-190,5.50e-4,r'$\times 10^{-4}$', fontsize = 20)
+ax1.text(xLb+0.02,2.1e-4,r'(A)', fontsize = 22)
                     
 # --------------------------------------------------------------------------
 #                               Figure - Panel (B)
 # --------------------------------------------------------------------------
-ax2.plot(   mcModel2.di, \
-            mcModel2.ve_i,color="black",linewidth=3,label=r'$v_e$')
-ax2.scatter(mcModel2.di, \
-            mcModel2.vd_i,color="blue",s=8,label=r'$v_d$')
-ax2.scatter(mcModel2.di, \
-            mcModel2.vc_i,color="red",s=8,label=r'$v_r$')
+ax2.plot(   -mcModel2.di, \
+             mcModel2.ve_i,color="black",linewidth=3,label=r'$v_e$')
+ax2.scatter(-mcModel2.di, \
+             mcModel2.vd_i,color="blue",s=8,label=r'$v_d$')
+ax2.scatter(-mcModel2.di, \
+             mcModel2.vc_i,color="red",s=8,label=r'$v_r$')
 
 # axes and label adjustements
-# iMax = mcModel2.get_iMax()
-ax2.set_xlim(mcModel2.params['b']+1,mcModel1.params['dOpt'])
+# NOTE: axis order reversed to make graph easier to read/compare
+xLb = -(mcModel2.params['b']+1)
+xUb = -mcModel2.params['dOpt']
+xCnt = int((xUb-xLb)/0.5)+1
+
+ax2.set_xlim(xLb,xUb)
 ax2.set_ylim(0,2.25e-4)       # 1.5*max([max(va_i),max(vr_i)])
 
-# xTickMax = int(iMax/100+1)
-# ax2.set_xticks([100*i for i in range(0,xTickMax)])
-# ax2.set_xticklabels([str(100*i) for i in range(0,xTickMax)],fontsize=16)
-
+ax2.set_xticks([xLb+0.5*i for i in range(0,xCnt)])
+ax2.set_xticklabels([str(-(xLb+0.5*i)) for i in range(0,xCnt)],fontsize=16)
 ax2.set_yticks([5e-5*i for i in range(0,5)])
 ax2.set_yticklabels([str(5*i/10.0) for i in range(0,5)],fontsize=16)
+# ax2.set_yticklabels(["" for i in range(0,5)],fontsize=16)
 
-ax2.set_xlabel(r'Absolute fitness class',fontsize=20,labelpad=8)
+ax2.set_xlabel(r'Absolute fitness',fontsize=20,labelpad=8)
 ax2.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 ax2.legend(fontsize = 14,ncol=1,loc='center left')
 
 ## annotations
-iEq2 = 64
+iEq2 = 65
 vEq2 = 0.87e-4
 arrwLngth2 = 30
-diEq2 = mcModel2.di[iEq2]
+diEq2 = -mcModel2.di[iEq2]
 ax2.plot([diEq2,diEq2],[0,vEq2],c="black",linewidth=2,linestyle='--')
 # ax2.annotate("", xy=(iEq2,0.4e-4), xytext=(iEq2-0.6*arrwLngth2,0.4e-4),arrowprops={'arrowstyle':'-|>','lw':3,'color':'blue'})
 # ax2.annotate("", xy=(iEq2,0.3e-4), xytext=(iEq2-arrwLngth2,0.3e-4),arrowprops={'arrowstyle':'-|>','lw':4,'color':'red'})
 ##plt.text(-78,0.29e-4,r'$i^*=84$',fontsize = 18)
 ##plt.text(-78,0.10e-4,r'$i_{ext}=180$',fontsize = 18)
 ##plt.text(-190,2.58e-4,r'$\times 10^{-4}$', fontsize = 20)
-# plt.text(15,7.95e-5,r'(A)', fontsize = 22)
-# plt.text(15,3.7e-5,r'(B)', fontsize = 22)
+ax2.text(xLb+0.02,2.1e-4,r'(B)', fontsize = 22)
 
+## Additional anotations showind di for equilibrium
 # diEqStr1 = "%.3f" % (mcModel1.di[iEq1])
 # plt.text(120,1.2e-4,'d1*='+diEqStr1,fontsize = 11)
 # diEqStr2 = "%.3f" % (mcModel2.di[iEq1])

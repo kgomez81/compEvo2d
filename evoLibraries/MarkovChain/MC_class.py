@@ -87,6 +87,40 @@ class mcEvoModel(ABC):
     #------------------------------------------------------------------------------
     # Concrete methods (common to both RM and DR MC class implementations)
     #------------------------------------------------------------------------------
+    
+    def get_vd_i_perUnitTime(self):      
+        # get_vd_i_perUnitTime()  returns the set of vd_i but with respect to the 
+        # time scale of the model (i.e., time per iteration).
+        #
+        # NOTE: vd saved in time-scale of wild type generations
+        
+        vd_i_perUnitTime = np.asarray([ self.vd_i[ii]*(self.di[ii]-1) for ii in range(self.di.size)])
+        
+        return vd_i_perUnitTime
+    
+    #------------------------------------------------------------------------------
+    
+    def get_vc_i_perUnitTime(self):      
+        # get_vc_perUnitTime()  returns the set of vc_i but with respect to the 
+        # time scale of the model (i.e., time per iteration).
+        #
+        
+        vc_i_perUnitTime = np.asarray([ self.vc_i[ii]*(self.di[ii]-1) for ii in range(self.di.size)])
+        
+        return vc_i_perUnitTime
+    
+    #------------------------------------------------------------------------------
+    
+    def get_ve_i_perUnitTime(self):      
+        # get_ve_i_perUnitTime()  returns the set of ve_i but with respect to the 
+        # time scale of the model (i.e., time per iteration).
+        #
+        
+        ve_i_perUnitTime = np.asarray([ self.ve_i[ii]*(self.di[ii]-1) for ii in range(self.di.size)])
+        
+        return ve_i_perUnitTime
+    
+    #------------------------------------------------------------------------------
         
     def read_pFixOutputs(self,readFile,nStates):
         #

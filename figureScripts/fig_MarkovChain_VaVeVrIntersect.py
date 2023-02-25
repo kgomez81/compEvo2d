@@ -85,7 +85,7 @@ ax1.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 ax1.legend(fontsize = 14,ncol=1,loc='lower right')
 
 # annotations
-iEq1 = 91
+iEq1 = 90
 vEq1 = 1.50e-4
 arrwLngth1 = 16
 ax1.plot([-iEq1,-iEq1],[0,vEq1],c="black",linewidth=2,linestyle='--')
@@ -123,7 +123,7 @@ ax2.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 ax2.legend(fontsize = 14,ncol=1,loc='lower right')
 
 # annotations
-iEq2 = 86
+iEq2 = 84
 vEq2 = 1.45e-4
 arrwLngth2 = 16
 ax2.plot([-iEq2,-iEq2],[0,vEq2],c="black",linewidth=2,linestyle='--')

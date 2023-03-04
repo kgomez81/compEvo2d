@@ -138,6 +138,15 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         self.vc_i    = np.zeros(self.di.shape) # rate of adaptation in relative fitness trait alone
         self.ve_i    = np.zeros(self.di.shape) # rate of fitness decrease due to environmental degradation
         
+        # regime IDs to identify the type of evolution at each state (successional, multi. mutations, diffusion)
+        # 0 = bad evo parameters (N,s,U or pFix <= 0)
+        # 1 = successional
+        # 2 = multiple mutations
+        # 3 = diffusion 
+        # 4 = regime undetermined
+        self.evoRegime_d_i = np.zeros(self.di.shape) 
+        self.evoRegime_c_i = np.zeros(self.di.shape) 
+        
         return None
 
     #------------------------------------------------------------------------------
@@ -285,7 +294,21 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             # rate of fitness decrease due to environmental change ( on time scale of generations)
             # fitness assumed to decrease by sa = absolute fitness increment.
             self.ve_i[ii] = self.params['se'] * self.params['R'] \
-                                    * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
+                                    * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])  
+                                        
+            self.ve_i[ii] = self.params['se'] * self.params['R'] * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
+            
+            # Lastly, get the regime ID's of each state space. These values are used to understand
+            # where the analysis breaks down
+            self.evoRegime_d_i[ii]  = roaFun.get_regimeID(self.eq_Ni[ii], \
+                                               self.sd_i[ii], \
+                                               self.Ud_i[ii], \
+                                               self.pFix_d_i[ii])
+                
+            self.evoRegime_c_i[ii]  = roaFun.get_regimeID(self.eq_Ni[ii], \
+                                               self.sc_i[ii], \
+                                               self.Uc_i[ii], \
+                                               self.pFix_c_i[ii])
             
         return None
 

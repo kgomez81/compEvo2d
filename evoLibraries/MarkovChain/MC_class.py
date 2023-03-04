@@ -52,7 +52,10 @@ class mcEvoModel(ABC):
         self.vd_i    = np.zeros(self.di.shape) # rate of adaptation in absolute fitness trait alone
         self.vc_i    = np.zeros(self.di.shape) # rate of adaptation in relative fitness trait alone
         self.ve_i    = np.zeros(self.di.shape) # rate of fitness decrease due to environmental degradation
-    
+        
+        self.evoRegime_d_i = np.zeros(self.di.shape) # regim ID identifying Successional, Mult Mut, Diffusion
+        self.evoRegime_c_i = np.zeros(self.di.shape) # regim ID identifying Successional, Mult Mut, Diffusion
+        
     #------------------------------------------------------------------------------
     # abstract methods
     #------------------------------------------------------------------------------

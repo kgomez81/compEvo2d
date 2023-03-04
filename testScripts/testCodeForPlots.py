@@ -57,14 +57,43 @@ modelType = 'RM'
 mcParams_rm = evoObj.evoOptions(paramFilePath, modelType)
 mcModel_rm = mcRM.mcEvoModel_RM(mcParams_rm.params)
 
-
 # The parameter file is read and a dictionary with their values is generated.
-paramFilePath = os.getcwd()+'/inputs/evoExp_DRE_02_parameters.csv'
+paramFilePath = os.getcwd()+'/inputs/evoExp_DRE_01_parameters.csv'
 modelType = 'DRE'
 
 mcParams_dre = evoObj.evoOptions(paramFilePath, modelType)
 mcModel_dre = mcDRE.mcEvoModel_DRE(mcParams_dre.params)
 
+# unscaled rates
+
+fig,(ax1,ax2) = plt.subplots(2,1,figsize=[7,10])
+
+ax1.scatter(-mcModel_rm.di , mcModel_rm.get_vd_i_perUnitTime()   ,c='blue',label='vd')
+ax1.scatter(-mcModel_rm.di , mcModel_rm.get_vc_i_perUnitTime()   ,c='red',label='vc')
+ax1.plot(   -mcModel_rm.di , mcModel_rm.get_ve_i_perUnitTime()   ,c='black',label='ve')
+
+ax1.set_ylim(0,9e-4)
+
+ax2.scatter(-mcModel_dre.di, mcModel_dre.get_vd_i_perUnitTime()  ,c='blue',label='vd')
+ax2.scatter(-mcModel_dre.di, mcModel_dre.get_vc_i_perUnitTime()  ,c='red',label='vc')
+ax2.plot(   -mcModel_dre.di, mcModel_dre.get_ve_i_perUnitTime()  ,c='black',label='ve')
+
+ax2.set_ylim(0,9e-4)
+
+plt.legend()
+
+# evo regime
+
+fig,(ax1,ax2) = plt.subplots(2,1,figsize=[7,10])
+
+ax1.scatter(-mcModel_rm.di , mcModel_rm.evoRegime_d_i   ,c='blue',label='vd',marker = 'o')
+ax1.scatter(-mcModel_rm.di , mcModel_rm.evoRegime_c_i   ,c='red',label='vc' ,marker = '*')
+
+ax2.scatter(-mcModel_dre.di, mcModel_dre.evoRegime_d_i  ,c='blue',label='vd',marker = 'o')
+ax2.scatter(-mcModel_dre.di, mcModel_dre.evoRegime_c_i  ,c='red',label='vc' ,marker = '*')
+
+
+plt.legend()
 
 # -----------------------------------------------------
 # all three at once
@@ -210,3 +239,21 @@ plt.xlabel(r'$j^{th}$ Beneficial Mutation')
 plt.ylabel(r'$d_j $- term')
 plt.tight_layout()
 
+
+# --------------- test pfix calculation
+
+
+N = 3.73570525e+07
+sc = 3.46731552e-05
+pFix_c = 4.72663609e-05
+Uc = 5.e-06
+
+T_est = 1/(N*Uc*pFix_c)
+T_swp = np.log(N*pFix_c)/sc
+
+l_sU = np.log(sc/Uc)
+l_Ns = np.log(N*sc)
+l_Npfix = np.log(N*pFix_c)
+
+
+What regime?

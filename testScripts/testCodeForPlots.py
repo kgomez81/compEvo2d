@@ -248,6 +248,10 @@ sc = 3.46731552e-05
 pFix_c = 4.72663609e-05
 Uc = 5.e-06
 
+MM_REGIME_MULTIPLE = 10
+CI_TIMESCALE_TRANSITION = 0.5
+DM_REGIME_MULTIPLE = 3
+
 T_est = 1/(N*Uc*pFix_c)
 T_swp = np.log(N*pFix_c)/sc
 
@@ -256,4 +260,32 @@ l_Ns = np.log(N*sc)
 l_Npfix = np.log(N*pFix_c)
 
 
-What regime?
+# What regime?
+
+if (sc <= 0) or (N <= 0) or (Uc <= 0) or (pFix_c <= 0):
+    # bad evolutionary parameters
+    regID = 0
+
+# Calculate mean time between establishments
+Test = 1/N*Uc*pFix_c
+
+# Calculate mean time of sweep
+Tswp = (1/sc)*np.log(N*pFix_c)
+    
+# calculate rate of adaptation based on regime
+if (Test*CI_TIMESCALE_TRANSITION >= Tswp):
+    # successional, establishment time scale exceeds sweep time scale
+    regID = 1
+    
+elif (sc > MM_REGIME_MULTIPLE*Uc) and (Test <= CI_TIMESCALE_TRANSITION*Tswp):
+    # multiple mutations, selection time scale smaller than  mutation time scale
+    regID = 2
+    
+elif (Uc <= DM_REGIME_MULTIPLE*sc) and (Test <= CI_TIMESCALE_TRANSITION*Tswp):
+    # diffusive mutations, 
+    regID = 3
+
+else:
+    # regime undetermined
+    regID = -1
+

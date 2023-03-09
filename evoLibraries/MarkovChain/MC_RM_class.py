@@ -279,6 +279,26 @@ class mcEvoModel_RM(mc.mcEvoModel):
             
         return None
     
+    #------------------------------------------------------------------------------
+    
+    def get_vd_ve_intersection(self):      
+        # get_vd_ve_intersection() returns the state for which vd and ve are closest
+        
+        # check for the minimizer, but exclude the extinction class
+        state_i_intersect = np.argmin( np.abs(self.vd_i[0:-1]-self.ve_i[0:-1]) )
+        
+        return state_i_intersect
+    
+    #------------------------------------------------------------------------------
+    
+    def get_vd_vc_intersection(self):      
+        # get_vd_ve_intersection() returns the state for which vd and vc are closest
+        
+        # check for the minimizer, but exclude the extinction class
+        state_i_intersect = np.argmin( np.abs(self.vd_i[0:-1]-self.vc_i[0:-1]) )
+        
+        return state_i_intersect
+    
     # ------------------------------------------------------------------------------
     #  List of conrete methods from MC class
     # ------------------------------------------------------------------------------

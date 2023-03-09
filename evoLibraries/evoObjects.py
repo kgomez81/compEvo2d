@@ -35,6 +35,12 @@ class evoOptions:
         # set model type (str = 'RM' or 'DRE') 
         self.modelType      = modelType
         
+        # initialize with empty params dictionary
+        self.params = {}
+        
+        # initialize with empty params dictionary
+        self.paramsList = []
+        
         # read the paremeter files and store as dictionary
         self.options_readParameterFile()
         
@@ -48,10 +54,15 @@ class evoOptions:
     
         # create array to store values and define the parameter names
         if self.modelType == 'RM':
-            paramList = ['T','b','dOpt','sd','UdMax','UdDel','cp','Uc','UcDel','R','se']
+            self.paramList = ['T','b','dOpt','sd','UdMax','UdDel','cp','Uc','UcDel','R','se']
         else:
-            paramList = ['T','b','dOpt','alpha','Ud','UdDel','cp','Uc','UcDel','R','se','jStart','cdfOption']
-        paramValue = np.zeros([len(paramList),1])
+            self.paramList = ['T','b','dOpt','alpha','Ud','UdDel','cp','Uc','UcDel','R','se','jStart','cdfOption']
+        
+        # save the number of parameters
+        nParams = len(self.paramList)
+        
+        # generate list to store values from csv file
+        paramValue = np.zeros([nParams,1])
         
         # read values from csv file
         with open(self.paramFilePath,'r') as csvfile:
@@ -60,50 +71,8 @@ class evoOptions:
                 paramValue[line] = float(row[0])
         
         # create dictionary with values
-        self.params = dict([[paramList[i],paramValue[i][0]] for i in range(len(paramValue))])
+        self.params = dict([[self.paramList[i],paramValue[i][0]] for i in range(nParams)])
         
         return None
 
-# --------------------------------------
-
-class evoGridOptions(evoOptions):
-    # evoGridOptions encapsulates evolution parameters and bounds to define 
-    # a grid of Markov Chain models for figures.
-    
     # --------------------------------------------------------------------------
-    # Constructor
-    # --------------------------------------------------------------------------
-    
-    def __init__(self,paramFilePath,modelType,saveDataName,saveFigName,varNames,varBounds):
-        
-        super().__init__(paramFilePath,modelType)
-        
-        # save path for array with MC sampling 
-        self.saveDataName   = saveDataName
-        
-        # set list of variable names that will be used to specify the grid
-        # and the bounds with increments needed to define the grid.
-        
-        # square array is built with first two parmeters, and second set are held constant.
-        # varNames[0][0] stored as X1_ARRY
-        # varNames[1][0] stored as X1_ref
-        # varNames[0][1] stored as X2_ARRY
-        # varNames[1][1] stored as X2_ref
-        self.varNames       = varNames
-        
-        # varBounds values define the min and max bounds of parameters that are used to 
-        # define the square grid. 
-        # varBounds[j][0] = min Multiple of parameter value in file (Xj variable)
-        # varBounds[j][1] = max Multiple of parameter value in file (Xj variable)
-        # varBounds[j][2] = number of increments from min to max (log scale) 
-        self.varBounds      = varBounds
-        
-    # --------------------------------------------------------------------------
-    # Methods
-    # --------------------------------------------------------------------------
-    
-    def get_params_ij(ii,jj):
-        # get_params_ij set the center param list for 
-        
-        
-        return params_ij

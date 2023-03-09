@@ -87,6 +87,21 @@ class mcEvoModel(ABC):
         "Method that defines the arrays for evolution rates at each state"
         pass
     
+        
+    #------------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_vd_ve_intersection(self):      
+        "get_vd_ve_intersection() returns the state for which vd and ve are closest"
+        pass
+    
+    #------------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_vd_vc_intersection(self):      
+        "get_vd_ve_intersection() returns the state for which vd and vc are closest"
+        pass
+    
     #------------------------------------------------------------------------------
     # Concrete methods (common to both RM and DR MC class implementations)
     #------------------------------------------------------------------------------

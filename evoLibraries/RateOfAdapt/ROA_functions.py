@@ -194,11 +194,11 @@ def get_regimeID(N,s,U,pFix):
         # successional, establishment time scale exceeds sweep time scale
         regID = 1
         
-    elif (s > const.MM_REGIME_MULTIPLE*U) and (Test <= const.CI_TIMESCALE_TRANSITION*Tswp):
+    elif (s > const.MM_REGIME_MULTIPLE*U) and (Test < const.CI_TIMESCALE_TRANSITION*Tswp):
         # multiple mutations, selection time scale smaller than  mutation time scale
         regID = 2
         
-    elif (s <= const.MM_REGIME_MULTIPLE*U) and (Test <= const.CI_TIMESCALE_TRANSITION*Tswp):
+    elif (s <= const.MM_REGIME_MULTIPLE*U) and (Test < const.CI_TIMESCALE_TRANSITION*Tswp):
         # diffusive mutations, 
         regID = 3
     

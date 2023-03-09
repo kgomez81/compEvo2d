@@ -190,7 +190,7 @@ def get_regimeID(N,s,U,pFix):
     Tswp = (1/s)*np.log(N*pFix)
         
     # calculate rate of adaptation based on regime
-    if (Test >= Tswp/const.CI_TIMESCALE_TRANSITION):
+    if (Test * const.CI_TIMESCALE_TRANSITION >= Tswp):
         # successional, establishment time scale exceeds sweep time scale
         regID = 1
         
@@ -198,7 +198,7 @@ def get_regimeID(N,s,U,pFix):
         # multiple mutations, selection time scale smaller than  mutation time scale
         regID = 2
         
-    elif (U <= const.DM_REGIME_MULTIPLE*s) and (Test <= const.CI_TIMESCALE_TRANSITION*Tswp):
+    elif (s <= const.MM_REGIME_MULTIPLE*U) and (Test <= const.CI_TIMESCALE_TRANSITION*Tswp):
         # diffusive mutations, 
         regID = 3
     

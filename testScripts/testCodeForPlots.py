@@ -248,6 +248,19 @@ sc = 3.46731552e-05
 pFix_c = 4.72663609e-05
 Uc = 5.e-06
 
+
+kk      = mcModel_rm.get_iExt()-1
+N       = mcModel_rm.eq_Ni[kk]
+sc      = mcModel_rm.sc_i[kk]
+pFix_c  = mcModel_rm.pFix_c_i[kk]
+Uc      = mcModel_rm.Uc_i[kk] 
+
+# kk      = 1
+# N       = mcModel_dre.eq_Ni[kk]
+# sc      = mcModel_dre.sc_i[kk]
+# pFix_c  = mcModel_dre.pFix_c_i[kk]
+# Uc      = mcModel_dre.Uc_i[kk] 
+
 MM_REGIME_MULTIPLE = 10
 CI_TIMESCALE_TRANSITION = 0.5
 DM_REGIME_MULTIPLE = 3
@@ -284,8 +297,11 @@ elif (sc > MM_REGIME_MULTIPLE*Uc) and (Test <= CI_TIMESCALE_TRANSITION*Tswp):
 elif (Uc <= DM_REGIME_MULTIPLE*sc) and (Test <= CI_TIMESCALE_TRANSITION*Tswp):
     # diffusive mutations, 
     regID = 3
-
 else:
     # regime undetermined
     regID = -1
 
+regID
+
+
+[N, sc, pFix_c, Uc, regID]

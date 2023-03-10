@@ -76,7 +76,10 @@ class mcEvoGrid(evoObj.evoOptions):
         self.eff_vd_ij  = np.zeros(self.get_evoArray_dim())
         self.eff_vc_ij  = np.zeros(self.get_evoArray_dim())
         self.eff_ve_ij  = np.zeros(self.get_evoArray_dim())
-                                     
+        
+        # get the full set of effective evo parameters and rates
+        self.get_evoGrid_effEvoParams()
+        
     # --------------------------------------------------------------------------
     # Methods
     # --------------------------------------------------------------------------
@@ -133,7 +136,28 @@ class mcEvoGrid(evoObj.evoOptions):
                     
                 # calculate intersections and find the stochastically stable
                 # state of absolute fitness
+                mc_stable_state = temp_mcModel.get_mc_stable_state()
                 
+                # save all evo parameter values
+                self.intersect_state_ij[ii,jj] = mc_stable_state
+                
+                # density and absolute fitness at intersection
+                self.eff_eff_y_ij[ii,jj]   = temp_mcModel.eq_yi[mc_stable_state]
+                self.eff_eff_d_ij[ii,jj]   = temp_mcModel.di[mc_stable_state]
+                
+                # arrays with effective evolution parameters at intersections
+                self.eff_N_ij[ii,jj]       = temp_mcModel.eq_Ni[mc_stable_state]
+                self.eff_Ud_ij[ii,jj]      = temp_mcModel.Ud_i[mc_stable_state]
+                self.eff_Uc_ij[ii,jj]      = temp_mcModel.Uc_i[mc_stable_state]
+                self.eff_sd_ij[ii,jj]      = temp_mcModel.sd_i[mc_stable_state]
+                self.eff_sc_ij[ii,jj]      = temp_mcModel.sc_i[mc_stable_state]
+                self.eff_pFix_d_ij[ii,jj]  = temp_mcModel.pFix_d_i[mc_stable_state]
+                self.eff_pFix_c_ij[ii,jj]  = temp_mcModel.pFix_c_i[mc_stable_state]
+                
+                # arrays with evolution/environment rates
+                self.eff_vd_ij[ii,jj]  = temp_mcModel.vd_i[mc_stable_state]
+                self.eff_vc_ij[ii,jj]  = temp_mcModel.vc_i[mc_stable_state]
+                self.eff_ve_ij[ii,jj]  = temp_mcModel.ve_i[mc_stable_state]
                 
         
         return None

@@ -103,6 +103,13 @@ class mcEvoModel(ABC):
         pass
     
     #------------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_mc_stable_state(self):      
+        "get_mc_stable_state() returns the evolutionarystate for which vd and vc are closest"
+        pass
+    
+    #------------------------------------------------------------------------------
     # Concrete methods (common to both RM and DR MC class implementations)
     #------------------------------------------------------------------------------
     

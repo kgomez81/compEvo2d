@@ -16,192 +16,98 @@ THIS MODULE NEEDS TO BE COMPLETED
 # *****************************************************************************
 
 import numpy as np
-import copy as cpy
-import pickle 
 
-from evoLibraries.RateOfAdapt import ROA_functions as roaFun
+import matplotlib.tri as tri
 
 # *****************************************************************************
 # Markov Chain Functions
 # *****************************************************************************
-
-
-def get_intersection_rho(vd_i, vc_i, sd_i, Ud_i, Uc_i, sc_i, N_i):
-    # This function assumes that the intersection occurs in the 
-    # multiple mutations regime. This quantity is irrelevant when in
-    # the successional regime since there is no interference between 
-    # evolution in traits.
-        
-    # find index that minimizes |va-vr|, but exclude extinction class (:-1)
-    idxMin = np.argmin(np.abs(np.asarray(vd_i[0:-1])-np.asarray(vc_i[0:-1])))
     
-    sd = sd_i[idxMin]
-    Ud = Ud_i[idxMin]
-    sc = sc_i[idxMin]
-    Uc = Uc_i[idxMin]
-    Npop = N_i[idxMin]
+def get_contourPlot_arrayData(X,Y,Z,nGridCt):
+    # Generic function that takes the provided MC grid data and forms the
+    # arrays that can be used to build a contour plot.
+    
+    # Create grid values first.
+    xi = np.linspace(X.min(), X.max(), nGridCt)
+    yi = np.linspace(Y.min(), Y.max(), nGridCt)
 
-    # calculate the regime IDs for each trait
-    #  0: Bad evo parameters
-    #  1: successional
-    #  2: multiple mutations
-    #  3: diffusion
-    # -1: regime undetermined, i.e. in transition region   
+    # Linearly interpolate the data (x, y) on a grid defined by (xi, yi).
+    triang = tri.Triangulation(X.flatten(), Y.flatten())
+    interpolator = tri.LinearTriInterpolator(triang, Z.flatten())
+    Xi, Yi = np.meshgrid(xi, yi)
+    Zi = interpolator(Xi, Yi)
+    
+    return [Xi,Yi,Zi]
+
+#------------------------------------------------------------------------------
+
+def calculate_evoRates_rho(N, evoParams_Trait_1, evoParams_Trait_2):
+    # This function calculate the rho parameter defined in the manuscript,
+    # which measures the relative changes in evolution rates due to increases
+    # in max available territory parameter. 
+    #
+    # NOTE: This provides a generic function for calculating rho defined in the
+    #       manuscript. We don't include it in the rate of adaptation library 
+    #       because this quantity only makes sense to calculate in the context
+    #       of an MC model.
+    
+    # Input evoParams_Trait_# is dictionary with following terms
+    # 's'     - selection coefficient
+    # 'pFix'  - probability of fixation 
+    # 'U'     - beneficial mutation rate
+    # 'regID' - regime ID for rate of adaptation
+    #           List of possible regime IDs 
+    #            0: Bad evo parameters (either U, s, N, pFix == 0)
+    #            1: successional
+    #            2: multiple mutations
+    #            3: diffusion
+    #           -1: regime undetermined, i.e. in transition region   
         
-    regimeID_a = roaFun.get_regimeID(Npop,sd,Ud,sd)
-    regimeID_r = roaFun.get_regimeID(Npop,sc,Uc,sc)
-
+    # load evo parameters for trait 1 into variables to make calculations 
+    # easier to read
+    s_1         = evoParams_Trait_1['s']
+    pFix_1      = evoParams_Trait_1['pFix']
+    U_1         = evoParams_Trait_1['U']
+    evoRegID_1  = evoParams_Trait_1['regID']
+    
+    # load evo parameters for trait 2 into variables to make calculations 
+    # easier to read
+    s_2         = evoParams_Trait_2['s']
+    pFix_2      = evoParams_Trait_2['pFix']
+    U_2         = evoParams_Trait_2['U']
+    evoRegID_2  = evoParams_Trait_2['regID']    
     
     # calculate the appropriate rho
-    if (regimeID_a == 1) or (regimeID_r == 1):
+    if (evoRegID_1 == 1) or (evoRegID_2 == 1):
         # either or both in successional regime, no clonal interference
         rho = 0
     
-    elif (regimeID_a == 2) and (regimeID_r == 2):
+    elif (evoRegID_1 == 2) and (evoRegID_2 == 2):
         # both traits in multiple mutations regime
-        rho = (sc/np.log(sc/Uc))**2 / (sd/np.log(sd/Ud))**2
+        rho = (s_2/np.log(s_2/U_2))**2 / (s_1/np.log(s_1/U_1))**2
         
-    elif (regimeID_a == 3) and (regimeID_r == 2):
+    elif (evoRegID_1 == 3) and (evoRegID_2 == 2):
         # abs trait in diffusion and rel trait in multiple mutations regime
-        Da = 0.5*Ud*sd**2
+        D_1 = 0.5*U_1*s_1**2
         
-        rho = (sc/np.log(sc/Uc))**2 / (Da**(2.0/3.0)/(3*np.log(Da**(1.0/3.0)*Npop)**(2.0/3.0)))               
+        rho = (s_2/np.log(s_2/U_2))**2 / (D_1**(2.0/3.0)/(3*np.log(D_1**(1.0/3.0)*N)**(2.0/3.0)))               
         
-    elif (regimeID_a == 2) and (regimeID_r == 3):
+    elif (evoRegID_1 == 2) and (evoRegID_2 == 3):
         # rel trait in diffusion and abs trait in multiple mutations regime
-        Dr = 0.5*Uc*sc**2
+        D_2 = 0.5*U_2*s_2**2
         
-        rho = (Dr**(2.0/3.0)/(3*np.log(Dr**(1.0/3.0)*Npop)**(2.0/3.0))) / (sd/np.log(sd/Ud))**2
+        rho = (D_2**(2.0/3.0)/(3*np.log(D_2**(1.0/3.0)*N)**(2.0/3.0))) / (s_1/np.log(s_1/U_1))**2
         
-    elif (regimeID_a == 3) and (regimeID_r == 3):
-        # both traits in diffusion
-        Da = 0.5*Ud*sd**2
-        Dr = 0.5*Uc*sc**2
+    elif (evoRegID_1 == 3) and (evoRegID_2 == 3):
+        # both traits in diffusion regime
+        D_1 = 0.5*U_1*s_1**2
+        D_2 = 0.5*U_2*s_2**2
         
-        rho = (Dr**(2.0/3.0)/(3*np.log(Dr**(1.0/3.0)*Npop)**(2.0/3.0))) / (Da**(2.0/3.0)/(3*np.log(Da**(1.0/3.0)*Npop)**(2.0/3.0)))
+        rho = (D_2**(2.0/3.0)/(3*np.log(D_2**(1.0/3.0)*N)**(2.0/3.0))) / (D_1**(2.0/3.0)/(3*np.log(D_1**(1.0/3.0)*N)**(2.0/3.0)))
         
     else:
         rho = np.nan
             
-    return [rho, sd, Ud, sc, Uc]
+    return rho
 
 #------------------------------------------------------------------------------
-
-def get_intersection_popDensity(vd_i, vc_i, eq_yi):
-    # function to calculate the intersection equilibrium density
-        
-    # find index that minimizes |vd-vc| but exclude extinction class (:-1)
-    idxMin = np.argmin(np.abs(np.asarray(vd_i[0:-1])-np.asarray(vc_i[0:-1])))
-    
-    # Definition of the gamma at intersection in paper
-    yiInt = eq_yi[idxMin]
-    
-    return yiInt
-
-#------------------------------------------------------------------------------
-    
-def get_contourPlot_arrayData(myOptions):
-    # Generic function takes the provided options and generates data needed to
-    # creat contour plot of rho and gamma.
-    
-    # set values of first parameter
-    varParam1A = myOptions.varNames[0][0]
-    varParam2A = myOptions.varNames[0][1]
-    
-    varParam1B = myOptions.varNames[1][0]
-    varParam2B = myOptions.varNames[1][1]
-    
-    x1LwrBnd_log10 = np.log10(myOptions.varBounds[0][0]*myOptions.params[varParam1A])
-    x1UprBnd_log10 = np.log10(myOptions.varBounds[0][1]*myOptions.params[varParam1A])
-    if myOptions.modelType == 'RM':
-        x1RefVal_log10 = np.log10(myOptions.params[varParam1B])
-    else:
-        alpha = myOptions.params[varParam1B]
-        de = myOptions.params['b']+1
-        d0 = myOptions.params['dOpt']
-        sa1_mid = 0.5*(1-alpha)*(de-d0)/((de+(d0-de)*(1-alpha))*(de+(d0-de)*(1-alpha)-1))
-        x1RefVal_log10 = np.log10(sa1_mid)
-    
-    X1_vals = np.logspace(x1LwrBnd_log10, x1UprBnd_log10, num=myOptions.varBounds[0][2])
-    X1_ref  = np.logspace(x1RefVal_log10, x1RefVal_log10, num=1                        )
-    
-    x2LwrBnd_log10 = np.log10(myOptions.varBounds[1][0]*myOptions.params[varParam2A])
-    x2UprBnd_log10 = np.log10(myOptions.varBounds[1][1]*myOptions.params[varParam2A])
-    x2RefVal_log10 = np.log10(myOptions.params[varParam2B])
-    
-    X2_vals = np.logspace(x2LwrBnd_log10, x2UprBnd_log10, num=myOptions.varBounds[1][2])
-    X2_ref  = np.logspace(x2RefVal_log10, x2RefVal_log10, num=1                        )
-    
-    X1_ARRY, X2_ARRY = np.meshgrid(X1_vals, X2_vals)
-    RHO_ARRY = np.zeros(X1_ARRY.shape)
-    Y_ARRY = np.zeros(X1_ARRY.shape)
-
-    # arrays to store effecttive s and U values
-    effSa_ARRY = np.zeros(X1_ARRY.shape)
-    effUa_ARRY = np.zeros(X1_ARRY.shape)
-
-    effSr_ARRY = np.zeros(X1_ARRY.shape)
-    effUr_ARRY = np.zeros(X1_ARRY.shape)
-    
-    paramsTemp = cpy.copy(myOptions.params)
-
-    # --------------------------------------------------------------------------
-    # Calculated rho values for T vs 2nd parameter variable
-    # --------------------------------------------------------------------------
-    
-    # THIS WHOLE SECTION NEEDS TO BE REWRITTEN
-    
-    for ii in range(int(X1_ARRY.shape[0])):
-        for jj in range(int(X2_ARRY.shape[1])):
-            
-            # set cr and sa values (selection coefficient)
-            paramsTemp[varParam1A] = X1_ARRY[ii,jj]
-            paramsTemp[varParam1B] = (myOptions.params[varParam1B],X1_ref[0])[myOptions.modelType == 'RM']
-            
-            # set Ua values and Ur values (mutation coefficient)
-            paramsTemp[varParam2A] = X2_ARRY[ii,jj]
-            paramsTemp[varParam2B] = X2_ref[0]
-            
-            # Calculate absolute fitness state space. 
-            if myOptions.modelType == 'RM':
-                [dMax,di,iMax] = get_absoluteFitnessClasses(paramsTemp['b'],paramsTemp['dOpt'],paramsTemp['sd'])
-                [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i] = get_MChainPopParameters(paramsTemp,di,iMax,myOptions.yi_option)        
-            else:
-                iStop = np.log(0.01)/np.log(myOptions.params['alpha'])-1  # stop at i steps to get di within 5% of d0, i.e. (di-d0)/(dMax-d0) = 0.05.
-                [dMax,di,iMax] = get_absoluteFitnessClassesDRE(paramsTemp['b'],paramsTemp['dOpt'],paramsTemp['alpha'],iStop)
-                [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i] = get_MChainPopParametersDRE(paramsTemp,di,iMax,myOptions.yi_option)
-                
-            pFixAbs_i = np.reshape(np.asarray(sa_i),[len(sa_i),1])
-            pFixRel_i = np.reshape(np.asarray(sr_i),[len(sr_i),1])
-            
-            # Use s values for pFix until we get sim pFix values can be obtained
-            if myOptions.modelType == 'RM':
-                [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i,va_i,vr_i,ve_i] = \
-                                get_MChainEvoParameters(paramsTemp,di,iMax,pFixAbs_i,pFixRel_i,myOptions.yi_option)
-            else:
-                [state_i,Ua_i,Ur_i,eq_yi,eq_Ni,sr_i,sa_i,va_i,vr_i,ve_i] = \
-                                get_MChainEvoParametersDRE(paramsTemp,di,iMax,pFixAbs_i,pFixRel_i,myOptions.yi_option)                                    
-                                
-            [RHO_ARRY[ii,jj], effSa_ARRY[ii,jj], effUa_ARRY[ii,jj], effSr_ARRY[ii,jj], effUr_ARRY[ii,jj] ] = \
-                                get_intersection_rho(va_i, vr_i, sa_i, Ua_i, Ur_i, sr_i,eq_Ni)   
-                            
-            Y_ARRY[ii,jj] = get_intersection_popDensity(va_i, vr_i, eq_yi)   
-    
-    
-    with open(myOptions.saveDataName, 'wb') as f:
-        pickle.dump([X1_ARRY,X2_ARRY,RHO_ARRY,Y_ARRY,X1_ref,X2_ref, effSa_ARRY, effUa_ARRY, effSr_ARRY, effUr_ARRY, paramsTemp,dMax], f)
-    
-    return None
-
-
-
-
-
-
-
-
-
-
-
-
-

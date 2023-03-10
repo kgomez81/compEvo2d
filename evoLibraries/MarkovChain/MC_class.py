@@ -19,6 +19,8 @@ import csv
 
 from abc import ABC, abstractmethod
 
+from evoLibraries.MarkovChain import MC_functions as mcFun
+
 class mcEvoModel(ABC):
     # ABSTRACT class used to prototype the MC classes for RM and DRE
     #
@@ -146,7 +148,44 @@ class mcEvoModel(ABC):
         return ve_i_perUnitTime
     
     #------------------------------------------------------------------------------
+    
+    def calculate_evoRho(self):
+        # This function calculate the rho parameter defined in the manuscript,
+        # which measures the relative changes in evolution rates due to increases
+        # in max available territory parameter
         
+        # CONSTRUCT DICTIONARY OF EVO PARAMS TO GET RHO
+        # 's'     - selection coefficient
+        # 'pFix'  - probability of fixation 
+        # 'U'     - beneficial mutation rate
+        # 'regID' - regime ID for rate of adaptation
+        #           List of possible regime IDs 
+        #            0: Bad evo parameters (either U, s, N, pFix == 0)
+        #            1: successional
+        #            2: multiple mutations
+        #            3: diffusion
+        #           -1: regime undetermined, i.e. in transition region   
+        stable_state = self.get_mc_stable_state()
+        
+        # build evo param dictionary for absolute fitness trait
+        evoParams_absTrait = {'s'     : self.sd_i[stable_state], \
+                              'pFix'  : self.pFix_d_i[stable_state], \
+                              'U'     : self.Ud_i[stable_state], \
+                              'regID' : self.evoRegime_d_i[stable_state]}
+        
+        # build evo param dictionary for relative fitness trait
+        evoParams_relTrait = {'s'     : self.sc_i[stable_state], \
+                              'pFix'  : self.pFix_c_i[stable_state], \
+                              'U'     : self.Uc_i[stable_state], \
+                              'regID' : self.evoRegime_c_i[stable_state]}
+        
+        rho = mcFun.calculate_evoRates_rho(self.eq_Ni[stable_state], \
+                                     evoParams_absTrait, evoParams_relTrait)
+                
+        return rho
+        
+    #------------------------------------------------------------------------------
+    
     def read_pFixOutputs(self,readFile,nStates):
         #
         # CURRENTLY NOT BEING USED. REQUIRES SETTING UP SIMULATION CODE TO ENSURE

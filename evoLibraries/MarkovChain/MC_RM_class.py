@@ -285,9 +285,25 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # get_vd_ve_intersection() returns the state for which vd and ve are closest
         
         # check for the minimizer, but exclude the extinction class
-        state_i_intersect = np.argmin( np.abs(self.vd_i[0:-1]-self.ve_i[0:-1]) )
+        #
+        # NOTE: need to add one to account for fact that first array element is 
+        #       excluded, otherwise, state_i_intersect will be an index relative
+        #       to the shortened array [1:-1]. We use nanargin() to ignor nan 
+        #       when finding the minimizer
+        idxStable = np.nanargmin( np.abs(self.vd_i[:-1]-self.ve_i[:-1]) ) + 1
         
-        return state_i_intersect
+        # Check that this is a proper intersection, 
+        #   1. vd > ve before intersection
+        #   2. vd < ve after intersection
+        # otherwise return the state for dExt if 
+        #   - max{ vd_i - ve_i } < 0
+        # or return state of most fit class if 
+        #   - min{ vd_i - ve_i } > 0
+        if not ( (self.vd_i[idxStable-1] >= self.ve_i[idxStable-1]) and \
+                        (self.vd_i[idxStable+1] <= self.ve_i[idxStable+1]) ):
+            iStable = 0
+        
+        return iStable
     
     #------------------------------------------------------------------------------
     
@@ -295,9 +311,22 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # get_vd_ve_intersection() returns the state for which vd and vc are closest
         
         # check for the minimizer, but exclude the extinction class
-        state_i_intersect = np.argmin( np.abs(self.vd_i[0:-1]-self.vc_i[0:-1]) )
+        #
+        # NOTE: need to add one to account for fact that first array element is 
+        #       excluded, otherwise, state_i_intersect will be an index relative
+        #       to the shortened array [1:-1]. We use nanargin() to ignor nan 
+        #       when finding the minimizer
+        idxStable = np.nanargmin( np.abs(self.vd_i[:-1]-self.vc_i[:-1]) ) + 1
         
-        return state_i_intersect
+        # Check that this is a proper intersection, 
+        #   1. vd > ve before intersection
+        #   2. vd < ve after intersection
+        # otherwise return extinction state index if max{vd-ve} < 
+        if not ( (self.vd_i[idxStable-1] >= self.vc_i[idxStable-1]) and \
+                        (self.vd_i[idxStable+1] <= self.vc_i[idxStable+1]) ):
+            iStable = 0
+        
+        return iStable
     
     #------------------------------------------------------------------------------
     

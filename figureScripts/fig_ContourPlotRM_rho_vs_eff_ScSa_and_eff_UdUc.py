@@ -43,7 +43,8 @@ varNames       = ['UdMax','cp']
 #       For example, [-2,-1,0,1,2] would designate [1E-2,1E-1,1E0,1E1,1e2].
 #       Also note that the entries don't have to be integers.
 nArry     = 11
-varBounds = [np.linspace(-(nArry-1)/2, (nArry-1)/2, nArry), np.linspace(-(nArry-1)/2, (nArry-1)/2, nArry)]
+expBnds   = 2
+varBounds = [np.linspace(-expBnds, expBnds, nArry), np.linspace(-expBnds, expBnds, nArry)]
 
 # --------------------------------------------------------------------------
 # generate MC data
@@ -53,10 +54,10 @@ varBounds = [np.linspace(-(nArry-1)/2, (nArry-1)/2, nArry), np.linspace(-(nArry-
 mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, varNames, varBounds)
     
 # construct contour plot grids
-nGridCt = 21
+nGridCt = 5
 
-X = mcModels.eff_sc_ij / mcModels.eff_sd_ij
-Y = mcModels.eff_Ud_ij / mcModels.eff_Uc_ij
+X = np.log10(mcModels.eff_sc_ij) / np.log10(mcModels.eff_sd_ij)
+Y = np.log10(mcModels.eff_Ud_ij) / np.log10(mcModels.eff_Uc_ij)
 Z = mcModels.rho_ij
 
 [xi, yi, zi] = mcFun.get_contourPlot_arrayData(X, Y, Z, nGridCt)
@@ -72,9 +73,9 @@ fig.colorbar(cntr1, ax=ax1)
 
 ax1.set( xlim=(xi.min(), xi.max()), ylim=(yi.min(), yi.max()) )
 ax1.set_title(r'$\rho$ Contour Plot')
-ax1.set_xlabel(r'$\log_{10}(s_r/s_a)$')
-ax1.set_ylabel(r'$\log_{10}(U_a/U_r)$')
+ax1.set_xlabel(r'$\log_{10}(s_c/s_d)$')
+ax1.set_ylabel(r'$\log_{10}(U_d/U_c)$')
 
 plt.show()
-fig.savefig(os.getcwd() + '/figures/MainDoc/fig_contourPlot_RM.pdf')
+fig.savefig(os.getcwd() + '/figures/MainDoc/fig_ContourPlotRM_rho_vs_eff_ScSa_and_eff_UdUc.pdf')
 

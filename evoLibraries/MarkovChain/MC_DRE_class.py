@@ -20,6 +20,7 @@ import scipy.stats as st
 import evoLibraries.MarkovChain.MC_class as mc
 import evoLibraries.LotteryModel.LM_functions as lmFun
 import evoLibraries.LotteryModel.LM_pFix_FSA as lmPfix
+
 import evoLibraries.RateOfAdapt.ROA_functions as roaFun
 
 # *****************************************************************************
@@ -318,9 +319,21 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # get_vd_ve_intersection() returns the state for which vd and ve are closest
         
         # check for the minimizer, but exclude the extinction class
-        state_i_intersect = np.argmin( np.abs(self.vd_i[1:]-self.ve_i[1:]) )
+        #
+        # NOTE: need to add one to account for fact that first array element is 
+        #       excluded, otherwise, state_i_intersect will be an index relative
+        #       to the shortened array [1:-1].
+        iStable = np.argmin( np.abs(self.vd_i[1:]-self.ve_i[1:]) ) + 1
         
-        return state_i_intersect
+        # Check that this is a proper intersection, otherwise return the highest
+        # fitness class near dOpt. Here we check
+        #   1. vd > ve before intersection
+        #   2. vd < ve after intersection
+        if not ( (self.vd_i[iStable-1] >= self.ve_i[iStable-1]) and \
+                        (self.vd_i[iStable+1] <= self.ve_i[iStable+1]) ):
+            iStable = 0
+        
+        return iStable
     
     #------------------------------------------------------------------------------
     
@@ -328,9 +341,21 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # get_vd_ve_intersection() returns the state for which vd and vc are closest
         
         # check for the minimizer, but exclude the extinction class
-        state_i_intersect = np.argmin( np.abs(self.vd_i[1:]-self.vc_i[1:]) )
+        #
+        # NOTE: need to add one to account for fact that first array element is 
+        #       excluded, otherwise, state_i_intersect will be an index relative
+        #       to the shortened array [1:]
+        iStable = np.argmin( np.abs(self.vd_i[1:]-self.vc_i[1:]) ) + 1
         
-        return state_i_intersect
+        # Check that this is a proper intersection, otherwise return the highest
+        # fitness class near dOpt. Here we check
+        #   1. vd > vc before intersection
+        #   2. vd < vc after intersection
+        if not ( (self.vd_i[iStable-1] >= self.vc_i[iStable-1]) and \
+                        (self.vd_i[iStable+1] <= self.vc_i[iStable+1]) ):
+            iStable = 0
+        
+        return iStable
     
     #------------------------------------------------------------------------------
     

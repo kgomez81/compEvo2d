@@ -305,3 +305,12 @@ regID
 
 
 [N, sc, pFix_c, Uc, regID]
+
+
+#%%
+
+x = np.linspace(-1,1,21)
+y1 = x**2-0.5
+y2 = np.zeros(x.shape)
+
+yDiff = y1-y2

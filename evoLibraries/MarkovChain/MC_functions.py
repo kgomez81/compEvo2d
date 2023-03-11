@@ -111,3 +111,9 @@ def calculate_evoRates_rho(N, evoParams_Trait_1, evoParams_Trait_2):
     return rho
 
 #------------------------------------------------------------------------------
+
+def calculate_v_intersections(vDiff):
+    
+    return [crossings, cross_types]
+
+-----------------------------------------------------------

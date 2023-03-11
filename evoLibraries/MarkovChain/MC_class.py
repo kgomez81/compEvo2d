@@ -28,7 +28,9 @@ class mcEvoModel(ABC):
     # consolidating the common code of RM and DRE MC classes, i.e. something like 
     # an Abstract class
     
-    
+    #%% ------------------------------------------------------------------------
+    # Constructor
+    # --------------------------------------------------------------------------
     def __init__(self,params):
         
         # Basic evolution parameters for Lottery Model (Bertram & Masel 2019)
@@ -58,7 +60,7 @@ class mcEvoModel(ABC):
         self.evoRegime_d_i = np.zeros(self.di.shape) # regim ID identifying Successional, Mult Mut, Diffusion
         self.evoRegime_c_i = np.zeros(self.di.shape) # regim ID identifying Successional, Mult Mut, Diffusion
         
-    #------------------------------------------------------------------------------
+    #%%----------------------------------------------------------------------------
     # abstract methods
     #------------------------------------------------------------------------------
     
@@ -89,29 +91,20 @@ class mcEvoModel(ABC):
         "Method that defines the arrays for evolution rates at each state"
         pass
     
-        
     #------------------------------------------------------------------------------
     
     @abstractmethod
-    def get_vd_ve_intersection(self):      
-        "get_vd_ve_intersection() returns the state for which vd and ve are closest"
+    def get_v_intersect_state_index(self,v2):      
+        "get_v_intersect_state() returns the intersection state of v2 evo rate array  "
+        "with vd. Implementation of method varies for RM & DRE inheriting classes. RM "
+        "orders states from most beneficial to least (index-wise), and DRE is reversed" 
+        "                                                                             "
+        " NOTE: vd in comparison to v2 because it is v2's relationship with vd that   "
+        "       we use to determine if we return the extinction class dExt, or the    "
+        "       highest fitness class in the vd_i array.                              "
         pass
     
-    #------------------------------------------------------------------------------
-    
-    @abstractmethod
-    def get_vd_vc_intersection(self):      
-        "get_vd_ve_intersection() returns the state for which vd and vc are closest"
-        pass
-    
-    #------------------------------------------------------------------------------
-    
-    @abstractmethod
-    def get_mc_stable_state(self):      
-        "get_mc_stable_state() returns the evolutionarystate for which vd and vc are closest"
-        pass
-    
-    #------------------------------------------------------------------------------
+    #%%----------------------------------------------------------------------------
     # Concrete methods (common to both RM and DR MC class implementations)
     #------------------------------------------------------------------------------
     
@@ -146,6 +139,44 @@ class mcEvoModel(ABC):
         ve_i_perUnitTime = np.asarray([ self.ve_i[ii]*(self.di[ii]-1) for ii in range(self.di.size)])
         
         return ve_i_perUnitTime
+    
+    #------------------------------------------------------------------------------
+
+    def get_vd_ve_intersection_index(self):      
+        # get_vd_ve_intersection() returns the state for which vd and ve are closest.
+        # Serves as a wrapper for generic method get_v_intersect_state_index()
+        
+        # NOTE: we are calculating the index of the stable state, not the stable state
+        iStableState_index = self.get_v_intersect_state_index(self.vd_i, self.ve_i)
+        
+        return iStableState_index
+    
+    #------------------------------------------------------------------------------
+    
+    def get_vd_vc_intersection_index(self):      
+        # get_vd_ve_intersection() returns the state for which vd and vc are closest
+        # Serves as a wrapper for generic method get_v_intersect_state_index()
+        
+        # NOTE: we are calculating the index of the stable state, not the stable state
+        iStableState_index = self.get_v_intersect_state_index(self.vd_i, self.vc_i)        
+
+        return iStableState_index
+    
+    #------------------------------------------------------------------------------
+    
+    def get_mc_stable_state(self):      
+        # get_mc_stable_state() returns the MC stochastically stable absolute
+        # fitness state. This will be whatever v-intersection is reached first
+        # from the extinction state.
+        
+        # calculate intersection states (SS = Stable State)
+        idx_SS = [self.get_vd_ve_intersection(), self.get_vd_vc_intersection()]
+        
+        # find the intersection state closest to extinction, which requires taking
+        # taking max of the two intersection states.
+        mc_stable_state = np.argmin( idx_SS )
+        
+        return mc_stable_state
     
     #------------------------------------------------------------------------------
     

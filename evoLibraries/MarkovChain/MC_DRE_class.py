@@ -54,7 +54,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
     # vc_i    # rate of adaptation in relative fitness trait alone
     # ve_i    # rate of fitness decrease due to environmental degradation
     
-    #------------------------------------------------------------------------------
+    #%%----------------------------------------------------------------------------
     # Class constructor
     #------------------------------------------------------------------------------
     
@@ -75,7 +75,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # update evolution rate arrays above
         self.get_stateSpaceEvoRates()           # update evolution rate arrays above
         
-    #------------------------------------------------------------------------------
+    #%%----------------------------------------------------------------------------
     # Definitions for abstract methods
     #------------------------------------------------------------------------------
     
@@ -313,76 +313,66 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             
         return None
 
-    #------------------------------------------------------------------------------
-    
-    def get_vd_ve_intersection(self):      
-        # get_vd_ve_intersection() returns the state for which vd and ve are closest
-        
-        # check for the minimizer, but exclude the extinction class
-        #
-        # NOTE: need to add one to account for fact that first array element is 
-        #       excluded, otherwise, state_i_intersect will be an index relative
-        #       to the shortened array [1:-1].
-        iStable = np.argmin( np.abs(self.vd_i[1:]-self.ve_i[1:]) ) + 1
-        
-        # Check that this is a proper intersection, otherwise return the highest
-        # fitness class near dOpt. Here we check
-        #   1. vd > ve before intersection
-        #   2. vd < ve after intersection
-        if not ( (self.vd_i[iStable-1] >= self.ve_i[iStable-1]) and \
-                        (self.vd_i[iStable+1] <= self.ve_i[iStable+1]) ):
-            iStable = 0
-        
-        return iStable
-    
-    #------------------------------------------------------------------------------
-    
-    def get_vd_vc_intersection(self):      
-        # get_vd_ve_intersection() returns the state for which vd and vc are closest
-        
-        # check for the minimizer, but exclude the extinction class
-        #
-        # NOTE: need to add one to account for fact that first array element is 
-        #       excluded, otherwise, state_i_intersect will be an index relative
-        #       to the shortened array [1:]
-        iStable = np.argmin( np.abs(self.vd_i[1:]-self.vc_i[1:]) ) + 1
-        
-        # Check that this is a proper intersection, otherwise return the highest
-        # fitness class near dOpt. Here we check
-        #   1. vd > vc before intersection
-        #   2. vd < vc after intersection
-        if not ( (self.vd_i[iStable-1] >= self.vc_i[iStable-1]) and \
-                        (self.vd_i[iStable+1] <= self.vc_i[iStable+1]) ):
-            iStable = 0
-        
-        return iStable
-    
-    #------------------------------------------------------------------------------
-    
-    def get_mc_stable_state(self):      
-        # get_mc_stable_state() returns the state for which vd and vc are closest
-        
-        # calculate intersection states
-        iSS_vd_ve = self.get_vd_ve_intersection()
-        iSS_vd_vc = self.get_vd_vc_intersection()
-        
-        # find the intersection state closest to extinction, which requires taking
-        # taking min of the two intersection states.
-        mc_stable_state = np.min( [iSS_vd_ve, iSS_vd_vc] )
-        
-        return mc_stable_state
-
-    # ------------------------------------------------------------------------------
+    #%% ----------------------------------------------------------------------------
     #  List of conrete methods from MC class
     # ------------------------------------------------------------------------------
     
-    " def read_pFixOutputs(self,readFile,nStates):                                          "
-    "                                                                                       "
-    "     read_pFixOutputs reads the output file containing estimated pfix values           "
-    "     from simulations and stores them in an array so that they can be used in          "
-    "     creating figures.                                                                 "
+    """
+    
+    def get_vd_i_perUnitTime(self):      
+        # get_vd_i_perUnitTime()  returns the set of vd_i but with respect to the 
+        # time scale of the model (i.e., time per iteration).
+        #
+        # NOTE: vd saved in time-scale of wild type generations
     
     # ------------------------------------------------------------------------------
+    
+    def get_vc_i_perUnitTime(self):      
+        # get_vc_perUnitTime()  returns the set of vc_i but with respect to the 
+        # time scale of the model (i.e., time per iteration).
+    
+    # ------------------------------------------------------------------------------
+    
+    def get_ve_i_perUnitTime(self):      
+        # get_ve_i_perUnitTime()  returns the set of ve_i but with respect to the 
+        # time scale of the model (i.e., time per iteration).
+    
+    # ------------------------------------------------------------------------------
+    
+    def get_vd_ve_intersection(self):      
+        # get_vd_ve_intersection() returns the state for which vd and ve are closest.
+        # Serves as a wrapper to use the more generic method get_v_intersect_state()
+    
+    # ------------------------------------------------------------------------------
+    
+    def get_vd_vc_intersection(self):      
+        # get_vd_ve_intersection() returns the state for which vd and vc are closest
+        # Serves as a wrapper to use the more generic method get_v_intersect_state()
+    
+    # ------------------------------------------------------------------------------
+    
+    def get_mc_stable_state(self):      
+        # get_mc_stable_state() returns the MC stochastically stable absolute
+        # fitness state. This will be whatever v-intersection is reached first
+        # from the extinction state.
+        
+    # ------------------------------------------------------------------------------
+    
+    def calculate_evoRho(self):                                                           
+        # This function calculate the rho parameter defined in the manuscript,            
+        # which measures the relative changes in evolution rates due to increases         
+        # in max available territory parameter
+    
+    # ------------------------------------------------------------------------------
+    
+    def read_pFixOutputs(self,readFile,nStates):                                          
+    
+         read_pFixOutputs reads the output file containing estimated pfix values
+         from simulations and stores them in an array so that they can be used in          
+         creating figures.                                                                 
+    """
+    
+    #%% ----------------------------------------------------------------------------
     #  Specific methods for the DRE MC class
     # ------------------------------------------------------------------------------
 

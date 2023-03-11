@@ -19,7 +19,7 @@ sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
 from evoLibraries.MarkovChain import MC_array_class as mcArry
 from evoLibraries.MarkovChain import MC_functions as mcFun
 
-# --------------------------------------------------------------------------
+#%% ------------------------------------------------------------------------
 # Get parameters/options
 # --------------------------------------------------------------------------
 
@@ -42,11 +42,11 @@ varNames       = ['UdMax','cp']
 # NOTE: both list should include 0 to represent the center points of the grid.
 #       For example, [-2,-1,0,1,2] would designate [1E-2,1E-1,1E0,1E1,1e2].
 #       Also note that the entries don't have to be integers.
-nArry     = 11
+nArry     = 5
 expBnds   = 2
 varBounds = [np.linspace(-expBnds, expBnds, nArry), np.linspace(-expBnds, expBnds, nArry)]
 
-# --------------------------------------------------------------------------
+#%% ------------------------------------------------------------------------
 # generate MC data
 # --------------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ Z = mcModels.rho_ij
 
 [xi, yi, zi] = mcFun.get_contourPlot_arrayData(X, Y, Z, nGridCt)
 
-# --------------------------------------------------------------------------
+#%% ------------------------------------------------------------------------
 #                           Plot data
 # --------------------------------------------------------------------------
 

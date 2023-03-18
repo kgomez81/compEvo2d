@@ -118,27 +118,20 @@ def calculate_v_intersections(vDiff):
     
     crossings   = []
     cross_types = []
+    ii = 0
     
-    for ii in range(0,len(vDiff)):
+    while (ii < len(vDiff)):
         
-        if (ii == 0):
-            
-            
-        elif (ii == len(vDiff)):
+        sign1 = np.sign( vDiff[ii]  ) 
+        sign2 = np.sign( vDiff[ii+1])
         
-        else:
-            sign1 = np.sign( vDiff[ii-1] ) 
-            sign2 = np.sign( vDiff[ii]   )
+        if (sign1 != sign2):
+            
+            if (vDiff[ii] == 0):
+                
+            elif (vDiff[ii+1] == 0):
+            
         
-        if (vDiff[ii]==0):
-            # true intersection
-            if ()
-            
-        elif (sign1 != sign2):
-            # not 
-            
-        else:
-            # 
     return [crossings, cross_types]
 
 -----------------------------------------------------------

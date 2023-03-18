@@ -309,8 +309,12 @@ regID
 
 #%%
 
-x = np.linspace(-1,1,21)
-y1 = x**2-0.5
-y2 = np.zeros(x.shape)
+x1 = np.linspace(-1,1,21)
+y1 = x1**2-0.5
 
-yDiff = y1-y2
+x2 = np.linspace(-2,2,41)
+y2 = x2**2-1
+
+y1Sgn = np.sign(y1)
+y2Sgn = np.sign(y2)
+

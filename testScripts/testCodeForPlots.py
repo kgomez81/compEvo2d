@@ -345,7 +345,7 @@ def calculate_v_intersections(vDiff):
             
         else:
             if (vDiffSgn[idx-1] != vDiffSgn[idx+1]):
-                crossSign   = vDiffSgn[idx+1] - vDiffSgn[idx-1]
+                crossSign   = np.sign(vDiffSgn[idx+1] - vDiffSgn[idx-1])
                 
                 crossings   = crossings   + [idx       ]
                 cross_types = cross_types + [crossSign ]
@@ -379,5 +379,13 @@ def calculate_v_intersections(vDiff):
 
 
 [testCross,testCrossTypes] = calculate_v_intersections(y1)
+testCross
+testCrossTypes
+y1[testCross[0]]
+y1[testCross[1]]
 
 [testCross,testCrossTypes] = calculate_v_intersections(y2)
+testCross
+testCrossTypes
+y2[testCross[0]]
+y2[testCross[1]]

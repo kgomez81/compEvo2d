@@ -82,6 +82,15 @@ class mcEvoModel(ABC):
         "Method that defines the arrays for evolution parameters at each state"
         pass
     
+    #------------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_last_di(self):
+        "get_last_di() calculates next d-term after di[-1], this value is     "
+        "occasionally need it to calculate pfix and the rate of adaption.     "
+        "for RM and DRE models.                                               "
+        pass
+    
     #%%----------------------------------------------------------------------------
     # Concrete methods (common to both RM and DR MC class implementations)
     #------------------------------------------------------------------------------
@@ -356,44 +365,55 @@ class mcEvoModel(ABC):
         #            1: successional
         #            2: multiple mutations
         #            3: diffusion
-        #           -1: regime undetermined, i.e. in transition region   
-        stable_state_idx = self.get_mc_stable_state_idx()
+        #           -1: regime undetermined, i.e. in transition region 
+        #
+        # NOTE: calculation of rho only makes sense at the intersection of 
+        #       vd and vc, not necessarily at the stable state.
+        
+        vd_vc_intersect_idx = self.self.get_vd_vc_intersection()
         
         # build evo param dictionary for absolute fitness trait
-        evoParams_absTrait = {'s'     : self.sd_i[stable_state_idx], \
-                              'pFix'  : self.pFix_d_i[stable_state_idx], \
-                              'U'     : self.Ud_i[stable_state_idx], \
-                              'regID' : self.evoRegime_d_i[stable_state_idx]}
+        evoParams_absTrait = {'s'     : self.sd_i[vd_vc_intersect_idx], \
+                              'pFix'  : self.pFix_d_i[vd_vc_intersect_idx], \
+                              'U'     : self.Ud_i[vd_vc_intersect_idx], \
+                              'regID' : self.evoRegime_d_i[vd_vc_intersect_idx]}
         
         # build evo param dictionary for relative fitness trait
-        evoParams_relTrait = {'s'     : self.sc_i[stable_state_idx], \
-                              'pFix'  : self.pFix_c_i[stable_state_idx], \
-                              'U'     : self.Uc_i[stable_state_idx], \
-                              'regID' : self.evoRegime_c_i[stable_state_idx]}
+        evoParams_relTrait = {'s'     : self.sc_i[vd_vc_intersect_idx], \
+                              'pFix'  : self.pFix_c_i[vd_vc_intersect_idx], \
+                              'U'     : self.Uc_i[vd_vc_intersect_idx], \
+                              'regID' : self.evoRegime_c_i[vd_vc_intersect_idx]}
         
-        rho = mcFun.calculate_evoRates_rho(self.eq_Ni[stable_state_idx], \
+        rho = mcFun.calculate_evoRates_rho(self.eq_Ni[vd_vc_intersect_idx], \
                                      evoParams_absTrait, evoParams_relTrait)
                 
         return rho
     
     #------------------------------------------------------------------------------
 
-    def get_intersect_parameters(self):
+    def get_stable_state_evo_parameters(self):
+        # get_stable_state_evo_parameters() returns the list of evo parameters 
+        # at the stable state of the MC evolution model. This can either be at 
+        # the end points of the MC state space, or where vd=ve, or where vd=vc.
         
         stable_state_idx = self.get_mc_stable_state_idx()
         
         # build evo param dictionary for absolute fitness trait
-        params_intersect = {'N'      : self.eq_Ni[stable_state_idx], \
+        params_intersect = {'eqState': self.state_i[stable_state_idx], \
+                            'N'      : self.eq_Ni[stable_state_idx], \
                             'y'      : self.eq_yi[stable_state_idx], \
+                            'd'      : self.di[stable_state_idx], \
                             'sd'     : self.sd_i[stable_state_idx], \
-                            'pFix_d' : self.pFix_d_i[stable_state_idx], \
-                            'Ud'     : self.Ud_i[stable_state_idx], \
-                            'regID_d': self.evoRegime_d_i[stable_state_idx], \
                             'sc'     : self.sc_i[stable_state_idx], \
+                            'pFix_d' : self.pFix_d_i[stable_state_idx], \
                             'pFix_c' : self.pFix_c_i[stable_state_idx], \
+                            'Ud'     : self.Ud_i[stable_state_idx], \
                             'Uc'     : self.Uc_i[stable_state_idx], \
-                            'regID_c': self.evoRegime_c_i[stable_state_idx], \
-                            'eqState': self.state_i[stable_state_idx]}
+                            'vd'     : self.vd_i[stable_state_idx], \
+                            'vc'     : self.vc_i[stable_state_idx], \
+                            've'     : self.ve_i[stable_state_idx], \
+                            'regID_d': self.evoRegime_d_i[stable_state_idx], \
+                            'regID_c': self.evoRegime_c_i[stable_state_idx]}
         
         return params_intersect
     

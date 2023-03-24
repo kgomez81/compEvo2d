@@ -188,34 +188,36 @@ class mcEvoGrid(evoObj.evoOptions):
                     
                 # calculate intersections and find the stochastically stable
                 # state of absolute fitness
-                mc_stable_state = temp_mcModel.get_mc_stable_state()
+                params_stable_state = temp_mcModel.get_intersect_parameters()
                 
                 # save all evo parameter values
-                self.intersect_state_ij[ii,jj] = mc_stable_state
+                self.intersect_state_ij[ii,jj] = params_stable_state['eqState']
                 
                 # density and absolute fitness at intersection
-                self.eff_y_ij[ii,jj]   = temp_mcModel.eq_yi[mc_stable_state]
-                self.eff_d_ij[ii,jj]   = temp_mcModel.di[mc_stable_state]
+                self.eff_y_ij[ii,jj]   = params_stable_state['y']
+                self.eff_d_ij[ii,jj]   = params_stable_state['d']
                 
                 # arrays with effective evolution parameters at intersections
-                self.eff_N_ij[ii,jj]       = temp_mcModel.eq_Ni[mc_stable_state]
-                self.eff_Ud_ij[ii,jj]      = temp_mcModel.Ud_i[mc_stable_state]
-                self.eff_Uc_ij[ii,jj]      = temp_mcModel.Uc_i[mc_stable_state]
-                self.eff_sd_ij[ii,jj]      = temp_mcModel.sd_i[mc_stable_state]
-                self.eff_sc_ij[ii,jj]      = temp_mcModel.sc_i[mc_stable_state]
-                self.eff_pFix_d_ij[ii,jj]  = temp_mcModel.pFix_d_i[mc_stable_state]
-                self.eff_pFix_c_ij[ii,jj]  = temp_mcModel.pFix_c_i[mc_stable_state]
+                self.eff_N_ij[ii,jj]       = params_stable_state['N']
+                self.eff_Ud_ij[ii,jj]      = params_stable_state['Ud']
+                self.eff_Uc_ij[ii,jj]      = params_stable_state['Uc']
+                self.eff_sd_ij[ii,jj]      = params_stable_state['sd']
+                self.eff_sc_ij[ii,jj]      = params_stable_state['sc']
+                self.eff_pFix_d_ij[ii,jj]  = params_stable_state['pFix_d']
+                self.eff_pFix_c_ij[ii,jj]  = params_stable_state['pFix_c']
                 
                 # arrays with evolution/environment rates
-                self.eff_vd_ij[ii,jj]  = temp_mcModel.vd_i[mc_stable_state]
-                self.eff_vc_ij[ii,jj]  = temp_mcModel.vc_i[mc_stable_state]
-                self.eff_ve_ij[ii,jj]  = temp_mcModel.ve_i[mc_stable_state]
+                self.eff_vd_ij[ii,jj]  = params_stable_state['vd']
+                self.eff_vc_ij[ii,jj]  = params_stable_state['vc']
+                self.eff_ve_ij[ii,jj]  = params_stable_state['ve']
                 
                 # save evo regimes
-                self.eff_evoRegime_d_ij[ii,jj]  = temp_mcModel.evoRegime_d_i[mc_stable_state]
-                self.eff_evoRegime_c_ij[ii,jj]  = temp_mcModel.evoRegime_c_i[mc_stable_state]
+                self.eff_evoRegime_d_ij[ii,jj]  = params_stable_state['regID_d']
+                self.eff_evoRegime_c_ij[ii,jj]  = params_stable_state['regID_c']
                 
                 # calculate rho of the MC model
+                # NOTE: rho is not calculated at stable state! it is calculated
+                #       at the intersection of vd and vc.
                 self.rho_ij[ii,jj]  = temp_mcModel.calculate_evoRho()
                 
         return None

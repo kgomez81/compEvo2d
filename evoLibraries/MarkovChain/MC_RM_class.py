@@ -17,7 +17,6 @@ variable density lottery model.
 import numpy as np
 
 import evoLibraries.MarkovChain.MC_class as mc
-import evoLibraries.MarkovChain.MC_functions as mcFun
 
 import evoLibraries.LotteryModel.LM_functions as lmFun
 
@@ -159,6 +158,17 @@ class mcEvoModel_RM(mc.mcEvoModel):
             
         return None 
     
+    #------------------------------------------------------------------------------
+        
+    def get_last_di(self):
+        # get_last_di() calculates next d-term after di[-1], this value is 
+        # occasionally need it to calculate pfix and the rate of adaption.
+        
+        # get next d-term after last di, which for RM will be dOpt
+        di_last = self.params['dOpt']
+        
+        return di_last
+    
     #%% ----------------------------------------------------------------------------
     #  List of conrete methods from MC class
     # ------------------------------------------------------------------------------
@@ -224,6 +234,13 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # This function calculate the rho parameter defined in the manuscript,            
         # which measures the relative changes in evolution rates due to increases         
         # in max available territory parameter
+        
+    #------------------------------------------------------------------------------
+
+    def get_stable_state_evo_parameters(self):
+        # get_stable_state_evo_parameters() returns the list of evo parameters 
+        # at the stable state of the MC evolution model. This can either be at 
+        # the end points of the MC state space, or where vd=ve, or where vd=vc.
     
     # ------------------------------------------------------------------------------
     
@@ -245,16 +262,5 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # then dExt is just the size of di array.
         
         return self.di.size
-    
-    #------------------------------------------------------------------------------
-        
-    def get_last_di(self):
-        # get_last_di() calculates next d-term after di[-1], this value is 
-        # occasionally need it to calculate pfix and the rate of adaption.
-        
-        # get next d-term after last di, which for RM will be dOpt
-        di_last = self.params['dOpt']
-        
-        return di_last
     
     #------------------------------------------------------------------------------

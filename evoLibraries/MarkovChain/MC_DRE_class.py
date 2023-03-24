@@ -18,11 +18,8 @@ import numpy as np
 import scipy.stats as st   
 
 import evoLibraries.MarkovChain.MC_class as mc
-import evoLibraries.MarkovChain.MC_functions as mcFun
 
 import evoLibraries.LotteryModel.LM_functions as lmFun
-
-import evoLibraries.RateOfAdapt.ROA_functions as roaFun
 
 # *****************************************************************************
 # Markov Chain Class - Diminishing Returns Epistasis (DRE)
@@ -194,6 +191,17 @@ class mcEvoModel_DRE(mc.mcEvoModel):
 
         return None 
     
+    #------------------------------------------------------------------------------
+        
+    def get_last_di(self):
+        # get_last_di() calculates next d-term after di[-1], this value is 
+        # occasionally need it to calculate pfix and the rate of adaption.
+        
+        # get next d-term after last di, using log series CDF
+        di_last = self.di[0]*(self.params['dOpt']/self.di[0])**self.mcDRE_CDF(self.get_iMax()+1)
+        
+        return di_last
+    
     #%% ----------------------------------------------------------------------------
     #  List of conrete methods from MC class
     # ------------------------------------------------------------------------------
@@ -267,6 +275,13 @@ class mcEvoModel_DRE(mc.mcEvoModel):
          read_pFixOutputs reads the output file containing estimated pfix values
          from simulations and stores them in an array so that they can be used in          
          creating figures.  
+     
+    #------------------------------------------------------------------------------
+
+    def get_stable_state_evo_parameters(self):
+        # get_stable_state_evo_parameters() returns the list of evo parameters 
+        # at the stable state of the MC evolution model. This can either be at 
+        # the end points of the MC state space, or where vd=ve, or where vd=vc.
                                                                    
     """
     
@@ -282,17 +297,6 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         iMax = (self.di.size-1)
         
         return iMax
-    
-    #------------------------------------------------------------------------------
-        
-    def get_last_di(self):
-        # get_last_di() calculates next d-term after di[-1], this value is 
-        # occasionally need it to calculate pfix and the rate of adaption.
-        
-        # get next d-term after last di, using log series CDF
-        di_last = self.di[0]*(self.params['dOpt']/self.di[0])**self.mcDRE_CDF(self.get_iMax()+1)
-        
-        return di_last
     
     #------------------------------------------------------------------------------
     

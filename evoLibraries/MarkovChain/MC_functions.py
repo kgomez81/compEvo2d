@@ -118,20 +118,59 @@ def calculate_v_intersections(vDiff):
     
     crossings   = []
     cross_types = []
-    ii = 0
     
-    while (ii < len(vDiff)):
+    vDiffSgn = np.sign(vDiff)
+    
+    cross_1 = np.where(vDiffSgn                      == 0)[0]
+    cross_2 = np.where(vDiffSgn[0:-1] + vDiffSgn[1:] == 0)[0]
+    
+    # check cross type 1 where v1 == v2
+    for ii in range(len(cross_1)):
+        idx = cross_1[ii]
         
-        sign1 = np.sign( vDiff[ii]  ) 
-        sign2 = np.sign( vDiff[ii+1])
-        
-        if (sign1 != sign2):
+        if idx == 0:
+            crossings   = crossings   + [idx            ]
+            cross_types = cross_types + [vDiffSgn[idx+1]]
             
-            if (vDiff[ii] == 0):
+        elif idx == len(vDiffSgn)-1:
+            crossings   = crossings   + [ idx            ]
+            cross_types = cross_types + [-vDiffSgn[idx-1]]
+            
+        else:
+            if (vDiffSgn[idx-1] != vDiffSgn[idx+1]):
+                crossSign   = np.sign(vDiffSgn[idx+1] - vDiffSgn[idx-1])
                 
-            elif (vDiff[ii+1] == 0):
+                crossings   = crossings   + [idx       ]
+                cross_types = cross_types + [crossSign ]
+    
+    # check cross type 1 where v1 == v2
+    for ii in range(len(cross_2)):
+    
+        idx = cross_2[ii]
+        
+        if (idx == 0):
+            minIdx = np.argmin([vDiff[idx],vDiff[idx+1]])
             
+            crossings   = crossings   + [ idx + minIdx   ]
+            cross_types = cross_types + [ vDiffSgn[idx+1]]
+            
+        elif (idx == len(vDiffSgn)-1):
+            minIdx = np.argmin([vDiff[idx],vDiff[idx-1]])
+            
+            crossings   = crossings   + [ idx - minIdx   ]
+            cross_types = cross_types + [-vDiffSgn[idx-1]]
+            
+        else:
+            if (vDiffSgn[idx] != vDiffSgn[idx+1]):
+                crossSign   = np.sign(vDiffSgn[idx+1] - vDiffSgn[idx-1])
+                minIdx = np.argmin([vDiff[idx],vDiff[idx+1]])
+                
+                crossings   = crossings   + [idx + minIdx ]
+                cross_types = cross_types + [crossSign    ]
+                
+    crossings   = np.asarray(crossings)
+    cross_types = np.asarray(cross_types)
         
     return [crossings, cross_types]
 
------------------------------------------------------------
+#------------------------------------------------------------------------------

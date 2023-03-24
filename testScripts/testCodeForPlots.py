@@ -318,3 +318,66 @@ y2 = x2**2-1
 y1Sgn = np.sign(y1)
 y2Sgn = np.sign(y2)
 
+
+def calculate_v_intersections(vDiff):
+    # calculate_v_intersections() determines points where the vDiff array cross
+    # the zero axis, and also provide what type of crossing occurs.
+    
+    crossings   = []
+    cross_types = []
+    
+    vDiffSgn = np.sign(vDiff)
+    
+    cross_1 = np.where(vDiffSgn                      == 0)[0]
+    cross_2 = np.where(vDiffSgn[0:-1] + vDiffSgn[1:] == 0)[0]
+    
+    # check cross type 1 where v1 == v2
+    for ii in range(len(cross_1)):
+        idx = cross_1[ii]
+        
+        if idx == 0:
+            crossings   = crossings   + [idx            ]
+            cross_types = cross_types + [vDiffSgn[idx+1]]
+            
+        elif idx == len(vDiffSgn)-1:
+            crossings   = crossings   + [ idx            ]
+            cross_types = cross_types + [-vDiffSgn[idx-1]]
+            
+        else:
+            if (vDiffSgn[idx-1] != vDiffSgn[idx+1]):
+                crossSign   = vDiffSgn[idx+1] - vDiffSgn[idx-1]
+                
+                crossings   = crossings   + [idx       ]
+                cross_types = cross_types + [crossSign ]
+    
+    # check cross type 2 where v1[ii] < v2[ii], v1[ii+1] > v2[ii+1]
+    for ii in range(len(cross_2)):
+    
+        idx = cross_2[ii]
+        
+        if (idx == 0):
+            minIdx = np.argmin([vDiff[idx],vDiff[idx+1]])
+            
+            crossings   = crossings   + [ idx + minIdx   ]
+            cross_types = cross_types + [ vDiffSgn[idx+1]]
+            
+        elif (idx == len(vDiffSgn)-1):
+            minIdx = np.argmin([vDiff[idx],vDiff[idx-1]])
+            
+            crossings   = crossings   + [ idx - minIdx   ]
+            cross_types = cross_types + [-vDiffSgn[idx-1]]
+            
+        else:
+            if (vDiffSgn[idx] != vDiffSgn[idx+1]):
+                crossSign   = np.sign(vDiffSgn[idx+1] - vDiffSgn[idx-1])
+                minIdx = np.argmin([vDiff[idx],vDiff[idx+1]])
+                
+                crossings   = crossings   + [idx + minIdx ]
+                cross_types = cross_types + [crossSign    ]
+        
+    return [crossings, cross_types]
+
+
+[testCross,testCrossTypes] = calculate_v_intersections(y1)
+
+[testCross,testCrossTypes] = calculate_v_intersections(y2)

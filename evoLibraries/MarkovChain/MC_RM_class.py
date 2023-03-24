@@ -17,11 +17,12 @@ variable density lottery model.
 import numpy as np
 
 import evoLibraries.MarkovChain.MC_class as mc
+import evoLibraries.MarkovChain.MC_functions as mcFun
+
 import evoLibraries.LotteryModel.LM_functions as lmFun
 import evoLibraries.LotteryModel.LM_pFix_FSA as lmPfix
-import evoLibraries.RateOfAdapt.ROA_functions as roaFun
 
-import evoLibraries.MarkovChain.MC_functions as mcFun
+import evoLibraries.RateOfAdapt.ROA_functions as roaFun
 
 # *****************************************************************************
 # Markov Chain Class - Running Out of Mutations (RM)
@@ -325,7 +326,7 @@ class mcEvoModel_RM(mc.mcEvoModel):
             
             # select the appriate v-cross to return, this will be the first
             # occurance of a cross_type = -1 (idx = indices)
-            attract_cross_idxs = np.nanargmin(v_cross_types)
+            attract_cross_idxs = v_cross_idx[np.where(v_cross_types == -1)[0]]
             
             # get the first crossing in attract_cross_idxs and map to the 
             # original index in 
@@ -340,9 +341,8 @@ class mcEvoModel_RM(mc.mcEvoModel):
             
         elif (max(vDiff) <= 0):
             # vd is globally larger then v2, so return the extinction class
-            intersect_state = self.get_
+            intersect_state = self.get_iExt()
             intersect_type = 0
-            
             
         return [intersect_state, intersect_type]
     

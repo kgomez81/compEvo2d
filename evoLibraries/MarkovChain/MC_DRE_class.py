@@ -18,6 +18,8 @@ import numpy as np
 import scipy.stats as st   
 
 import evoLibraries.MarkovChain.MC_class as mc
+import evoLibraries.MarkovChain.MC_functions as mcFun
+
 import evoLibraries.LotteryModel.LM_functions as lmFun
 import evoLibraries.LotteryModel.LM_pFix_FSA as lmPfix
 
@@ -313,6 +315,68 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             
         return None
 
+    # ------------------------------------------------------------------------------
+    
+    def get_v_intersect_state_index(self,v2):      
+        # get_v_intersect_state() returns the intersection state of two evo rate arrays
+        # the implementation of this method varies for RM or DRE inheriting classes. RM
+        # orders states from most beneficial to least (index-wise), and DRE is reversed
+        # v2 should either be self.ve_i or self.vc_i
+        #
+        # NOTE: vd in comparison to v2 because it is v2's relationship with vd that 
+        #       we use to determine if we return the extinction class dExt, or the
+        #       highest fitness class in the vd_i array.
+        # 
+    
+        # first we need to check if 
+        #   1) there is an intersection vd < v2 and vd > v2 are true in state space
+        #   2) no intersection and vd >= v2 in the state space (return dExt) 
+        #   3) no intersection and vd <= v2 in the state space (return fittest state)
+        # we exclude extinction state because, it doesnt even make sense to try and 
+        # determine if there is an intersection there (i.e. use [:-1]).
+        #
+        # we also want to return the intersection type, i.e.
+        #   1) vd crossing v2 downward       => intersection_type = -1 (stable attractor state)
+        #   2) vd crossing v2 upward         => intersection_type  = 1 (unstable state)
+        #   3) vd doesn't cross or equals v2 => intersection_type = 0 (no stoch.equil.)
+        # 
+        # we can just use minimizers of vDiff to locate intersection points because
+        # these are discrete states, and the might be several v crossings, but 
+        
+        # get v-differences 
+        vDiff = self.vd_i[1:] - v2[1:]
+        
+        # save an index map 
+        idx_map = [ii+1 for ii in range(len(v2)-1)]   # subtract 1 to remove ext class
+        
+        if ( (min(vDiff) < 0) and (max(vDiff) > 0) ):
+            # We have some intersection, with strict sign change. So find all 
+            # intersections and get the one close to extinction
+            [v_cross_idx,v_cross_types] = mcFun.calculate_v_intersections(vDiff)
+            
+            # select the appriate v-cross to return, this will be the first
+            # occurance of a cross_type = -1 (idx = indices)
+            attract_cross_idxs = v_cross_idx[np.where(v_cross_types == -1)[0]]
+            
+            # get the first crossing in attract_cross_idxs and map to the 
+            # original index in 
+            intersect_state = idx_map[v_cross_idx[attract_cross_idxs[0]]]
+            intersect_type  = v_cross_types[attract_cross_idxs[0]]
+            
+        elif (min(vDiff) >= 0):
+            # vd is globally larger then v2, so return the highest fitness class
+            # in the vd_i array
+            intersect_state = 0
+            intersect_type = 0
+            
+        elif (max(vDiff) <= 0):
+            # vd is globally larger then v2, so return the extinction class
+            intersect_state = self.get_iMax()
+            intersect_type = 0
+            
+            
+        return [intersect_state, intersect_type]
+    
     #%% ----------------------------------------------------------------------------
     #  List of conrete methods from MC class
     # ------------------------------------------------------------------------------

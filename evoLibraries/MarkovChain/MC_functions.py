@@ -116,6 +116,11 @@ def calculate_v_intersections(vDiff):
     # calculate_v_intersections() determines points where the vDiff array cross
     # the zero axis, and also provide what type of crossing occurs.
     
+    # there are a couple of cases to consider
+    #   Group I - Pure crossing with crossing state occuring such that v1 = v2 exactly 
+    #
+    #   Group II - Pcrossings at endpoints of the chain
+    #   2A. crossings in the interior states 
     crossings   = []
     cross_types = []
     

@@ -20,9 +20,6 @@ import evoLibraries.MarkovChain.MC_class as mc
 import evoLibraries.MarkovChain.MC_functions as mcFun
 
 import evoLibraries.LotteryModel.LM_functions as lmFun
-import evoLibraries.LotteryModel.LM_pFix_FSA as lmPfix
-
-import evoLibraries.RateOfAdapt.ROA_functions as roaFun
 
 # *****************************************************************************
 # Markov Chain Class - Running Out of Mutations (RM)
@@ -94,8 +91,8 @@ class mcEvoModel_RM(mc.mcEvoModel):
             # loop until at dMax or greater (max death term for viable pop)
             di = di+[di[-1]*(1+self.params['sd']*(di[-1]-1))]
         
-        # Finally remove dOpt from state space
-        self.di = np.asarray(di[1:])
+        # Finally reverse order and remove dOpt from state space
+        self.di = np.asarray(di[::-1][:-1])
         
         # Now that the state space is defined, adjust the size of all other arrays
         # that store evolution parameters and rates
@@ -145,10 +142,10 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # NOTE: pFix value not calculate here, but in sepearate function to that method 
         # of getting pFix values can be selected without mucking up the code here.
         for ii in range(self.di.size):
-            self.state_i[ii] = -(ii+1)
+            self.state_i[ii] = -(self.get_iExt()-ii)
             
             # mutation rates (per birth per generation - NEED TO CHECK IF CORRECT)
-            self.Ud_i[ii]    = self.params['UdMax']*float(ii+1)/self.get_iExt()
+            self.Ud_i[ii]    = self.params['UdMax']*float(-self.state_i[ii])/self.get_iExt()
             self.Uc_i[ii]    = self.params['Uc']
             
             # population sizes and densities 
@@ -161,196 +158,20 @@ class mcEvoModel_RM(mc.mcEvoModel):
             self.sd_i[ii]    = self.params['sd']    # di defined for constant selection coeff
             
         return None 
-
-    #------------------------------------------------------------------------------
-    
-    def get_stateSpacePfixValues(self):
-        
-        # calculate population parameters for each of the states in the markov chain model
-        # the evolution parameters are calculated along the absolute fitness state space
-        # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
-        
-        # loop through state space to calculate following: 
-        # pFix values
-        for ii in range(self.di.size):
-            # ----- Probability of Fixation Calculations -------
-            # Expand this section alter to select different options for calculating pFix
-            # 1) First step analysis, (fastest but likely not as accurate across parameter space)
-            # 2) Transition matrix steady state (slower but improved accuracy, requires tuning matrix size)
-            # 3) Simulation (slowest but most accurate across parameter space)
-            
-            # ---- First step analysis method of obtaining pFix -------
-            # set up parameters/arrays for pfix calculations
-            kMax = 10   # use up to 10th order term of Prob Generating function to root find pFix
-            
-            # pFix d-trait beneficial mutation
-            # NOTE: second array entry of dArry corresponds to mutation
-            if (ii == 0):
-                # if at first state space, then use dOpt since it is not in the di array
-                dArry = np.array( [self.di[ii], self.params['dOpt'] ] )
-            else:
-                # if not at first state space then evolution goes from ii -> ii-1
-                dArry = np.array( [self.di[ii], self.di[ii-1]       ] )
-            cArry = np.array( [1, 1] )
-            
-            self.pFix_d_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
-                                                         self.params['T'], \
-                                                         dArry, \
-                                                         cArry, \
-                                                         kMax)
-            # pFix c-trait beneficial mutation
-            # NOTE: second array entry of cArry corresponds to mutation
-            dArry = np.array( [self.di[ii], self.di[ii]         ] )
-            cArry = np.array( [1          , 1+self.params['cp'] ] )  # mutation in c-trait
-            self.pFix_c_i[ii] = lmPfix.calc_pFix_FSA(self.params['b'], \
-                                                         self.params['T'], \
-                                                         dArry, \
-                                                         cArry, \
-                                                         kMax)
-        return None
-    
-    #------------------------------------------------------------------------------
-    
-    def get_stateSpaceEvoRates(self):
-        
-        # calculate evolution parameters for each of the states in the markov chain model
-        # the evolution parameters are calculated along the absolute fitness state space
-        # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
-        #
-        # IMPORTANT: from the popgen perspective, the rates of adaptation that are calculated
-        #            will not be on the same time-scale, and therefore, some need to be 
-        #            rescaled accordingly to get properly compare them to one another.
-        #
-        #            vc - time-scale is one generation of mutant = 1/(d_i - 1)
-        #            vd - time-scale is one generation of mutant = 1/(d_{i-1} - 1) 
-        #
-        #            to resolve the different time scales, we set everything to the time-scale
-        #            of the wild type's generation time 1/(d_i -1)
-        # 
-        # NOTE:      di's do not include dOpt, and dExt = d[iExt] < ... < d[1] < d[0] < dOpt. 
-        # 
-        for ii in range(self.di.size):
-            
-            # check if the current di term is the first (ii=0), in which case, a beneficial
-            # mutation in d moves you to dOpt.
-            if (ii == 0):
-                di_curr = self.di[ii]           # wild type
-                di_next = self.params['dOpt']   # mutant
-            else:
-                di_curr = self.di[ii]           # wild type
-                di_next = self.di[ii-1]         # mutant
-            
-            # calculate rescaling factor to change vd from time scale of mutant lineage's generation time
-            # to time-scale of wild type's generation time.
-            # 
-            #       rescaleFactor = (1 gen mutant)/(1 gen wild type) = ( d_i - 1 )/( d_{i-1} - 1 )
-            #
-            rescaleFactor_vd = lmFun.get_iterationsPerGenotypeGeneration(di_next) / \
-                                    lmFun.get_iterationsPerGenotypeGeneration(di_curr)
-            
-            # absolute fitness rate of adaptation ( on time scale of generations - mutant in d )
-            self.vd_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
-                                               self.sd_i[ii], \
-                                               self.Ud_i[ii], \
-                                               self.pFix_d_i[ii]) * rescaleFactor_vd
-                
-            # relative fitness rate of adaptation ( on time scale of generations - mutant in c )
-            self.vc_i[ii] = roaFun.get_rateOfAdapt(self.eq_Ni[ii], \
-                                               self.sc_i[ii], \
-                                               self.Uc_i[ii], \
-                                               self.pFix_c_i[ii])
-                
-            # rate of fitness decrease due to environmental change ( on time scale of generations)
-            # fitness assumed to decrease by the parameter se (fitness decrease).
-            #
-            # NOTE: We use the wild types generation time scale to rescale ve here, as with other rates.
-            #       
-            
-            self.ve_i[ii] = self.params['se'] * self.params['R'] * lmFun.get_iterationsPerGenotypeGeneration(self.di[ii])    
-            
-            # Lastly, get the regime ID's of each state space. These values are used to understand
-            # where the analysis breaks down
-            self.evoRegime_d_i[ii]  = roaFun.get_regimeID(self.eq_Ni[ii], \
-                                               self.sd_i[ii], \
-                                               self.Ud_i[ii], \
-                                               self.pFix_d_i[ii])
-                
-            self.evoRegime_c_i[ii]  = roaFun.get_regimeID(self.eq_Ni[ii], \
-                                               self.sc_i[ii], \
-                                               self.Uc_i[ii], \
-                                               self.pFix_c_i[ii])
-            
-        return None
-    
-    # ------------------------------------------------------------------------------
-    
-    def get_v_intersect_state_index(self,v2):      
-        # get_v_intersect_state() returns the intersection state of two evo rate arrays
-        # the implementation of this method varies for RM or DRE inheriting classes. RM
-        # orders states from most beneficial to least (index-wise), and DRE is reversed
-        # v2 should either be self.ve_i or self.vc_i
-        #
-        # NOTE: vd in comparison to v2 because it is v2's relationship with vd that 
-        #       we use to determine if we return the extinction class dExt, or the
-        #       highest fitness class in the vd_i array.
-        # 
-    
-        # first we need to check if 
-        #   1) there is an intersection vd < v2 and vd > v2 are true in state space
-        #   2) no intersection and vd >= v2 in the state space (return dExt) 
-        #   3) no intersection and vd <= v2 in the state space (return fittest state)
-        # we exclude extinction state because, it doesnt even make sense to try and 
-        # determine if there is an intersection there (i.e. use [:-1]).
-        #
-        # we also want to return the intersection type, i.e.
-        #   1) vd crossing v2 downward       => intersection_type = -1 (stable attractor state)
-        #   2) vd crossing v2 upward         => intersection_type  = 1 (unstable state)
-        #   3) vd doesn't cross or equals v2 => intersection_type = 0 (no stoch.equil.)
-        # 
-        # we can just use minimizers of vDiff to locate intersection points because
-        # these are discrete states, and the might be several v crossings, but 
-        
-        # get v-differences and reorder arrays from low to high absolute fitness 
-        vDiff = self.vd_i[:-1] - v2[:-1]
-        vDiff = vDiff[::-1]
-        
-        # save an index map to later conver index calculation back to index of the
-        # original vd_i array.
-        idx_map = [ii for ii in range(len(v2)-1)]   # subtract 1 to remove ext class
-        idx_map = idx_map[::-1]
-        
-        if ( (min(vDiff) < 0) and (max(vDiff) > 0) ):
-            # We have some intersection, with strict sign change. So find all 
-            # intersections and get the one close to extinction
-            [v_cross_idx,v_cross_types] = mcFun.calculate_v_intersections(vDiff)
-            
-            # select the appriate v-cross to return, this will be the first
-            # occurance of a cross_type = -1 (idx = indices)
-            attract_cross_idxs = v_cross_idx[np.where(v_cross_types == -1)[0]]
-            
-            # get the first crossing in attract_cross_idxs and map to the 
-            # original index in 
-            intersect_state = idx_map[v_cross_idx[attract_cross_idxs[0]]]
-            intersect_type  = v_cross_types[attract_cross_idxs[0]]
-            
-        elif (min(vDiff) >= 0):
-            # vd is globally larger then v2, so return the highest fitness class
-            # in the vd_i array
-            intersect_state = 0
-            intersect_type = 0
-            
-        elif (max(vDiff) <= 0):
-            # vd is globally larger then v2, so return the extinction class
-            intersect_state = self.get_iExt()
-            intersect_type = 0
-            
-        return [intersect_state, intersect_type]
     
     #%% ----------------------------------------------------------------------------
     #  List of conrete methods from MC class
     # ------------------------------------------------------------------------------
 
     """
+    
+    def get_stateSpacePfixValues(self):
+        
+        # calculate population parameters for each of the states in the markov chain model
+        # the evolution parameters are calculated along the absolute fitness state space
+        # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
+    
+    # ------------------------------------------------------------------------------
     
     def get_vd_i_perUnitTime(self):      
         # get_vd_i_perUnitTime()  returns the set of vd_i but with respect to the 
@@ -369,6 +190,14 @@ class mcEvoModel_RM(mc.mcEvoModel):
     def get_ve_i_perUnitTime(self):      
         # get_ve_i_perUnitTime()  returns the set of ve_i but with respect to the 
         # time scale of the model (i.e., time per iteration).
+    
+    # ------------------------------------------------------------------------------
+    
+    def get_v_intersect_state_index(self,v2):      
+        # get_v_intersect_state() returns the intersection state of two evo rate arrays
+        # the implementation of this method varies for RM or DRE inheriting classes. RM
+        # orders states from most beneficial to least (index-wise), and DRE is reversed
+        # v2 should either be self.ve_i or self.vc_i
     
     # ------------------------------------------------------------------------------
     
@@ -418,4 +247,14 @@ class mcEvoModel_RM(mc.mcEvoModel):
         return self.di.size
     
     #------------------------------------------------------------------------------
+        
+    def get_last_di(self):
+        # get_last_di() calculates next d-term after di[-1], this value is 
+        # occasionally need it to calculate pfix and the rate of adaption.
+        
+        # get next d-term after last di, which for RM will be dOpt
+        di_last = self.params['dOpt']
+        
+        return di_last
     
+    #------------------------------------------------------------------------------

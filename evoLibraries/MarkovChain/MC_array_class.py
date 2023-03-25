@@ -16,6 +16,7 @@ variable density lottery model.
 # *****************************************************************************
 
 import numpy as np
+import copy as cp
 
 from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_RM_class as mcRM
@@ -99,7 +100,8 @@ class mcEvoGrid(evoObj.evoOptions):
     # --------------------------------------------------------------------------
     
     def get_params_ij(self,ii,jj):
-        # get_params_ij set the center param list for 
+        # get_params_ij retreives the set the params used at a particular entry 
+        # of the evo grid.
         
         # check if ii and jj are permissible indices
         evoGridDim = self.get_evoArray_dim()
@@ -109,7 +111,7 @@ class mcEvoGrid(evoObj.evoOptions):
             params_ij = {}
         else:
             # get primary dictionary with evo parameters
-            params_ij = self.params
+            params_ij = cp.deepcopy(self.params)
             
             # scale evo parameters that were selected to vary by the appropriate of 10**k
             params_ij[self.varNames[0]] = params_ij[self.varNames[0]] * 10**self.varBounds[0][ii]
@@ -124,20 +126,22 @@ class mcEvoGrid(evoObj.evoOptions):
         # of the MC evo grid. modelNum indicates the axis to use, i.e the x-axis
         # is model 1 that varies the parameter varNames[0], and the y-axis is 
         # model 2 that varies the parameter varnames[1]
+        #
+        # NOTE: axisNum should either be 1=x-axis or 2=y-axis
         
         # check if ii and jj are permissible indices
         evoGridDim = self.get_evoArray_dim()
         
-        if (ii > evoGridDim[0]-1) or (jj > evoGridDim[1]-1) or ( not self.params.has_key(evoParamName) ): 
+        if (ii > evoGridDim[0]-1) or (jj > evoGridDim[1]-1) or ( not (evoParamName in self.params) ): 
             # if indices invalid, then return empty list
             evoParam_ij = []
             
-        elif (axisNum == 1) and (evoParamName == self.varNames[0]):
+        elif (axisNum == 0) and (evoParamName == self.varNames[0]):
             # get value primary dictionary and calculate value after scaling by
             # power of 10 in varBounds
             evoParam_ij = self.params[evoParamName] * 10**self.varBounds[0][ii]
             
-        elif (axisNum == 2) and (evoParamName == self.varNames[1]):
+        elif (axisNum == 1) and (evoParamName == self.varNames[1]):
             # get value primary dictionary and calculate value after scaling by
             # power of 10 in varBounds
             evoParam_ij = self.params[evoParamName] * 10**self.varBounds[1][jj]
@@ -188,7 +192,7 @@ class mcEvoGrid(evoObj.evoOptions):
                     
                 # calculate intersections and find the stochastically stable
                 # state of absolute fitness
-                params_stable_state = temp_mcModel.get_intersect_parameters()
+                params_stable_state = temp_mcModel.get_stable_state_evo_parameters()
                 
                 # save all evo parameter values
                 self.intersect_state_ij[ii,jj] = params_stable_state['eqState']

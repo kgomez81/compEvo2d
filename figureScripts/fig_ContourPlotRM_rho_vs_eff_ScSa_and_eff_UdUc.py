@@ -24,7 +24,7 @@ from evoLibraries.MarkovChain import MC_functions as mcFun
 # --------------------------------------------------------------------------
 
 # The parameter file is read and a dictionary with their values is generated.
-paramFilePath = os.getcwd()+'/inputs/evoExp_RM_01_parameters.csv'
+paramFilePath = os.getcwd()+'/inputs/evoExp_RM_06_parameters.csv'
 modelType = 'RM'
 
 # set list of variable names that will be used to specify the grid
@@ -42,7 +42,7 @@ varNames       = ['UdMax','cp']
 # NOTE: both list should include 0 to represent the center points of the grid.
 #       For example, [-2,-1,0,1,2] would designate [1E-2,1E-1,1E0,1E1,1e2].
 #       Also note that the entries don't have to be integers.
-nArry     = 5
+nArry     = 11
 expBnds   = 2
 varBounds = [np.linspace(-expBnds, expBnds, nArry), np.linspace(-expBnds, expBnds, nArry)]
 
@@ -54,10 +54,10 @@ varBounds = [np.linspace(-expBnds, expBnds, nArry), np.linspace(-expBnds, expBnd
 mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, varNames, varBounds)
     
 # construct contour plot grids
-nGridCt = 5
+nGridCt = 21
 
-X = np.log10(mcModels.eff_sc_ij) / np.log10(mcModels.eff_sd_ij)
-Y = np.log10(mcModels.eff_Ud_ij) / np.log10(mcModels.eff_Uc_ij)
+X = np.log10(mcModels.eff_sc_ij / mcModels.eff_sd_ij)
+Y = np.log10(mcModels.eff_Ud_ij / mcModels.eff_Uc_ij)
 Z = mcModels.rho_ij
 
 [xi, yi, zi] = mcFun.get_contourPlot_arrayData(X, Y, Z, nGridCt)

@@ -289,7 +289,7 @@ class mcEvoModel(ABC):
             
             # select the appriate v-cross to return, this will be the first
             # occurance of a cross_type = -1 (idx = indices)
-            attract_cross_idxs = v_cross_idx[np.where(v_cross_types == -1)[0]]
+            attract_cross_idxs = np.where(v_cross_types == -1)[0]
             
             # get the first crossing in attract_cross_idxs and map to the 
             # original index in 
@@ -299,12 +299,12 @@ class mcEvoModel(ABC):
         elif (min(vDiff) >= 0):
             # vd is globally larger then v2, so return the highest fitness class
             # in the vd_i array
-            intersect_state = 0
+            intersect_state = self.di.size-1
             intersect_type = 0
             
         elif (max(vDiff) <= 0):
             # vd is globally larger then v2, so return the extinction class
-            intersect_state = self.get_iMax()
+            intersect_state = 0
             intersect_type = 0
             
             
@@ -319,7 +319,7 @@ class mcEvoModel(ABC):
         # NOTE: we are calculating the index of the stable state, not the stable state
         [iStableState_index,iStableState_crossType] = self.get_v_intersect_state_index(self.ve_i)
         
-        return iStableState_index
+        return [iStableState_index,iStableState_crossType]
     
     #------------------------------------------------------------------------------
     
@@ -330,7 +330,7 @@ class mcEvoModel(ABC):
         # NOTE: we are calculating the index of the stable state, not the stable state
         [iStableState_index,iStableState_crossType] = self.get_v_intersect_state_index(self.vc_i)        
 
-        return iStableState_index
+        return [iStableState_index,iStableState_crossType]
     
     # ------------------------------------------------------------------------------
     
@@ -340,7 +340,7 @@ class mcEvoModel(ABC):
         # from the extinction state.
         
         # calculate intersection states (SS = Stable State)
-        idx_SS = [self.get_vd_ve_intersection(), self.get_vd_vc_intersection()]
+        idx_SS = [self.get_vd_ve_intersection_index()[0], self.get_vd_vc_intersection_index()[0]]
         
         # find the intersection state closest to extinction, which requires taking
         # taking max of the two intersection states.
@@ -370,22 +370,25 @@ class mcEvoModel(ABC):
         # NOTE: calculation of rho only makes sense at the intersection of 
         #       vd and vc, not necessarily at the stable state.
         
-        vd_vc_intersect_idx = self.self.get_vd_vc_intersection()
+        [vd_vc_intersect_idx,vd_vc_intersect_type] = self.get_vd_vc_intersection_index()
         
-        # build evo param dictionary for absolute fitness trait
-        evoParams_absTrait = {'s'     : self.sd_i[vd_vc_intersect_idx], \
-                              'pFix'  : self.pFix_d_i[vd_vc_intersect_idx], \
-                              'U'     : self.Ud_i[vd_vc_intersect_idx], \
-                              'regID' : self.evoRegime_d_i[vd_vc_intersect_idx]}
-        
-        # build evo param dictionary for relative fitness trait
-        evoParams_relTrait = {'s'     : self.sc_i[vd_vc_intersect_idx], \
-                              'pFix'  : self.pFix_c_i[vd_vc_intersect_idx], \
-                              'U'     : self.Uc_i[vd_vc_intersect_idx], \
-                              'regID' : self.evoRegime_c_i[vd_vc_intersect_idx]}
-        
-        rho = mcFun.calculate_evoRates_rho(self.eq_Ni[vd_vc_intersect_idx], \
-                                     evoParams_absTrait, evoParams_relTrait)
+        if (np.abs(vd_vc_intersect_type) == 2):
+            rho = np.nan
+        else:
+            # build evo param dictionary for absolute fitness trait
+            evoParams_absTrait = {'s'     : self.sd_i[vd_vc_intersect_idx], \
+                                  'pFix'  : self.pFix_d_i[vd_vc_intersect_idx], \
+                                  'U'     : self.Ud_i[vd_vc_intersect_idx], \
+                                  'regID' : self.evoRegime_d_i[vd_vc_intersect_idx]}
+            
+            # build evo param dictionary for relative fitness trait
+            evoParams_relTrait = {'s'     : self.sc_i[vd_vc_intersect_idx], \
+                                  'pFix'  : self.pFix_c_i[vd_vc_intersect_idx], \
+                                  'U'     : self.Uc_i[vd_vc_intersect_idx], \
+                                  'regID' : self.evoRegime_c_i[vd_vc_intersect_idx]}
+            
+            rho = mcFun.calculate_evoRates_rho(self.eq_Ni[vd_vc_intersect_idx], \
+                                         evoParams_absTrait, evoParams_relTrait)
                 
         return rho
     

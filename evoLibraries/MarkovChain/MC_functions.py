@@ -77,6 +77,9 @@ def calculate_evoRates_rho(N, evoParams_Trait_1, evoParams_Trait_2):
     U_2         = evoParams_Trait_2['U']
     evoRegID_2  = evoParams_Trait_2['regID']    
     
+    if (s_1 * pFix_1 * U_1 * s_2 * pFix_2 * U_2 == 0):
+        return np.nan
+    
     # calculate the appropriate rho
     if (evoRegID_1 == 1) or (evoRegID_2 == 1):
         # either or both in successional regime, no clonal interference
@@ -134,12 +137,12 @@ def calculate_v_intersections(vDiff):
         idx = cross_1[ii]
         
         if idx == 0:
-            crossings   = crossings   + [idx            ]
-            cross_types = cross_types + [vDiffSgn[idx+1]]
+            crossings   = crossings   + [ idx             ]
+            cross_types = cross_types + [2*vDiffSgn[idx+1]]
             
         elif idx == len(vDiffSgn)-1:
-            crossings   = crossings   + [ idx            ]
-            cross_types = cross_types + [-vDiffSgn[idx-1]]
+            crossings   = crossings   + [ idx              ]
+            cross_types = cross_types + [-2*vDiffSgn[idx-1]]
             
         else:
             if (vDiffSgn[idx-1] != vDiffSgn[idx+1]):
@@ -156,14 +159,14 @@ def calculate_v_intersections(vDiff):
         if (idx == 0):
             minIdx = np.argmin([vDiff[idx],vDiff[idx+1]])
             
-            crossings   = crossings   + [ idx + minIdx   ]
-            cross_types = cross_types + [ vDiffSgn[idx+1]]
+            crossings   = crossings   + [ idx + minIdx     ]
+            cross_types = cross_types + [ 2*vDiffSgn[idx+1]]
             
         elif (idx == len(vDiffSgn)-1):
             minIdx = np.argmin([vDiff[idx],vDiff[idx-1]])
             
-            crossings   = crossings   + [ idx - minIdx   ]
-            cross_types = cross_types + [-vDiffSgn[idx-1]]
+            crossings   = crossings   + [ idx - minIdx     ]
+            cross_types = cross_types + [-2*vDiffSgn[idx-1]]
             
         else:
             if (vDiffSgn[idx] != vDiffSgn[idx+1]):

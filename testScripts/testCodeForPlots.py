@@ -428,10 +428,38 @@ ax.plot(mcModel_rm.state_i,np.log10(mcModel_rm.vc_i))
 ax.scatter(mcModel_rm.state_i[ss],np.log10(mcModel_rm.vd_i[ss]))
 
 
-mcTestParams = mcModels.get_params_ij(0,0)
+ii=9
+jj=10
+mcTestParams = mcModels.get_params_ij(ii,jj)
+# mcTestParams2 = mcModels.get_params_ij(0,0)
+# mcTestParams3 = mcModels.get_params_ij(2,2)
 
 mcTestModel = mcRM.mcEvoModel_RM(mcTestParams)
+mcTestEqParams = mcTestModel.get_stable_state_evo_parameters()
 
-fig,ax = plt.subplots(1,1,figsize=[7,7])
-ax.plot(mcTestModel.state_i,np.log10(mcTestModel.vd_i))
-ax.plot(mcTestModel.state_i,np.log10(mcTestModel.vc_i))
+# testParamGrid = mcModels.get_evoParam_grid('UdMax',0)
+
+fig,(ax1,ax2,ax3) = plt.subplots(3,1,figsize=[7,12])
+ax1.scatter(mcTestModel.state_i,np.log10(mcTestModel.vd_i),label='vd')
+ax1.scatter(mcTestModel.state_i,np.log10(mcTestModel.vc_i),label='vc')
+ax1.legend()
+ax2.scatter(mcTestModel.state_i,np.log10(mcTestModel.sd_i),label='sd')
+ax2.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_d_i),label='pFix_d')
+ax2.legend()
+ax3.scatter(mcTestModel.state_i,np.log10(mcTestModel.sc_i),label='sc')
+ax3.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_c_i),label='pFix_c')
+ax3.legend()
+# -----------------------------------------------------------------------
+
+rho_ij = array([
+[2.08783283e-03, 8.39203396e-03, 3.66313113e-02, 1.69041160e-01, 7.45857562e-01, 9.10608482e-01, 1.00620538e+00, 1.01774314e+00, 5.54342700e+00, 8.15484999e+01, 4.92875856e+02], 
+[1.87264059e-03, 7.52706977e-03, 3.28557341e-02, 1.51618143e-01, 7.26657319e-01, 9.28324552e-01, 1.00882643e+00, 1.04105520e+00, 4.74464659e+00, 6.98857056e+01, 4.23212830e+02],
+[1.66914945e-03, 6.70913813e-03, 2.92854544e-02, 1.35142505e-01, 6.47694850e-01, 9.64630076e-01, 1.05183315e+00, 1.20725735e+00, 4.00797835e+00, 5.91224642e+01, 3.58854938e+02],
+[1.47735942e-03, 5.93823904e-03, 2.59204722e-02, 1.19614246e-01, 5.73272866e-01, 9.79882918e-01, 1.05226173e+00, 1.15706862e+00, 3.33342229e+00, 4.92587755e+01, 2.99802179e+02],
+[1.29727050e-03, 5.21437251e-03, 2.27607876e-02, 1.05033366e-01, 5.03391368e-01, 9.95716962e-01, 1.06371155e+00, 1.22038887e+00, 2.72097840e+00, 4.02946398e+01, 2.46054556e+02],
+[1.12888269e-03, 4.53753852e-03, 1.98064006e-02, 9.13998653e-02, 4.38050354e-01, 1.01663722e+00, 1.10831279e+00, 1.22066100e+00, 2.17064669e+00, 3.22300568e+01, 1.97612066e+02],
+[9.72195993e-04, 3.90773709e-03, 1.70573111e-02, 7.87137435e-02, 3.77249825e-01, 1.02812796e+00, 1.10734836e+00, 1.15792435e+00, 1.68242715e+00, 2.50650267e+01, 1.54474710e+02],
+[8.27210402e-04, 3.32496821e-03, 1.45135192e-02, 6.69750008e-02, 3.20989782e-01, 1.02130428e+00, 1.13018415e+00, 1.22123385e+00, 1.46904528e+00, 1.87995495e+01, 1.16642488e+02],
+[6.93925920e-04, 2.78923188e-03, 1.21750248e-02, 5.61836371e-02, 2.69270223e-01, 1.04311789e+00, 1.15015157e+00, 1.23346082e+00, 1.38381946e+00, 1.34336250e+01, 8.41154009e+01],
+[5.72342548e-04, 2.30052810e-03, 1.00418279e-02, 4.63396525e-02, 2.22091150e-01, 1.08811904e+00, 1.15706536e+00, 1.20923545e+00, 1.46452078e+00, 8.96725346e+00, 5.68934476e+01],
+[4.62460284e-04, 1.85885687e-03, 8.11392866e-03, 3.74430469e-02, 1.79452562e-01, 8.79214452e-01, 1.17762411e+00, 1.23464045e+00, 1.38666685e+00, 5.40043472e+00, 3.49766284e+01]])

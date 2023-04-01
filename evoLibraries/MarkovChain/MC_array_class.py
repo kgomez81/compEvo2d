@@ -188,7 +188,7 @@ class mcEvoGrid(evoObj.evoOptions):
                     temp_mcModel = mcRM.mcEvoModel_RM( self.get_params_ij(ii,jj) )
                 else:
                     # get the MC evo model and find the intersection
-                    temp_mcModel = mcRM.mcEvoModel_DRE( self.get_params_ij(ii,jj) )
+                    temp_mcModel = mcDRE.mcEvoModel_DRE( self.get_params_ij(ii,jj) )
                     
                 # calculate intersections and find the stochastically stable
                 # state of absolute fitness

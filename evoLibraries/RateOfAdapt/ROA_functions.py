@@ -139,11 +139,11 @@ def get_rateOfAdapt(N,s,U,pFix):
     
     regimeID = get_regimeID(N,s,U,pFix)        
     
-    if regimeID == 0:
-        # bad evolutionary parameters  
+    if ( (regimeID == 0) or (regimeID == -1) ):
+        # bad evolutionary parameters with either N,s,U,pFix = 0 (regID == 0)
+        # or regime could not be determined (regID == -1)
         v = 0
-        
-    if regimeID == 1:
+    elif regimeID == 1:
         # successional regime
         v = get_vSucc_pFix(N,s,U,pFix)        
         
@@ -154,10 +154,6 @@ def get_rateOfAdapt(N,s,U,pFix):
     elif regimeID == 2: 
         # diffusive mutations regime
         v = get_vOH(N,s,U)        
-        
-    else:
-        # regime undetermined
-        v = -1
         
     return v
 

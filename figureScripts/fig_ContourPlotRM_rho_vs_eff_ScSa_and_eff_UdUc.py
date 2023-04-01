@@ -11,6 +11,7 @@ Created on Sun May 08 11:22:43 2022
 
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 import os
 import sys
@@ -51,8 +52,10 @@ varBounds = [np.linspace(-expBnds, expBnds, nArry), np.linspace(-expBnds, expBnd
 # --------------------------------------------------------------------------
 
 # generate grid
+tic = time.time()
 mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, varNames, varBounds)
-    
+print(time.time()-tic)
+
 # construct contour plot grids
 nGridCt = 21
 

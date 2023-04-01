@@ -157,8 +157,10 @@ def get_eqPopDensity(b,di,option):
     else:
         # numerical solution to steady state population size equation
         eq_density = opt.broyden1(eq_popsize_err,[1], f_tol=1e-14)
-        
         eq_density = np.max([eq_density[0],0]) # ensure density >= 0
+        
+        # now do some numerical checks to get the best possible approximation 
+        # near the extinction class
         
     return eq_density
 

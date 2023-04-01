@@ -15,16 +15,10 @@ data and create figures in the mutation-driven adaptation manuscript.
 
 import numpy as np
 import scipy.special
-import scipy.optimize as opt
 import scipy.stats as st
-import scipy as sp
-import copy as cpy
-import os.path
 
 import bisect
-import csv
-import math as math
-import pickle 
+import math as math 
 
 from joblib import Parallel, delayed
 

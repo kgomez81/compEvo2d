@@ -270,7 +270,7 @@ class mcEvoModel(ABC):
         #
         # we also want to return the intersection type, i.e.
         #   1) vd crossing v2 downward       => intersection_type = -1 (stable attractor state)
-        #   2) vd crossing v2 upward         => intersection_type  = 1 (unstable state)
+        #   2) vd crossing v2 upward         => intersection_type = 1 (unstable state)
         #   3) vd doesn't cross or equals v2 => intersection_type = 0 (no stoch.equil.)
         # 
         # we can just use minimizers of vDiff to locate intersection points because
@@ -291,10 +291,16 @@ class mcEvoModel(ABC):
             # occurance of a cross_type = -1 (idx = indices)
             attract_cross_idxs = np.where(v_cross_types == -1)[0]
             
-            # get the first crossing in attract_cross_idxs and map to the 
-            # original index in 
-            intersect_state = idx_map[v_cross_idx[attract_cross_idxs[0]]]
-            intersect_type  = v_cross_types[attract_cross_idxs[0]]
+            try:
+                # get the first crossing in attract_cross_idxs and map to the 
+                # original index in 
+                intersect_state = idx_map[v_cross_idx[attract_cross_idxs[0]]]
+                intersect_type  = v_cross_types[attract_cross_idxs[0]]
+            except:
+                print(vDiff)
+            finally:
+                intersect_state = idx_map[0]
+                intersect_type  = 0
             
         elif (min(vDiff) >= 0):
             # vd is globally larger then v2, so return the highest fitness class

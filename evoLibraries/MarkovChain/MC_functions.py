@@ -41,7 +41,7 @@ def get_contourPlot_arrayData(X,Y,Z,nGridCt):
 
 #------------------------------------------------------------------------------
 
-def calculate_evoRates_rho(N, evoParams_Trait_1, evoParams_Trait_2):
+def calculate_evoRates_rho(N_eq, evoParams_Trait_1, evoParams_Trait_2):
     # This function calculate the rho parameter defined in the manuscript,
     # which measures the relative changes in evolution rates due to increases
     # in max available territory parameter. 
@@ -62,7 +62,18 @@ def calculate_evoRates_rho(N, evoParams_Trait_1, evoParams_Trait_2):
     #            2: multiple mutations
     #            3: diffusion
     #           -1: regime undetermined, i.e. in transition region   
-        
+    
+    # When using this function with absolute and relative fitness trains, note
+    # that definition of "Rho" from manuscript is 
+    #
+    #                 Rho = del_vc / del_vd
+    #
+    # i.e. first parameters must be for absolute trait, and second parameters 
+    # must be for relative trait
+    #
+    # - Case "Rho > 1": change in vc is larger, causing shift back in abs fitness
+    # - Case "Rho < 1": change in vc is smaller causing shift forward in abs fitness
+            
     # load evo parameters for trait 1 into variables to make calculations 
     # easier to read
     s_1         = evoParams_Trait_1['s']
@@ -77,40 +88,53 @@ def calculate_evoRates_rho(N, evoParams_Trait_1, evoParams_Trait_2):
     U_2         = evoParams_Trait_2['U']
     evoRegID_2  = evoParams_Trait_2['regID']    
     
-    if (s_1 * pFix_1 * U_1 * s_2 * pFix_2 * U_2 == 0):
+    if (s_1 * pFix_1 * U_1 * s_2 * pFix_2 * U_2 * N_eq == 0):
         return np.nan
     
     # calculate the appropriate rho
     if (evoRegID_1 == 1) or (evoRegID_2 == 1):
         # either or both in successional regime, no clonal interference
         rho = 0
-    
+        
     elif (evoRegID_1 == 2) and (evoRegID_2 == 2):
         # both traits in multiple mutations regime
         rho = (s_2/np.log(s_2/U_2))**2 / (s_1/np.log(s_1/U_1))**2
         
+        if (rho > 1):
+            print("   RHO = %f" % (rho))
+            print("   del_vc = %f" % (s_2/np.log(s_2/U_2))**2)
+            print("   sc = %f" % (s_2))
+            print("   Uc = %f" % (U_2))
+            print("   N  = %f" % (N_eq))      
+            
+            print("   del_vd = %f" % (s_1/np.log(s_1/U_1))**2)
+            print("   sd = %f" % (s_1))
+            print("   Ud = %f" % (U_1))
+            print("   N  = %f" % (N_eq))      
+            
     elif (evoRegID_1 == 3) and (evoRegID_2 == 2):
         # abs trait in diffusion and rel trait in multiple mutations regime
         D_1 = 0.5*U_1*s_1**2
         
-        rho = (s_2/np.log(s_2/U_2))**2 / (D_1**(2.0/3.0)/(3*np.log(D_1**(1.0/3.0)*N)**(2.0/3.0)))               
+        rho = (s_2/np.log(s_2/U_2))**2 / (D_1**(2.0/3.0)/(3*np.log(D_1**(1.0/3.0)*N_eq)**(2.0/3.0)))               
         
     elif (evoRegID_1 == 2) and (evoRegID_2 == 3):
         # rel trait in diffusion and abs trait in multiple mutations regime
         D_2 = 0.5*U_2*s_2**2
         
-        rho = (D_2**(2.0/3.0)/(3*np.log(D_2**(1.0/3.0)*N)**(2.0/3.0))) / (s_1/np.log(s_1/U_1))**2
+        rho = (D_2**(2.0/3.0)/(3*np.log(D_2**(1.0/3.0)*N_eq)**(2.0/3.0))) / (s_1/np.log(s_1/U_1))**2
         
     elif (evoRegID_1 == 3) and (evoRegID_2 == 3):
         # both traits in diffusion regime
         D_1 = 0.5*U_1*s_1**2
         D_2 = 0.5*U_2*s_2**2
         
-        rho = (D_2**(2.0/3.0)/(3*np.log(D_2**(1.0/3.0)*N)**(2.0/3.0))) / (D_1**(2.0/3.0)/(3*np.log(D_1**(1.0/3.0)*N)**(2.0/3.0)))
+        rho = (D_2**(2.0/3.0)/(3*np.log(D_2**(1.0/3.0)*N_eq)**(2.0/3.0))) / (D_1**(2.0/3.0)/(3*np.log(D_1**(1.0/3.0)*N_eq)**(2.0/3.0)))
         
     else:
         rho = np.nan
-            
+    
+    print("(rho=%f, regID_d=%f, regID_c=%f)" % (rho,evoRegID_1,evoRegID_1))        
     return rho
 
 #------------------------------------------------------------------------------

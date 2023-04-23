@@ -44,8 +44,11 @@ varNames       = ['UdMax','cp']
 #       For example, [-2,-1,0,1,2] would designate [1E-2,1E-1,1E0,1E1,1e2].
 #       Also note that the entries don't have to be integers.
 nArry     = 11
-expBnds   = 2
-varBounds = [np.linspace(-expBnds, expBnds, nArry), np.linspace(-expBnds, expBnds, nArry)]
+
+UdMax_Bnds = np.linspace(-3, 3, nArry)
+cp_Bnds = np.linspace(-1, 1, nArry)   # cannot exceed ~O(10^-1) for pFix estimates
+
+varBounds = [UdMax_Bnds, cp_Bnds]
 
 #%% ------------------------------------------------------------------------
 # generate MC data
@@ -56,8 +59,10 @@ tic = time.time()
 mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, varNames, varBounds)
 print(time.time()-tic)
 
+#%% ------------------------------------------------------------------------
 # construct contour plot grids
-nGridCt = 21
+# --------------------------------------------------------------------------
+nGridCt = 51
 
 X = np.log10(mcModels.eff_sc_ij / mcModels.eff_sd_ij)
 Y = np.log10(mcModels.eff_Ud_ij / mcModels.eff_Uc_ij)
@@ -69,10 +74,30 @@ Z = mcModels.rho_ij
 #                           Plot data
 # --------------------------------------------------------------------------
 
+# fig, ax1 = plt.subplots(nrows=1)
+# ax1.contourf(xi, yi, zi)
+# cntr1 = ax1.contourf(xi, yi, zi, cmap="summer")
+# fig.colorbar(cntr1, ax=ax1)
+
+# ax1.set( xlim=(xi.min(), xi.max()), ylim=(yi.min(), yi.max()) )
+# ax1.set_title(r'$\rho$ Contour Plot')
+# ax1.set_xlabel(r'$\log_{10}(s_c/s_d)$')
+# ax1.set_ylabel(r'$\log_{10}(U_d/U_c)$')
+
+# plt.show()
+
+
 fig, ax1 = plt.subplots(nrows=1)
-ax1.contourf(xi, yi, zi)
-cntr1 = ax1.contourf(xi, yi, zi, cmap="summer")
+
+myLvls = np.linspace(np.round(np.min(zi),1),np.round(np.max(zi,1)+0.1,1),15)
+myLineLvls = np.asarray([0.5,0.80,0.90,1.0])
+
+# ax1.contourf(xi, yi, zi)
+cntr1 = ax1.contourf(xi, yi, zi,level=myLvls,cmap="summer")
 fig.colorbar(cntr1, ax=ax1)
+
+cpl = ax1.contour(xi,yi,zi,colors='k',levels = myLineLvls)
+ax1.clabel(cpl, fmt='%2.1f', colors='k', fontsize=11)
 
 ax1.set( xlim=(xi.min(), xi.max()), ylim=(yi.min(), yi.max()) )
 ax1.set_title(r'$\rho$ Contour Plot')
@@ -80,5 +105,6 @@ ax1.set_xlabel(r'$\log_{10}(s_c/s_d)$')
 ax1.set_ylabel(r'$\log_{10}(U_d/U_c)$')
 
 plt.show()
+
 fig.savefig(os.getcwd() + '/figures/MainDoc/fig_ContourPlotRM_rho_vs_eff_ScSa_and_eff_UdUc.pdf')
 

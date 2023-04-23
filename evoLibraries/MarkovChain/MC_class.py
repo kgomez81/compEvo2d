@@ -282,7 +282,18 @@ class mcEvoModel(ABC):
         # save an index map 
         idx_map = [*range(1,self.di.size,1)]  # start from 1 to remove ext class
         
-        if ( (min(vDiff) < 0) and (max(vDiff) > 0) ):
+        if (np.nanmin(vDiff) >= 0):
+            # vd is globally larger then v2, so return the highest fitness class
+            # in the vd_i array
+            intersect_state = self.di.size-1
+            intersect_type = 0
+            
+        elif (np.nanmax(vDiff) <= 0):
+            # vd is globally larger then v2, so return the extinction class
+            intersect_state = 0
+            intersect_type = 0
+            
+        else:
             # We have some intersection, with strict sign change. So find all 
             # intersections and get the one close to extinction
             [v_cross_idx,v_cross_types] = mcFun.calculate_v_intersections(vDiff)
@@ -291,28 +302,10 @@ class mcEvoModel(ABC):
             # occurance of a cross_type = -1 (idx = indices)
             attract_cross_idxs = np.where(v_cross_types == -1)[0]
             
-            try:
-                # get the first crossing in attract_cross_idxs and map to the 
-                # original index in 
-                intersect_state = idx_map[v_cross_idx[attract_cross_idxs[0]]]
-                intersect_type  = v_cross_types[attract_cross_idxs[0]]
-            except:
-                print(vDiff)
-            finally:
-                intersect_state = idx_map[0]
-                intersect_type  = 0
-            
-        elif (min(vDiff) >= 0):
-            # vd is globally larger then v2, so return the highest fitness class
-            # in the vd_i array
-            intersect_state = self.di.size-1
-            intersect_type = 0
-            
-        elif (max(vDiff) <= 0):
-            # vd is globally larger then v2, so return the extinction class
-            intersect_state = 0
-            intersect_type = 0
-            
+            # get the first crossing in attract_cross_idxs and map to the 
+            # original index in 
+            intersect_state = idx_map[v_cross_idx[attract_cross_idxs[0]]]
+            intersect_type  = v_cross_types[attract_cross_idxs[0]]
             
         return [intersect_state, intersect_type]
         
@@ -335,7 +328,12 @@ class mcEvoModel(ABC):
         
         # NOTE: we are calculating the index of the stable state, not the stable state
         [iStableState_index,iStableState_crossType] = self.get_v_intersect_state_index(self.vc_i)        
-
+        
+        # print('------------------------------------')
+        # print(iStableState_index)
+        # print(iStableState_crossType)
+        # print(self.vd_i-self.vc_i)
+        
         return [iStableState_index,iStableState_crossType]
     
     # ------------------------------------------------------------------------------

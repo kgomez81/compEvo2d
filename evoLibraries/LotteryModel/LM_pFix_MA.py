@@ -18,7 +18,7 @@ THIS FUNCTION STILL NEEDS TO BE COMPLETED
 import numpy as np
 import scipy.stats as st
 
-from scipy.linalg import null_space
+from scipy.linalg import solve
 from evoLibraries.LotteryModel import LM_functions as lmFun
 
 # from sympy import Matrix
@@ -179,17 +179,32 @@ def calc_pFix_MA(b,T,d,c,n1,n2):
     
     Ts = Ts[:n2, :n2]  # reduce the size of matrix product to size "n2 x n2"
     
-    # form the linear system
-    linSys = Ts - np.eye(Ts.shape[0])
-    Z = null_space(linSys)
+    # assign remaining probability to state corresponding to fix
+    for jj in range(Ts.shape[0]):
+        colSum_jj = sum(Ts[:,jj])
+        
+        if (colSum_jj <= 1):
+            # if already probabilities, then assign remaining weight to n2 sate
+            Ts[-1,jj] = Ts[-1,jj] + colSum_jj
+        else:
+            # if not probabilities then normalize
+            for ii in range(Ts.shape[0]):
+                Ts[ii,jj] = Ts[ii,jj]/colSum_jj
     
-    # check acoss all possible solutions. We want a vector with all non-negative
-    # components. 
-    # 
-    # Ts should have the solution 
     
+    # Form the linear system to solve for pfix
+    # 1. remove the first and last states from Ts and keep row with probability
+    #    for transitioning to n2 (fixation)
+    Ts_solve = Ts[1:n2-1,1:n1-1]
+    pjj_solve = Ts[n2,1:n2-1]
     
-    pFix = 0
+    # Solve for all of the probabilities of fixing (achieve n2 state) from all 
+    # states 1, 2, ... n2-1
+    pFix_ii = solve(Ts_solve, pjj_solve)
+    
+    pFix = pFix_ii[0]     # get probabability of reaching n2 from state 1.
+                          # this is the estimate of pFix.
+    
     return pFix
 
 #------------------------------------------------------------------------------

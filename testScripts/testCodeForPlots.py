@@ -553,16 +553,38 @@ ax21.legend()
 
 import random
 from scipy.linalg import null_space
+from scipy.linalg import solve
 
 A = np.random.random((3,3))
-for jj in range(A.shape[0]):
-    colSum = sum(A[:,jj])
-    for ii in range(A.shape[1]):
-        A[ii,jj] = A[ii,jj]/colSum
 
-Z = null_space(A-np.eye(A.shape[0]))
+A = np.array([[1,0,0,0], \
+     [0.01,0.40,0.30,0.29], \
+     [0.00,0.11,0.50,0.39], \
+     [0.00,0.00,0.00,1.00]])
 
-xSol = Z/sum(Z[:,0])
+A = np.transpose(A)
     
+# for jj in range(A.shape[0]):
+#     colSum = sum(A[:,jj])
+#     for ii in range(A.shape[1]):
+#         A[ii,jj] = A[ii,jj]/colSum
+
+B = A[1:3,1:3] 
+b_fix = np.array(A[3,1:3])
+b_ext = np.array(A[0,1:3])
+
+# Z = null_space(A-np.eye(A.shape[0]))
+
+# xSol = Z/sum(Z[:,0])
+
+xSol_fix = solve(np.eye(B.shape[0])-B.transpose(),b_fix)    
+xSol_ext = solve(np.eye(B.shape[0])-B.transpose(),b_ext)    
+
+# u = np.array([[0.2],[0.3],[0.1],[0.4]])
+
+# np.matmul(A,u)
+# np.matmul(A.transpose(),u)
     
+# np.matmul(np.ones([1,4]),np.matmul(A,u))
+# np.matmul(np.ones([1,4]),np.matmul(A.transpose(),u))
     

@@ -193,18 +193,28 @@ def calc_pFix_MA(b,T,d,c,n1,n2):
     
     
     # Form the linear system to solve for pfix
-    # 1. remove the first and last states from Ts and keep row with probability
-    #    for transitioning to n2 (fixation)
+    # 1. remove the first and last states from Ts
     Ts_solve = Ts[1:n2-1,1:n1-1]
-    pjj_solve = Ts[n2,1:n2-1]
     
-    # Solve for all of the probabilities of fixing (achieve n2 state) from all 
-    # states 1, 2, ... n2-1
-    pFix_ii = solve(Ts_solve, pjj_solve)
+    pfix_option = 1
     
-    pFix = pFix_ii[0]     # get probabability of reaching n2 from state 1.
-                          # this is the estimate of pFix.
+    if pfix_option: 
+        # Solve for all of the probabilities of fixing (achieve n2 state) from all 
+        # states 1, 2, ... n2-1
+        pjj_solve = Ts[n2,1:n2-1]
+        pFix_ii = solve(Ts_solve, pjj_solve)
     
+        pFix = pFix_ii[0]     # get probabability of reaching n2 from state 1.
+                              # this is the estimate of pFix.
+    else:
+        # Solve for all of the probabilities of fixing (achieve 0 state) from all 
+        # states 1, 2, ... n2-1
+        pjj_solve = Ts[0,1:n2-1]
+        pExt_ii = solve(Ts_solve, pjj_solve)
+        
+        pFix = 1-pExt_ii[0]   # get probabability of reaching n2 from state 1.
+                              # this is the estimate of pFix.
+                              
     return pFix
 
 #------------------------------------------------------------------------------

@@ -95,7 +95,7 @@ def transProb_competitionPhase_cTerm(b,cp,T,y,nm,k,calc_option):
         # calculate the transition probability associated with going from nm mutant
         # adults to k adults. The pmf below is for the number of juveniles that win
         # new territories (equal to k-nm).
-        trans_prob = st.poisson.pmf(lambda_competitionPhase,k-nm)
+        trans_prob = st.poisson.pmf(k-nm,lambda_competitionPhase)
     else:
         trans_prob = 0
     
@@ -115,13 +115,14 @@ def transProb_deathPhase(di,nm,k):
     return trans_prob
 #------------------------------------------------------------------------------
 
-def calc_pFix_MA(b,T,d,c,n1,n2):
+def calc_pFix_MA(b,T,d,c,n1,n2,pfix_option):
     # b - birth term
     # T - Territory size
     # d - array with death terms
     # c - array with competition terms
     # n1 - max array size of transition probabilities (competition and death phase)
     # n2 - max array size of transition probabilities (solve for pFix)
+    #      NOTE: n2 <= n1 is required
 
     # calculate lambda rate
     yi_option = 3
@@ -136,7 +137,7 @@ def calc_pFix_MA(b,T,d,c,n1,n2):
     for ii in range(n1):
         for jj in range(n1):
             if ii == 0:
-                Tc[ii,jj]=np.kron(0,jj)
+                Tc[ii,jj]=float(ii==jj)
             else:
                 # check with beneficial mutation case to use(d or c), but 
                 # calculations can only be done for one type of mutation
@@ -165,7 +166,7 @@ def calc_pFix_MA(b,T,d,c,n1,n2):
     for ii in range(n1):
         for jj in range(n1):
             if ii == 0:
-                Td[ii,jj]=np.kron(0,jj)
+                Td[ii,jj]=float(ii==jj)
             else:
                 Td[ii,jj]=transProb_deathPhase(d[1],ii,jj)
                 
@@ -178,43 +179,57 @@ def calc_pFix_MA(b,T,d,c,n1,n2):
     # probability of extinction pExt. 
     
     Ts = Ts[:n2, :n2]  # reduce the size of matrix product to size "n2 x n2"
-    
-    # assign remaining probability to state corresponding to fix
-    for jj in range(Ts.shape[0]):
-        colSum_jj = sum(Ts[:,jj])
-        
-        if (colSum_jj <= 1):
-            # if already probabilities, then assign remaining weight to n2 sate
-            Ts[-1,jj] = Ts[-1,jj] + colSum_jj
-        else:
-            # if not probabilities then normalize
-            for ii in range(Ts.shape[0]):
-                Ts[ii,jj] = Ts[ii,jj]/colSum_jj
-    
+    Ts = normalize_transProbMatrix(Ts,0)
     
     # Form the linear system to solve for pfix
     # 1. remove the first and last states from Ts
-    Ts_solve = Ts[1:n2-1,1:n1-1]
+    Ts_solve = np.transpose(Ts[1:n2-1,1:n2-1])
     
-    pfix_option = 1
-    
-    if pfix_option: 
+    if pfix_option:
         # Solve for all of the probabilities of fixing (achieve n2 state) from all 
         # states 1, 2, ... n2-1
-        pjj_solve = Ts[n2,1:n2-1]
+        pjj_solve = np.transpose(Ts[-1,1:n2-1])
         pFix_ii = solve(Ts_solve, pjj_solve)
-    
+        
         pFix = pFix_ii[0]     # get probabability of reaching n2 from state 1.
                               # this is the estimate of pFix.
+        
     else:
         # Solve for all of the probabilities of fixing (achieve 0 state) from all 
         # states 1, 2, ... n2-1
-        pjj_solve = Ts[0,1:n2-1]
+        pjj_solve = np.transpose(Ts[0,1:n2-1])
         pExt_ii = solve(Ts_solve, pjj_solve)
         
         pFix = 1-pExt_ii[0]   # get probabability of reaching n2 from state 1.
                               # this is the estimate of pFix.
-                              
-    return pFix
+        
+    return [Tc,Td,Ts, Ts_solve, pjj_solve, pFix]
+
+#%%------------------------------------------------------------------------------
+
+def normalize_transProbMatrix(Ts,norm_option):
+    # norm option
+    # True = normalize rows
+    # False = normalize columns
+    
+    if norm_option:
+        Ts = np.transpose(Ts)
+        
+    # assign remaining probability to state corresponding to fix
+    for jj in range(Ts.shape[0]):
+        colSum_jj = sum(Ts[:,jj])
+        
+        if (colSum_jj < 1):
+            # if already probabilities, then assign remaining weight to n2 sate
+            Ts[-1,jj] = Ts[-1,jj] + (1-colSum_jj)
+        else:
+            # if not probabilities then normalize
+            for kk in range(Ts.shape[0]):
+                Ts[kk,jj] = Ts[kk,jj]/colSum_jj
+                    
+    if norm_option:
+        Ts = np.transpose(Ts)
+        
+    return Ts
 
 #------------------------------------------------------------------------------

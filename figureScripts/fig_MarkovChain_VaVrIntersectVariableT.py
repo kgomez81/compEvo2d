@@ -19,8 +19,7 @@ see Bertram & Masel 2019 for details of lottery model
 #                               Libraries   
 # --------------------------------------------------------------------------
 
-import scipy as sp
-import numpy as np
+import matplotlib.pyplot as plt
 
 import os
 import sys
@@ -29,9 +28,6 @@ sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d\\evoLibraries')
 from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_RM_class as mcRM
 
-
-import matplotlib.pyplot as plt
-import evo_library as myfun            # my functions in a seperate file
 from matplotlib.lines import Line2D
 
 # --------------------------------------------------------------------------
@@ -55,52 +51,19 @@ from matplotlib.lines import Line2D
 #
 
 # The parameter file is read and a dictionary with their values is generated.
-paramFilePath1 = os.getcwd()+'/inputs/evoExp_RM_01_parameters.csv'
+paramFilePath = os.getcwd()+'/inputs/evoExp_RM_03_parameters.csv'
+# paramFilePath = os.getcwd()+'/inputs/evoExp_RM_04_parameters.csv'
 modelType = 'RM'
 
-# define grid of evolution parameters. 
+mcParams = evoObj.evoOptions(paramFilePath, modelType)
 
-mcParams1 = evoObj.evoOptions(paramFilePath1, modelType)
-mcModel1 = mcRM.mcEvoModel_RM(mcParams1.params)
+T_vals = [1e11,1e7]
 
+mcModels = []
 
-
-# Calculate absolute fitness state space. This requires specificying:
-# dMax  - max size of death term that permits non-negative growth in abundances
-# di    - complete of death terms of the various absolute fitness states
-# iExt  - extinction class
-[dMax,di,iExt] = myfun.get_absoluteFitnessClasses(params['b'],params['dOpt'],params['sa'])
-
-# pFix values from simulations are loaded for abs-fit mutations to states 0,...,iMax-1 
-pFixAbs_File = 'outputs/evoExp01_absPfix.csv'
-pFixAbs_i     = myfun.read_pFixOutputs(pFixAbs_File,iExt)
-
-# pFix values from simulations are loaded for rel-fit mutations at states 1,...,iMax 
-pFixRel_File = 'outputs/evoExp01_relPfix.csv'
-pFixRel_i    = myfun.read_pFixOutputs(pFixRel_File,iExt)
-
-# set root solving option for equilibrium densities
-# (1) low-density analytic approximation 
-# (2) high-density analytic approximation
-# (3) root solving numerical approximation
-yi_option = 3  
-
-[state1_i,Ua1_i,Ur1_i,eq_y1i,eq_N1i,sr1_i,sa1_i,va1_i,vr1_i,ve1_i] = \
-                    myfun.get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option)
-
-# The parameter file is read and a dictionary with their values is generated.
-paramFile = 'inputs/evoExp_RM_04_parameters.csv'
-params = myfun.read_parameterFile(paramFile)
-
-[state2_i,Ua2_i,Ur2_i,eq_y2i,eq_N2i,sr2_i,sa2_i,va2_i,vr2_i,ve2_i] = \
-                    myfun.get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option)
-
-# The parameter file is read and a dictionary with their values is generated.
-paramFile = 'inputs/evoExp_RM_05_parameters.csv'
-params = myfun.read_parameterFile(paramFile)
-
-[state3_i,Ua3_i,Ur3_i,eq_y3i,eq_N3i,sr3_i,sa3_i,va3_i,vr3_i,ve3_i] = \
-                    myfun.get_MChainEvoParameters(params,di,iExt,pFixAbs_i,pFixRel_i,yi_option)
+for ii in range(len(T_vals)):
+    mcParams.params['T'] = T_vals[ii]
+    mcModels = mcModels + [ mcRM.mcEvoModel_RM(mcParams.params) ]
 
 # --------------------------------------------------------------------------
 #                               Figure - Panel (A)
@@ -111,14 +74,15 @@ fig1, ax1 = plt.subplots(1,1,figsize=[7,6])
 #ax1.plot(eq_y1i,va1_i,color="green",linewidth=2,label=r'$v_{a,1}$')
 #ax1.plot(eq_y1i,vr1_i,'-.',color="green",linewidth=2,label=r'$v_{r,1}$')
 
-ax1.plot(eq_y2i,va2_i,color="blue",linewidth=2,label=r'$v_a (T=10^7)$')
-ax1.plot(eq_y2i,vr2_i,'-.',color="blue",linewidth=2,label=r'$v_r (T=10^7)$')
-ax1.plot(eq_y3i,va3_i,color="cyan",linewidth=2,label=r'$v_a (T=10^5)$')
-ax1.plot(eq_y3i,vr3_i,'-.',color="cyan",linewidth=2,label=r'$v_r (T=10^5)$')
+ax1.plot(mcModels[0].eq_yi,mcModels[0].vd_i,color="blue",linewidth=2,label=r'$v_a (T=10^11)$')
+ax1.plot(mcModels[0].eq_yi,mcModels[0].vc_i,'-.',color="blue",linewidth=2,label=r'$v_r (T=10^11)$')
 
-ax1.scatter([0.8805],[1.0223e-4],marker="o",s=40,c="black")
-ax1.scatter([0.8923],[0.492e-4],marker="o",s=40,c="black")
-ax1.plot([0.8805,0.8923],[1.0223e-4,0.492e-4],c="black",linewidth=2,linestyle='-')
+ax1.plot(mcModels[1].eq_yi,mcModels[1].vd_i,color="cyan",linewidth=2,label=r'$v_a (T=10^7)$')
+ax1.plot(mcModels[1].eq_yi,mcModels[1].vc_i,'-.',color="cyan",linewidth=2,label=r'$v_r (T=10^7)$')
+
+ax1.scatter([0.9426],[6.718e-4],marker="o",s=40,c="black")
+ax1.scatter([0.9496],[3.237e-4],marker="o",s=40,c="black")
+ax1.plot([0.9426,0.9496],[6.718e-4,3.237e-4],c="black",linewidth=2,linestyle='-')
 
 # axes and label adjustements
 ax1.set_xlim(0,1)

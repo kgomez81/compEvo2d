@@ -23,6 +23,8 @@ from evoLibraries.MarkovChain import MC_RM_class as mcRM
 from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
 from evoLibraries.MarkovChain import MC_functions as mcFun
 
+from joblib import Parallel, delayed
+
 class mcEvoGrid(evoObj.evoOptions):
     # evoGridOptions encapsulates evolution parameters and bounds to define 
     # a grid of Markov Chain models for figures.
@@ -178,53 +180,74 @@ class mcEvoGrid(evoObj.evoOptions):
         
         evoGridDim = self.get_evoArray_dim()
         
-        # loop through each MC model
+        gridMap = []
+        
         for ii in range(evoGridDim[0]):
             for jj in range(evoGridDim[1]):
+                gridMap = gridMap + [[ii,jj]]
                 
-                # check the MC model type and get intersection evo params
-                if (self.modelType == 'RM'):
-                    # get the MC evo model and find the intersection
-                    temp_mcModel = mcRM.mcEvoModel_RM( self.get_params_ij(ii,jj) )
-                else:
-                    # get the MC evo model and find the intersection
-                    temp_mcModel = mcDRE.mcEvoModel_DRE( self.get_params_ij(ii,jj) )
-                    
-                # calculate intersections and find the stochastically stable
-                # state of absolute fitness
-                params_stable_state = temp_mcModel.get_stable_state_evo_parameters()
-                
-                # save all evo parameter values
-                self.intersect_state_ij[ii,jj] = params_stable_state['eqState']
-                
-                # density and absolute fitness at intersection
-                self.eff_y_ij[ii,jj]   = params_stable_state['y']
-                self.eff_d_ij[ii,jj]   = params_stable_state['d']
-                
-                # arrays with effective evolution parameters at intersections
-                self.eff_N_ij[ii,jj]       = params_stable_state['N']
-                self.eff_Ud_ij[ii,jj]      = params_stable_state['Ud']
-                self.eff_Uc_ij[ii,jj]      = params_stable_state['Uc']
-                self.eff_sd_ij[ii,jj]      = params_stable_state['sd']
-                self.eff_sc_ij[ii,jj]      = params_stable_state['sc']
-                self.eff_pFix_d_ij[ii,jj]  = params_stable_state['pFix_d']
-                self.eff_pFix_c_ij[ii,jj]  = params_stable_state['pFix_c']
-                
-                # arrays with evolution/environment rates
-                self.eff_vd_ij[ii,jj]  = params_stable_state['vd']
-                self.eff_vc_ij[ii,jj]  = params_stable_state['vc']
-                self.eff_ve_ij[ii,jj]  = params_stable_state['ve']
-                
-                # save evo regimes
-                self.eff_evoRegime_d_ij[ii,jj]  = params_stable_state['regID_d']
-                self.eff_evoRegime_c_ij[ii,jj]  = params_stable_state['regID_c']
-                
-                # calculate rho of the MC model
-                # NOTE: rho is not calculated at stable state! it is calculated
-                #       at the intersection of vd and vc.
-                self.rho_ij[ii,jj]  = temp_mcModel.calculate_evoRho()
+        
+        params_stable_state_arry = Parallel(n_jobs=6)(delayed(self.get_evoModel)(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),self.modelType,kk) for kk in range(len(gridMap)))
+        
+        # loop through each MC model
+        for kk in range(len(gridMap)):
+            
+            # get evo data from parallel array
+            ii = gridMap[params_stable_state_arry[kk][0]][0]
+            jj = gridMap[params_stable_state_arry[kk][0]][1]
+            
+            params_stable_state = params_stable_state_arry[kk][1]
+            rho                 = params_stable_state_arry[kk][2]
+            
+            # -------------------------------------------------------
+            # save all evo parameter values
+            self.intersect_state_ij[ii,jj] = params_stable_state['eqState']
+            
+            # density and absolute fitness at intersection
+            
+            self.eff_y_ij[ii,jj]   = params_stable_state['y']
+            self.eff_d_ij[ii,jj]   = params_stable_state['d']
+            
+            # arrays with effective evolution parameters at intersections
+            self.eff_N_ij[ii,jj]       = params_stable_state['N']
+            self.eff_Ud_ij[ii,jj]      = params_stable_state['Ud']
+            self.eff_Uc_ij[ii,jj]      = params_stable_state['Uc']
+            self.eff_sd_ij[ii,jj]      = params_stable_state['sd']
+            self.eff_sc_ij[ii,jj]      = params_stable_state['sc']
+            self.eff_pFix_d_ij[ii,jj]  = params_stable_state['pFix_d']
+            self.eff_pFix_c_ij[ii,jj]  = params_stable_state['pFix_c']
+            
+            # arrays with evolution/environment rates
+            self.eff_vd_ij[ii,jj]  = params_stable_state['vd']
+            self.eff_vc_ij[ii,jj]  = params_stable_state['vc']
+            self.eff_ve_ij[ii,jj]  = params_stable_state['ve']
+            
+            # save evo regimes
+            self.eff_evoRegime_d_ij[ii,jj]  = params_stable_state['regID_d']
+            self.eff_evoRegime_c_ij[ii,jj]  = params_stable_state['regID_c']
+            
+            # calculate rho of the MC model
+            # NOTE: rho is not calculated at stable state! it is calculated
+            #       at the intersection of vd and vc.
+            self.rho_ij[ii,jj]  = rho
                 
         return None
     
     # --------------------------------------------------------------------------
     
+    def get_evoModel(self,params_kk,modelType,kk):
+        
+        # check the MC model type and get intersection evo params
+        if (self.modelType == 'RM'):
+            # get the MC evo model and find the intersection
+            temp_mcModel = mcRM.mcEvoModel_RM( params_kk )
+        else:
+            # get the MC evo model and find the intersection
+            temp_mcModel = mcDRE.mcEvoModel_DRE( params_kk )
+            
+        # calculate intersections and find the stochastically stable
+        # state of absolute fitness
+        params_stable_state = temp_mcModel.get_stable_state_evo_parameters()
+        rho                 = temp_mcModel.calculate_evoRho()
+        
+        return [kk,params_stable_state,rho]

@@ -428,9 +428,20 @@ ax.plot(mcModel_rm.state_i,np.log10(mcModel_rm.vc_i))
 ax.scatter(mcModel_rm.state_i[ss],np.log10(mcModel_rm.vd_i[ss]))
 
 #%%----------------------------------------------
+import matplotlib.pyplot as plt
+import numpy as np
 
-ii=10
-jj=10
+import os
+import sys
+sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d\\evoLibraries')
+
+from evoLibraries import evoObjects as evoObj
+from evoLibraries.MarkovChain import MC_RM_class as mcRM
+from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
+
+ii=0
+jj=0
+
 mcTestParams = mcModels.get_params_ij(ii,jj)
 # mcTestParams2 = mcModels.get_params_ij(0,0)
 # mcTestParams3 = mcModels.get_params_ij(2,2)
@@ -441,23 +452,23 @@ mcTestEqParams = mcTestModel.get_stable_state_evo_parameters()
 
 # testParamGrid = mcModels.get_evoParam_grid('UdMax',0)
 
-fig,(ax1,ax2,ax3) = plt.subplots(3,1,figsize=[7,12])
-ax1.scatter(mcTestModel.state_i,np.log10(mcTestModel.vd_i),label='vd')
-ax1.scatter(mcTestModel.state_i,np.log10(mcTestModel.vc_i),label='vc')
-ax1.legend()
+# fig,(ax1,ax2,ax3) = plt.subplots(3,1,figsize=[7,12])
+# ax1.scatter(mcTestModel.state_i,np.log10(mcTestModel.vd_i),label='vd')
+# ax1.scatter(mcTestModel.state_i,np.log10(mcTestModel.vc_i),label='vc')
+# ax1.legend()
 
-params_stable_state = mcTestModel.get_stable_state_evo_parameters()
-rho_val = mcTestModel.calculate_evoRho()
+# params_stable_state = mcTestModel.get_stable_state_evo_parameters()
+# rho_val = mcTestModel.calculate_evoRho()
 
-ax1.text(-120,-1,params_stable_state['eqState'], fontsize = 22)
-ax1.text(-120,-2,rho_val, fontsize = 22)
+# ax1.text(-120,-1,params_stable_state['eqState'], fontsize = 22)
+# ax1.text(-120,-2,rho_val, fontsize = 22)
 
-ax2.scatter(mcTestModel.state_i,np.log10(mcTestModel.sd_i),label='sd')
-ax2.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_d_i),label='pFix_d')
-ax2.legend()
-ax3.scatter(mcTestModel.state_i,np.log10(mcTestModel.sc_i),label='sc')
-ax3.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_c_i),label='pFix_c')
-ax3.legend()
+# ax2.scatter(mcTestModel.state_i,np.log10(mcTestModel.sd_i),label='sd')
+# ax2.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_d_i),label='pFix_d')
+# ax2.legend()
+# ax3.scatter(mcTestModel.state_i,np.log10(mcTestModel.sc_i),label='sc')
+# ax3.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_c_i),label='pFix_c')
+# ax3.legend()
 
 
 fig2,(ax21,ax22) = plt.subplots(2,1,figsize=[7,12])
@@ -474,25 +485,25 @@ ax22.scatter(mcTestModel.state_i,mcTestModel.evoRegime_c_i,label='reg_c')
 ax22.legend()
 
 
-fig3,(ax31,ax32,ax33,ax34) = plt.subplots(4,1,figsize=[7,12])
-ax31.scatter(mcTestModel.state_i,np.log10(mcTestModel.sd_i),label='sd')
-ax31.scatter(mcTestModel.state_i,np.log10(mcTestModel.sc_i),label='sc')
-ax31.legend()
+# fig3,(ax31,ax32,ax33,ax34) = plt.subplots(4,1,figsize=[7,12])
+# ax31.scatter(mcTestModel.state_i,np.log10(mcTestModel.sd_i),label='sd')
+# ax31.scatter(mcTestModel.state_i,np.log10(mcTestModel.sc_i),label='sc')
+# ax31.legend()
 
-params_stable_state = mcTestModel.get_stable_state_evo_parameters()
-rho_val = mcTestModel.calculate_evoRho()
+# params_stable_state = mcTestModel.get_stable_state_evo_parameters()
+# rho_val = mcTestModel.calculate_evoRho()
 
-ax31.text(-120,-1,params_stable_state['eqState'], fontsize = 22)
-ax31.text(-120,-2,rho_val, fontsize = 22)
+# ax31.text(-120,-1,params_stable_state['eqState'], fontsize = 22)
+# ax31.text(-120,-2,rho_val, fontsize = 22)
 
-ax32.scatter(mcTestModel.state_i,np.log10(mcTestModel.Ud_i),label='Ud')
-ax32.scatter(mcTestModel.state_i,np.log10(mcTestModel.Uc_i),label='Uc')
-ax32.legend()
-ax33.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_d_i),label='pFix_d')
-ax33.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_c_i),label='pFix_c')
-ax33.legend()
-ax34.scatter(mcTestModel.state_i,np.log10(mcTestModel.eq_Ni),label='pFix_c')
-ax34.legend()
+# ax32.scatter(mcTestModel.state_i,np.log10(mcTestModel.Ud_i),label='Ud')
+# ax32.scatter(mcTestModel.state_i,np.log10(mcTestModel.Uc_i),label='Uc')
+# ax32.legend()
+# ax33.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_d_i),label='pFix_d')
+# ax33.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_c_i),label='pFix_c')
+# ax33.legend()
+# ax34.scatter(mcTestModel.state_i,np.log10(mcTestModel.eq_Ni),label='pFix_c')
+# ax34.legend()
 
 #%%
 
@@ -587,4 +598,150 @@ xSol_ext = solve(np.eye(B.shape[0])-B.transpose(),b_ext)
     
 # np.matmul(np.ones([1,4]),np.matmul(A,u))
 # np.matmul(np.ones([1,4]),np.matmul(A.transpose(),u))
+
+
+#%%
+
+
+# b - birth term
+# T - Territory size
+# d - array with death terms
+# c - array with competition terms
+# n1 - max array size of transition probabilities (competition and death phase)
+# n2 - max array size of transition probabilities (solve for pFix)
     
+# set sim parameters                                        
+# d           = np.array([di[iCheck+1]  , di[iCheck-15]])
+# d           = np.array([2.388760  ,  2.3270015947896763])
+# d           = np.array([2.388760  ,  2.2270015947896763])
+from evoLibraries.LotteryModel import LM_pFix_MA as lmPfixMa
+from evoLibraries.LotteryModel import LM_pFix_FSA as lmPfixFsa
+
+b           = 2
+d           = np.array([2.388760  ,  2.388760])
+cp          = 0.04
+c           = np.array([1         ,  1+    cp])
+T           = 1e9
+n1          = 1000
+n2          = 500
+pfix_option = 0
+
+[Tc,Td,Ts, Ts_solve, pjj_solve,pFix] = lmPfixMa.calc_pFix_MA(b,T,d,c,n1,n2,0)
+
+pjj_solve = np.transpose(Ts[-1,1:n2-1])
+pFix_ii = solve(Ts_solve, pjj_solve)
+
+pFix = pFix_ii[0] 
+
+
+
+#%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+for ii in range(5):
+    for jj in range(5):
+        mTest[ii,jj]=ii+jj
+        
+        
+a = [[1,1],[0,1]] 
+b = [[4,1],[2,2]] 
+print (np.matmul(a,b))
+
+
+
+
+#%%
+
+# TEST PLOTS FOR EVO GRID WITH DRE
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+import os
+import sys
+sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d\\evoLibraries')
+
+from evoLibraries import evoObjects as evoObj
+from evoLibraries.MarkovChain import MC_RM_class as mcRM
+from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
+
+ii=0
+jj=20
+
+mcTestParams = mcModels.get_params_ij(ii,jj)
+# mcTestParams2 = mcModels.get_params_ij(0,0)
+# mcTestParams3 = mcModels.get_params_ij(2,2)
+
+mcTestModel = mcDRE.mcEvoModel_DRE(mcTestParams)
+mcTestEqParams = mcTestModel.get_stable_state_evo_parameters()
+
+
+# testParamGrid = mcModels.get_evoParam_grid('UdMax',0)
+
+# fig,(ax1,ax2,ax3) = plt.subplots(3,1,figsize=[7,12])
+# ax1.scatter(mcTestModel.state_i,np.log10(mcTestModel.vd_i),label='vd')
+# ax1.scatter(mcTestModel.state_i,np.log10(mcTestModel.vc_i),label='vc')
+# ax1.legend()
+
+# params_stable_state = mcTestModel.get_stable_state_evo_parameters()
+# rho_val = mcTestModel.calculate_evoRho()
+
+# ax1.text(-120,-1,params_stable_state['eqState'], fontsize = 22)
+# ax1.text(-120,-2,rho_val, fontsize = 22)
+
+# ax2.scatter(mcTestModel.state_i,np.log10(mcTestModel.sd_i),label='sd')
+# ax2.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_d_i),label='pFix_d')
+# ax2.legend()
+# ax3.scatter(mcTestModel.state_i,np.log10(mcTestModel.sc_i),label='sc')
+# ax3.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_c_i),label='pFix_c')
+# ax3.legend()
+
+
+fig2,(ax21,ax22) = plt.subplots(2,1,figsize=[7,12])
+ax21.scatter(mcTestModel.state_i,np.log10(mcTestModel.vd_i),label='vd')
+ax21.scatter(mcTestModel.state_i,np.log10(mcTestModel.vc_i),label='vc')
+ax21.legend()
+
+params_stable_state = mcTestModel.get_stable_state_evo_parameters()
+
+ax21.text(0,-4,params_stable_state['eqState'], fontsize = 22)
+
+ax22.scatter(mcTestModel.state_i,mcTestModel.evoRegime_d_i,label='reg_d')
+ax22.scatter(mcTestModel.state_i,mcTestModel.evoRegime_c_i,label='reg_c')
+ax22.legend()
+
+
+# fig3,(ax31,ax32,ax33,ax34) = plt.subplots(4,1,figsize=[7,12])
+# ax31.scatter(mcTestModel.state_i,np.log10(mcTestModel.sd_i),label='sd')
+# ax31.scatter(mcTestModel.state_i,np.log10(mcTestModel.sc_i),label='sc')
+# ax31.legend()
+
+# params_stable_state = mcTestModel.get_stable_state_evo_parameters()
+# rho_val = mcTestModel.calculate_evoRho()
+
+# ax31.text(-120,-1,params_stable_state['eqState'], fontsize = 22)
+# ax31.text(-120,-2,rho_val, fontsize = 22)
+
+# ax32.scatter(mcTestModel.state_i,np.log10(mcTestModel.Ud_i),label='Ud')
+# ax32.scatter(mcTestModel.state_i,np.log10(mcTestModel.Uc_i),label='Uc')
+# ax32.legend()
+# ax33.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_d_i),label='pFix_d')
+# ax33.scatter(mcTestModel.state_i,np.log10(mcTestModel.pFix_c_i),label='pFix_c')
+# ax33.legend()
+# ax34.scatter(mcTestModel.state_i,np.log10(mcTestModel.eq_Ni),label='pFix_c')
+# ax34.legend()

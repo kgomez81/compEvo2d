@@ -153,7 +153,8 @@ def get_rateOfAdapt(N,s,U,pFix):
         
     elif regimeID == 3: 
         # diffusive mutations regime
-        v = get_vOH(N,s,U)        
+        v = get_vOH(N,s,U)     
+        # v = 0
         
     return v
 

@@ -376,7 +376,12 @@ class mcEvoModel(ABC):
         
         [vd_vc_intersect_idx,vd_vc_intersect_type] = self.get_vd_vc_intersection_index()
         
-        if (np.abs(vd_vc_intersect_type) == 2):
+        if (np.abs(vd_vc_intersect_type) == 2) or \
+                    (vd_vc_intersect_idx == 0) or \
+                    (vd_vc_intersect_idx == self.di.size-1) or \
+                    (self.evoRegime_d_i[vd_vc_intersect_idx] == 3) or \
+                    (self.evoRegime_c_i[vd_vc_intersect_idx] == 3):
+        # if (np.abs(vd_vc_intersect_type) == 2):            
             rho = np.nan
         else:
             # build evo param dictionary for absolute fitness trait

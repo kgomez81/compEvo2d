@@ -63,6 +63,8 @@ def calculate_evoRates_rho(N_eq, evoParams_Trait_1, evoParams_Trait_2):
     #            3: diffusion
     #           -1: regime undetermined, i.e. in transition region   
     
+    DebugFlag  = False
+    
     # When using this function with absolute and relative fitness trains, note
     # that definition of "Rho" from manuscript is 
     #
@@ -100,7 +102,7 @@ def calculate_evoRates_rho(N_eq, evoParams_Trait_1, evoParams_Trait_2):
         # both traits in multiple mutations regime
         rho = (s_2/np.log(s_2/U_2))**2 / (s_1/np.log(s_1/U_1))**2
         
-        if (rho > 1):
+        if (rho > 1) and DebugFlag:
             print("   RHO = %f" % (rho))
             print("   del_vc = %f" % (s_2/np.log(s_2/U_2))**2)
             print("   sc = %f" % (s_2))
@@ -134,7 +136,9 @@ def calculate_evoRates_rho(N_eq, evoParams_Trait_1, evoParams_Trait_2):
     else:
         rho = np.nan
     
-    print("(rho=%f, regID_d=%f, regID_c=%f)" % (rho,evoRegID_1,evoRegID_1))        
+    if DebugFlag:
+        print("(rho=%f, regID_d=%f, regID_c=%f)" % (rho,evoRegID_1,evoRegID_1))        
+        
     return rho
 
 #------------------------------------------------------------------------------

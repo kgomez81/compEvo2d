@@ -439,8 +439,8 @@ from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_RM_class as mcRM
 from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
 
-ii=0
-jj=0
+ii=1
+jj=13
 
 mcTestParams = mcModels.get_params_ij(ii,jj)
 # mcTestParams2 = mcModels.get_params_ij(0,0)
@@ -639,7 +639,8 @@ pFix = pFix_ii[0]
 
 
 
-
+for ii in [0,2]:
+    print(ii)
 
 
 
@@ -680,8 +681,8 @@ from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_RM_class as mcRM
 from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
 
-ii=0
-jj=20
+ii=9
+jj=10
 
 mcTestParams = mcModels.get_params_ij(ii,jj)
 # mcTestParams2 = mcModels.get_params_ij(0,0)

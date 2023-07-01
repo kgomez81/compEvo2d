@@ -57,7 +57,7 @@ modelType = 'RM'
 
 mcParams = evoObj.evoOptions(paramFilePath, modelType)
 
-T_vals = [1e11,1e7]
+T_vals = [1e9,1e7]
 
 mcModels = []
 
@@ -73,32 +73,33 @@ fig1, ax1 = plt.subplots(1,1,figsize=[7,6])
 #ax1.plot(state1_i,ve1_i,color="black",linewidth=2,label=r'$v_e$')
 #ax1.plot(eq_y1i,va1_i,color="green",linewidth=2,label=r'$v_{a,1}$')
 #ax1.plot(eq_y1i,vr1_i,'-.',color="green",linewidth=2,label=r'$v_{r,1}$')
+scaleFactor = 1e3
 
-ax1.plot(mcModels[0].eq_yi,mcModels[0].vd_i,color="blue",linewidth=2,label=r'$v_a (T=10^11)$')
-ax1.plot(mcModels[0].eq_yi,mcModels[0].vc_i,'-.',color="blue",linewidth=2,label=r'$v_r (T=10^11)$')
+ax1.plot(mcModels[0].eq_yi,mcModels[0].vd_i*scaleFactor,color="blue",linewidth=2,label=r'$v_a (T=10^9)$')
+ax1.plot(mcModels[0].eq_yi,mcModels[0].vc_i*scaleFactor,'-.',color="blue",linewidth=2,label=r'$v_r (T=10^9)$')
 
-ax1.plot(mcModels[1].eq_yi,mcModels[1].vd_i,color="cyan",linewidth=2,label=r'$v_a (T=10^7)$')
-ax1.plot(mcModels[1].eq_yi,mcModels[1].vc_i,'-.',color="cyan",linewidth=2,label=r'$v_r (T=10^7)$')
+ax1.plot(mcModels[1].eq_yi,mcModels[1].vd_i*scaleFactor,color="cyan",linewidth=2,label=r'$v_a (T=10^7)$')
+ax1.plot(mcModels[1].eq_yi,mcModels[1].vc_i*scaleFactor,'-.',color="cyan",linewidth=2,label=r'$v_r (T=10^7)$')
 
-ax1.scatter([0.9426],[6.718e-4],marker="o",s=40,c="black")
-ax1.scatter([0.9496],[3.237e-4],marker="o",s=40,c="black")
-ax1.plot([0.9426,0.9496],[6.718e-4,3.237e-4],c="black",linewidth=2,linestyle='-')
+ax1.scatter([0.9449],[4.968e-4*scaleFactor],marker="o",s=40,c="black")
+ax1.scatter([0.9496],[3.237e-4*scaleFactor],marker="o",s=40,c="black")
+ax1.plot([0.9449,0.9496],[4.968e-4*scaleFactor,3.237e-4*scaleFactor],c="black",linewidth=2,linestyle='-')
 
 # axes and label adjustements
 ax1.set_xlim(0,1)
 #ax1.set_xticks([-25*i for i in range(0,iExt/25+1)])
 #ax1.set_xticklabels([str(25*i) for i in range(0,iExt/25+1)],fontsize=16)
 #ax1.set_xticklabels(["" for i in range(0,iExt/25+1)],fontsize=16)
-ax1.set_yticks([0.2e-4*i for i in range(0,7)])
+ax1.set_yticks([0.2*i for i in range(0,7)])
 ax1.set_yticklabels([str(2*i/10.0) for i in range(0,7)],fontsize=16)
-ax1.set_ylim(0,1.3e-4)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
+ax1.set_ylim(0,1.3)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
 ax1.set_xlabel(r'Equilibrium Population Density',fontsize=20,labelpad=8)
 ax1.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 
 custom_lines = [Line2D([0], [0], color='blue', lw=2),
                 Line2D([0], [0], color='cyan', lw=2)]
-ax1.legend(custom_lines,[r'$T=10^7$',r'$T=10^5$'],fontsize=14)
+ax1.legend(custom_lines,[r'$T=10^9$',r'$T=10^7$'],fontsize=14)
 
 # save figure
 plt.tight_layout()
-fig1.savefig('figures/fig_MChain_VaVrIntersectionVariableT.pdf')
+fig1.savefig('figures/MainDoc/fig_MChain_VaVrIntersectionVariableT.pdf')

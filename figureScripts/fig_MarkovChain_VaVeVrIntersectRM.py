@@ -66,7 +66,7 @@ ax1.plot(       mcModel1.state_i, \
 ax1.scatter(    mcModel1.state_i, \
                 mcModel1.vd_i,    color="blue",s=8,label=r'$v_d$')
 ax1.scatter(    mcModel1.state_i, \
-                mcModel1.vc_i,    color="red",s=8,label=r'$v_r$')
+                mcModel1.vc_i,    color="red",s=8,label=r'$v_c$')
 
 # axes and label adjustements
 ax1.set_xlim(-mcModel1.get_iExt(),0)

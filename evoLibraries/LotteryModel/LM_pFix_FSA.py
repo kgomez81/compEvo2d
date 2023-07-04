@@ -57,7 +57,8 @@ def calc_pFix_FSA(b,T,d,c,kMax):
         
     # calculate the equilibrium density for the wild type pop
     # using the numerical estimate
-    yi_option = 3 
+    yi_option = 3
+    cFix_option = 1
     yEq = lmFun.get_eqPopDensity(b,d[0],yi_option)
     
     # determine the type of beneficial mutation 
@@ -65,7 +66,7 @@ def calc_pFix_FSA(b,T,d,c,kMax):
         # benficial mutation in d-trait
         juvCompRateFactor = ( 1-np.exp(-b*yEq) )
         
-    elif ( (d[1] == d[0]) & (c[1] > c[0]) ):
+    elif ( (d[1] == d[0]) & (c[1] > c[0]) & (cFix_option ==  1)):
         # benefical mutation in c-trait
         # compute the increment for the competition term
         cr = c[1]-c[0]
@@ -81,6 +82,25 @@ def calc_pFix_FSA(b,T,d,c,kMax):
         juvCompRateFactor = ( 1-np.exp(-b*yEq) ) \
                                + cr*( 1 - (1+b*yEq)*np.exp(-b*yEq) ) \
                                - cr*( (b*yEq)**2*(1+cr)/(2+cr)*np.exp(-b*yEq) )  
+    
+    elif ( (d[1] == d[0]) & (c[1] > c[0]) & (cFix_option ==  2)):
+        # benefical mutation in c-trait
+        # compute the increment for the competition term
+        cr = c[1]-c[0]
+        
+        # this approximation relies on small cr << 1 (up to c~0.1). Smaller values
+        # of b*yEq will improve the approx due heavier Poisson tails but this approx
+        # is largely drive by cr. Larger cr requires more Z/(Z+cr) terms to be included
+        # 
+        # To get better approximation, compute (1+cr)*E[ Z/(Z+cr) | l_WildType ].
+        # 
+        # Below we include, no competitive advantage term, + 1st order linear expansion,
+        # - minus 2nd order correction of expectation.
+        juvCompRateFactor = ( 1-np.exp(-b*yEq) ) \
+                               + cr*( 1 - (1+b*yEq)*np.exp(-b*yEq) ) \
+                               - cr*( (b*yEq)**2*(1+cr)/(2+cr)*np.exp(-b*yEq) )
+                               sp.
+                               
     else:
         return 0
     

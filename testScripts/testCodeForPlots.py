@@ -746,3 +746,49 @@ ax22.legend()
 # ax33.legend()
 # ax34.scatter(mcTestModel.state_i,np.log10(mcTestModel.eq_Ni),label='pFix_c')
 # ax34.legend()
+
+#%%
+
+# SCRIPTS TO FINE TUNE THE MATRIX APPROACH FOR PFIX
+
+# pFix d-trait beneficial mutation
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+import os
+import sys
+sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d\\evoLibraries')
+
+from evoLibraries import evoObjects as evoObj
+from evoLibraries.MarkovChain import MC_RM_class as mcRM
+
+import evoLibraries.LotteryModel.LM_pFix_FSA as lmPfix
+import evoLibraries.LotteryModel.LM_pFix_MA as lmPfixMa
+
+# The parameter file is read and a dictionary with their values is generated.
+paramFilePath = os.getcwd()+'/inputs/evoExp_RM_03_parameters.csv'
+# paramFilePath = os.getcwd()+'/inputs/evoExp_RM_04_parameters.csv'
+modelType = 'RM'
+
+mcParams = evoObj.evoOptions(paramFilePath, modelType)
+mcModel = mcRM.mcEvoModel_RM(mcParams.params)
+
+dArry = np.array( [mcModel.di[ii], mcModel.di[ii+1] ] )
+cArry = np.array( [1, 1] )
+
+# Test entry of chain
+ii = 10
+kMax = 10
+pFix_FSA_val = lmPfix.calc_pFix_FSA(mcParams.params['b'], mcParams.params['T'], dArry, cArry, kMax)
+
+n1 = 100
+n2 = 100
+pfix_option = 1
+[Tc,Td,Ts, Ts_solve, pjj_solve, pFix_MA_val] = lmPfixMa.calc_pFix_MA(mcParams.params['b'], mcParams.params['T'], dArry, cArry,n1,n2,pfix_option)
+
+
+# plot the pfix values of the mc chain
+plt.plot(mcModel.state_i,mcModel.pFix_d_i)
+

@@ -47,7 +47,7 @@ def transProb_competitionPhase_dTerm(b,T,y,nm,k):
     # adults to k adults. The pmf below is for the number of juveniles that win
     # new territories (equal to k-nm).
     if k-nm >= 0:
-        trans_prob = st.poisson.pmf(lambda_competitionPhase,k-nm)
+        trans_prob = st.poisson.pmf(k-nm,lambda_competitionPhase)
     else:
         trans_prob = 0
     
@@ -156,6 +156,7 @@ def calc_pFix_MA(b,T,d,c,n1,n2,pfix_option):
                     return 0
     
     Tc = np.transpose(Tc)
+    Tc = normalize_transProbMatrix(Tc,0)
     
     # TRANSITION MATRIX for death phase
     #
@@ -171,6 +172,7 @@ def calc_pFix_MA(b,T,d,c,n1,n2,pfix_option):
                 Td[ii,jj]=transProb_deathPhase(d[1],ii,jj)
                 
     Td = np.transpose(Td)
+    Td = normalize_transProbMatrix(Td,0)
     
     # multiply the two matrices to get the full transition matrix
     Ts = np.matmul(Td,Tc) 
@@ -185,23 +187,28 @@ def calc_pFix_MA(b,T,d,c,n1,n2,pfix_option):
     # 1. remove the first and last states from Ts
     Ts_solve = np.transpose(Ts[1:n2-1,1:n2-1])
     
-    if pfix_option:
-        # Solve for all of the probabilities of fixing (achieve n2 state) from all 
-        # states 1, 2, ... n2-1
-        pjj_solve = np.transpose(Ts[-1,1:n2-1])
-        pFix_ii = solve(Ts_solve, pjj_solve)
-        
-        pFix = pFix_ii[0]     # get probabability of reaching n2 from state 1.
-                              # this is the estimate of pFix.
-        
-    else:
-        # Solve for all of the probabilities of fixing (achieve 0 state) from all 
-        # states 1, 2, ... n2-1
-        pjj_solve = np.transpose(Ts[0,1:n2-1])
-        pExt_ii = solve(Ts_solve, pjj_solve)
-        
-        pFix = 1-pExt_ii[0]   # get probabability of reaching n2 from state 1.
-                              # this is the estimate of pFix.
+    try:
+        if pfix_option:
+            # Solve for all of the probabilities of fixing (achieve n2 state) from all 
+            # states 1, 2, ... n2-1
+            pjj_solve = np.transpose(Ts[-1,1:n2-1])
+            pFix_ii = solve(Ts_solve, pjj_solve)
+            
+            pFix = pFix_ii[0]     # get probabability of reaching n2 from state 1.
+                                  # this is the estimate of pFix.
+            
+        else:
+            # Solve for all of the probabilities of fixing (achieve 0 state) from all 
+            # states 1, 2, ... n2-1
+            pjj_solve = np.transpose(Ts[0,1:n2-1])
+            pExt_ii = solve(Ts_solve, pjj_solve)
+            
+            pFix = 1-pExt_ii[0]   # get probabability of reaching n2 from state 1.
+                                  # this is the estimate of pFix.
+                                  
+    except:
+          pFix = 0
+                                  
         
     return [Tc,Td,Ts, Ts_solve, pjj_solve, pFix]
 

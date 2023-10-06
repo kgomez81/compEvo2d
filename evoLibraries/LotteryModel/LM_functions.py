@@ -122,7 +122,7 @@ def deltnplus(m,c,U):
 #   Lottery Model supporting calculations 
 #------------------------------------------------------------------------------
 
-def get_eqPopDensity(b,di,option):
+def get_eqPopDensity(b,d,option):
     # Calculate the equilibrium population size for the Bertram & Masel
     # variable density lottery model, single abs-fitness class case. For 
     # multiple abs-fitness classes, used dHar = harmonic mean of di weighted 
@@ -138,29 +138,29 @@ def get_eqPopDensity(b,di,option):
     
     def eq_popsize_err(y):    
         # used in numerical approach to obtain equilibrium population density    
-        return (1-y)*(1-np.exp(-b*y))-(di-1)*y
+        return (1-y)*(1-np.exp(-b*y))-(d-1)*y
     
     # analytic approximation near extinction
-    def eq_popsize_analytic_ext(b,di):
-        # approximation near extinction genotype
-        eq_density = (b+2)/(2*b)*(1-np.sqrt(1-8*(b-di+1)/(b+2)**2))
+    def eq_popsize_analytic_ext(b,d):
+        # approximation near d ~ b+1 region
+        eq_density = (b+2)/(2*b)*(1-np.sqrt(1-8*(b-d+1)/(b+2)**2))
         
         eq_density = np.max([eq_density,0]) # ensure density >= 0
         
         return eq_density
     
-    # analytic approximation near optimum
-    def eq_popsize_analytic_opt(b,di):
+    # analytic approximation near d~dOpt (d evolution only)
+    def eq_popsize_analytic_opt(b,d):
         
-        y1 = (1-np.exp(-b)) / (di-np.exp(-b))  # 1st approximation
+        y1 = (1-np.exp(-b)) / (d-np.exp(-b))  # 1st approximation
         
-        eq_density = y1 + ( (1-np.exp(-b*y1)) - y1*(di-np.exp(-b*y1)) ) / \
-                      ( (di-np.exp(-b*y1)) - (1-y1)*b*np.exp(-b*y1) )  # 2nd approximation
+        eq_density = y1 + ( (1-np.exp(-b*y1)) - y1*(d-np.exp(-b*y1)) ) / \
+                      ( (d-np.exp(-b*y1)) - (1-y1)*b*np.exp(-b*y1) )  # 2nd approximation
                                 
         return eq_density
     
     
-    if (di >= b+1):
+    if (d >= b+1):
         # if past extinction class, set density to zero
         eq_density = 0 
         
@@ -171,12 +171,12 @@ def get_eqPopDensity(b,di,option):
             #eq_density = (1-np.exp(-b))/(di-np.exp(-b))+(di-1)/(di-np.exp(-b))* \
             #                (np.exp(-b)-np.exp(-b*(1-np.exp(-b))/(di-np.exp(-b))))/ \
             #                        (di-np.exp(-b*(1-np.exp(-b))/(di-np.exp(-b))))
-            eq_density = eq_popsize_analytic_opt(b,di)
+            eq_density = eq_popsize_analytic_opt(b,d)
             eq_density = np.max([eq_density,0]) # ensure density >= 0
             
         elif option == 2:
             # approximation near extinction genotype
-            eq_density = eq_popsize_analytic_ext(b,di)
+            eq_density = eq_popsize_analytic_ext(b,d)
             eq_density = np.max([eq_density,0]) # ensure density >= 0
             
         else:
@@ -187,8 +187,8 @@ def get_eqPopDensity(b,di,option):
     # now do some numerical checks to get the best possible approximation 
     # near the extinction class, i.e. if we numerically get zero, then use
     # analytic approximation (option 2).
-    if ((di < b + 1) and (eq_density == 0)):
-        eq_density = eq_popsize_analytic_ext(b,di)
+    if ((d < b + 1) and (eq_density == 0)):
+        eq_density = eq_popsize_analytic_ext(b,d)
         
     return eq_density
 
@@ -210,6 +210,35 @@ def get_d_SelectionCoeff(dWt,dMt):
     
     # get time-scale of a generation
     tau = get_iterationsPerGenotypeGeneration(dMt)
+    
+    # re-scale time to get rate of increase in frequency per generation
+    sd = r_abs * tau
+    
+    return sd
+
+#------------------------------------------------------------------------------
+
+def get_b_SelectionCoeff(bWt,bMt,y,d):
+    # Calculate the "d" selection coefficient for the Bertram & Masel variable 
+    # density lottery model
+    #
+    # Inputs:
+    #- bWt wild type death term 
+    #- bMt mutant type death term
+    #- y equilibrium density
+    #
+    # Outputs:
+    #- sb (rate of frequency increase per generation)
+    #
+    
+    # b increment size
+    del_b = bMt-bWt
+    
+    # rate of frequency increase per time iteration
+    r_abs = (1-y)*(1-np.exp(-del_b*y))/(np.exp(bWt*y)-(1-y))
+    
+    # get time-scale of a generation
+    tau = get_iterationsPerGenotypeGeneration(d)
     
     # re-scale time to get rate of increase in frequency per generation
     sd = r_abs * tau

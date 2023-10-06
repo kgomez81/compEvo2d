@@ -86,54 +86,119 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # Note: the state space order for DRE is reversed from RM
         
         # Recursively calculate set of absolute fitness classes 
-        dMax        = self.params['b']+1
-        di          = [dMax]
-        getNext_di  = True
         ii          = 1         
-        yi_option   = 1         # option 1, analytic approx of eq. density near opt
+        yi_option   = 3         # option 1, analytic approx of eq. density near opt
+        getNext_di  = True      # loop flag for d-evolution case
+        getNext_bi  = True      # loop flag for b-evolution case
         
-        # define lowerbound for selection coefficients and how small the di
-        # selection coeffient should be w.r.t ci selection coefficient
-        minSelCoeff_d = 1/self.params['T']   # lower bound on neutral limit   
-        minSelCoeff_c = 0.1*lmFun.get_c_SelectionCoeff(self.params['b'], \
-                                   lmFun.get_eqPopDensity(self.params['b'],self.params['dOpt'],yi_option), \
-                                   self.params['cp'], \
-                                   self.params['dOpt'])
+        # define lowerbound for selection coefficients and how small the 
+        # selection coeffients should be w.r.t ci selection coefficient
+        minSelCoeff_d = 1/self.params['T']   # lower bound on neutral limit 
+        minSelCoeff_b = 1/self.params['T']
         
-        while (getNext_di):
+        if self.absFitType == 'dEvo':
+            
+            # 1/10 of the max c-selection coefficient at dOpt
+            minSelCoeff_c = 0.1*lmFun.get_c_SelectionCoeff(self.params['b'], \
+                                       lmFun.get_eqPopDensity(self.params['b'],self.params['dOpt'],yi_option), \
+                                       self.params['cp'], \
+                                       self.params['dOpt'])
+                
+            # get max d, next d-term, and selection coeff, i.e. initial loop parameters
+            dMax            = self.params['b']+1
+            dCrnt           = dMax
+            dNext           = dMax*(self.params['dOpt']/dMax)**self.mcDRE_CDF(ii)
+            selCoeff_d_ii   = lmFun.get_d_SelectionCoeff(dCrnt,dNext)
+            
+            di          = [ dMax               ]
+            bi          = [ self.params['b']   ]
+            eq_yi       = [ 0                  ]
+            sa_i        = [ selCoeff_d_ii      ]
+            
+            while (getNext_di):
 
-            # get next d-term using the selected CDF
-            dNext = dMax*(self.params['dOpt']/dMax)**self.mcDRE_CDF(ii)
-            
-            selCoeff_d_ii = lmFun.get_d_SelectionCoeff(di[-1],dNext) 
-            
-            
-            if ( (selCoeff_d_ii > minSelCoeff_d) and (selCoeff_d_ii > minSelCoeff_c) ):
-                # selection coefficient above threshold, so ad dNext 
-                di = di + [ dNext ]
-                ii = ii + 1
-            else:
-                # size of selection coefficient fell below threshold
-                getNext_di = False
+                # update dCrnt, dNext and selCoeff to check if add new state
+                dCrnt           = dNext
+                dNext           = dMax*(self.params['dOpt']/dMax)**self.mcDRE_CDF(ii+1)
+                selCoeff_d_ii   = lmFun.get_d_SelectionCoeff(dCrnt,dNext)
+                
+                if ( (selCoeff_d_ii > minSelCoeff_d) and (self.params['iMax'] > ii) ):
+                    
+                    # selection coefficient above threshold, so ad dNext 
+                    di      = di    + [ dCrnt                                                    ]
+                    bi      = bi    + [ self.params['b']                                         ]
+                    eq_yi   = eq_yi + [ lmFun.get_eqPopDensity(self.params['b'],dCrnt,yi_option) ]
+                    sa_i    = sa_i  + [ selCoeff_d_ii                                            ]
+                    ii      = ii    + 1
+                else:
+                    # size of selection coefficient fell below threshold
+                    getNext_di = False
         
-        # set the di array
-        self.di = np.asarray(di)
+        elif self.absFitType == 'bEvo':
+            # ###################################### #
+            # State space definition for b-Evolution
+            # ###################################### #
+            
+            # calculate the maximum c-selection value at maximum population density
+            # and use 1/10 of the max c-selection coefficient derived from taking the
+            # limit of eq 13 in app C with b->infinity
+            minSelCoeff_c = 0.01*self.params['cp']/self.params['d']
+            
+            # fix the increment size scale with the selection coefficient for the
+            # first b-increase from extinction. Also set bMax value from parameters
+            delta_b = self.params['d']*(self.params['d']-1)*self.params['sa_0']
+            bMax    = self.params['bMax']
+            
+            bCrnt           = (self.params['d']-1)*self.params['T'] / (self.params['T']-1)
+            bNext           = bCrnt + delta_b
+            yCrnt           = 1/self.params['T']
+            yNext           = lmFun.get_eqPopDensity(bNext,self.params['d'],yi_option)
+            selCoeff_b_ii   = lmFun.get_b_SelectionCoeff(bCrnt,bNext,yCrnt,self.params['d'])
+            
+            bi    = [ bCrnt                 ]
+            di    = [ self.params['d']      ]
+            eq_yi = [ yCrnt                 ]  # choose min equil pop density
+            sa_i  = [ self.params['sa_0']     ]
+            
+            while (getNext_bi):
+                
+                # update bCrnt, bNext and selCoeff to check if add new state
+                bCrnt           = bNext
+                bNext           = bNext + ii*delta_b
+                yCrnt           = yNext 
+                yNext           = lmFun.get_eqPopDensity(bCrnt,di[-1],yi_option)
+                selCoeff_b_ii   = lmFun.get_b_SelectionCoeff(bCrnt,bNext,yCrnt,self.params['d'])
+                
+                if (bi[-1] < bMax) and (selCoeff_b_ii > minSelCoeff_b) and (self.params['iMax'] > ii):
+                    # set next elements of state space
+                    bi    = bi    + [ bCrnt             ]
+                    di    = di    + [ self.params['d']  ]
+                    eq_yi = eq_yi + [ yCrnt             ]  # next equil. pop density
+                    sa_i  = sa_i  + [ selCoeff_b_ii     ]
+                    ii    = ii    + 1
+                else:
+                    getNext_bi = False
+        
+        # set the di, bi, and eq_yi arrays. Note that there is no need to 
+        # trim the arrays here as with running out of mutations.
+        self.di     = np.asarray(di)
+        self.bi     = np.asarray(bi)
+        self.eq_yi  = np.asarray(eq_yi)
+        self.sa_i   = np.asarray(sa_i)
         
         # state space evolution parameters
         self.state_i = np.zeros(self.di.shape) # state number
-        self.Ud_i    = np.zeros(self.di.shape) # absolute fitness mutation rate
+        self.Ua_i    = np.zeros(self.di.shape) # absolute fitness mutation rate
         self.Uc_i    = np.zeros(self.di.shape) # relative fitness mutation rate
-        self.eq_yi   = np.zeros(self.di.shape) # equilibrium density of fitness class i
         self.eq_Ni   = np.zeros(self.di.shape) # equilibrium population size of fitness class i
-        self.sd_i    = np.zeros(self.di.shape) # selection coefficient of "d" trait beneficial mutation
         self.sc_i    = np.zeros(self.di.shape) # selection coefficient of "c" trait beneficial mutation
         
         # state space pFix values
-        self.pFix_d_i = np.zeros(self.di.shape) # pFix of "d" trait beneficial mutation
+        self.pFix_a_i = np.zeros(self.di.shape) # pFix of "d" trait beneficial mutation
         self.pFix_c_i = np.zeros(self.di.shape) # pFix of "c" trait beneficial mutation
         
         # state space evolution rates
-        self.vd_i    = np.zeros(self.di.shape) # rate of adaptation in absolute fitness trait alone
+        self.va_i    = np.zeros(self.di.shape) # rate of adaptation in absolute fitness trait alone
         self.vc_i    = np.zeros(self.di.shape) # rate of adaptation in relative fitness trait alone
         self.ve_i    = np.zeros(self.di.shape) # rate of fitness decrease due to environmental degradation
         
@@ -143,7 +208,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # 2 = multiple mutations
         # 3 = diffusion 
         # 4 = regime undetermined
-        self.evoRegime_d_i = np.zeros(self.di.shape) 
+        self.evoRegime_a_i = np.zeros(self.di.shape) 
         self.evoRegime_c_i = np.zeros(self.di.shape) 
         
         return None
@@ -156,8 +221,6 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # the evolution parameters are calculated along the absolute fitness state space
         # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
         
-        yi_option = 3   # numerically solve for equilibrium population densities
-        
         # loop through state space to calculate following: 
         # mutation rates, equilb. density, equilb. popsize, selection coefficients
         #
@@ -167,28 +230,16 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             self.state_i[ii] = ii
             
             # mutation rates (per birth per generation - NEED TO CHECK IF CORRECT)
-            self.Ud_i[ii]    = self.params['Ud']
+            self.Ua_i[ii]    = self.params['Ua']
             self.Uc_i[ii]    = self.params['Uc']
             
-            # population sizes and densities 
-            self.eq_yi[ii]   = lmFun.get_eqPopDensity(self.params['b'],self.di[ii],yi_option)
+            # population sizes 
             self.eq_Ni[ii]   = self.params['T']*self.eq_yi[ii]
             
-            # selection coefficients ( time scale = 1 generation)
-            self.sc_i[ii]    = lmFun.get_c_SelectionCoeff(self.params['b'],self.eq_yi[ii], \
+            # c - selection coefficients ( time scale = 1 generation)
+            self.sc_i[ii]    = lmFun.get_c_SelectionCoeff(self.bi[ii],self.eq_yi[ii], \
                                                           self.params['cp'],self.di[ii])
-            # calculation for d-selection coefficient cannot be performed 
-            if (ii < self.get_iMax()):
-                # di size include 0 index so we can only go up to di.size-1
-                self.sd_i[ii]   = lmFun.get_d_SelectionCoeff(self.di[ii],self.di[ii+1])
-            else:
-                # we don't story the next di term due to cutoff for the threshold
-                # get next d-term using log series CDF (note: dMax = di[0])
-                di_last = self.get_last_di()
-                
-                # save the selection coefficient of next mutation.
-                self.sd_i[ii]   = lmFun.get_d_SelectionCoeff(self.di[ii],di_last) 
-
+             
         return None 
     
     #------------------------------------------------------------------------------
@@ -197,10 +248,32 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # get_last_di() calculates next d-term after di[-1], this value is 
         # occasionally need it to calculate pfix and the rate of adaption.
         
-        # get next d-term after last di, using log series CDF
-        di_last = self.di[0]*(self.params['dOpt']/self.di[0])**self.mcDRE_CDF(self.get_iMax()+1)
+        if self.absFitType == 'dEvo':
+            # get next d-term after last di, using log series CDF
+            di_last = self.di[0]*(self.params['dOpt']/self.di[0])**self.mcDRE_CDF(self.get_iMax()+1)
+            
+        elif self.absFitType == 'bEvo':
+            di_last = self.params['d']
         
         return di_last
+    
+    #------------------------------------------------------------------------------
+    
+    def get_last_bi(self):
+        # get_last_bi() calculates next b-term after bi[-1], this value is 
+        # occasionally needed to calculate pfix and the rate of adaption.
+        
+        if self.absFitType == 'dEvo':
+            # b-terms are constant with d-evolution
+            bi_last = self.params['b']
+            
+        elif self.absFitType == 'bEvo':
+            # compute the fixed increment associated with the model
+            delta_b = self.params['d']*(self.params['d']-1)*self.params['sa_0']
+            
+            bi_last = self.bi[-1] + delta_b
+        
+        return bi_last
     
     #%% ----------------------------------------------------------------------------
     #  List of conrete methods from MC class

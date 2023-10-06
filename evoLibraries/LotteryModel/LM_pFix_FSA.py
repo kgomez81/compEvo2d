@@ -39,7 +39,7 @@ def pmf_1tok_MutantAdults(k,dm,lMut):
 
 #------------------------------------------------------------------------------
 
-def calc_pFix_FSA(b,T,d,c,kMax):
+def calc_pFix_FSA(params,b,d,c,kMax):
     # get_pFix_dTrait_FSA() calculates the probability of fixation (pFix) using
     # the transitions probabilities associated with going from 1 mutant adult to
     # k mutant adults, and solves for pFix using first step analysis. 
@@ -49,7 +49,7 @@ def calc_pFix_FSA(b,T,d,c,kMax):
     # This function assumes there are only two subpopulations, the wild type
     # and a second mutant subpopulation consisting of one adult.
     # 
-    # b - birth term
+    # b - array with birth term
     # T - Territory size
     # d - array with death terms
     # c - array with competition terms
@@ -58,56 +58,59 @@ def calc_pFix_FSA(b,T,d,c,kMax):
     # calculate the equilibrium density for the wild type pop
     # using the numerical estimate
     yi_option = 3
-    cFix_option = 1
-    yEq = lmFun.get_eqPopDensity(b,d[0],yi_option)
+    compFix_option = 1
+    if ( b[0] > d[0]-1 ):
+        yEq = lmFun.get_eqPopDensity(b[0],d[0],yi_option)
+    else:
+        yEq = 0
     
     # determine the type of beneficial mutation 
-    if ( (d[1] < d[0]) & (c[1] == c[0]) ):
-        # benficial mutation in d-trait
-        juvCompRateFactor = ( 1-np.exp(-b*yEq) )
+    if ( (b[1] == b[0]) & (d[1] < d[0]) & (c[1] == c[0]) ):
+        # benficial mutation in d-trait (simplest case)
+        juvCompRateFactor = ( 1-np.exp(-b[0]*yEq) )
         
-    elif ( (d[1] == d[0]) & (c[1] > c[0]) & (cFix_option ==  1)):
+    elif ( (b[1] > b[0]) & (d[1] == d[0]) & (c[1] == c[0]) ):
+        # benficial mutation in b (requires jumpfactor adjustment)
+        juvCompRateFactor = (1-np.exp(-b[0]*yEq)) * b[1] / b[0]
+        
+    elif ( (b[1] == b[0]) & (d[1] == d[0]) & (c[1] > c[0]) ):
         # benefical mutation in c-trait
         # compute the increment for the competition term
         cr = c[1]-c[0]
         
-        # this approximation relies on small cr << 1 (up to c~0.1). Smaller values
-        # of b*yEq will improve the approx due heavier Poisson tails but this approx
-        # is largely drive by cr. Larger cr requires more Z/(Z+cr) terms to be included
-        # 
-        # To get better approximation, compute (1+cr)*E[ Z/(Z+cr) | l_WildType ].
-        # 
-        # Below we include, no competitive advantage term, + 1st order linear expansion,
-        # - minus 2nd order correction of expectation.
-        juvCompRateFactor = ( 1-np.exp(-b*yEq) ) \
-                               + cr*( 1 - (1+b*yEq)*np.exp(-b*yEq) ) \
-                               - cr*( (b*yEq)**2*(1+cr)/(2+cr)*np.exp(-b*yEq) )  
-    
-    elif ( (d[1] == d[0]) & (c[1] > c[0]) & (cFix_option ==  2)):
-        # benefical mutation in c-trait
-        # compute the increment for the competition term
-        cr = c[1]-c[0]
-        
-        # this approximation relies on small cr << 1 (up to c~0.1). Smaller values
-        # of b*yEq will improve the approx due heavier Poisson tails but this approx
-        # is largely drive by cr. Larger cr requires more Z/(Z+cr) terms to be included
-        # 
-        # To get better approximation, compute (1+cr)*E[ Z/(Z+cr) | l_WildType ].
-        # 
-        # Below we include, no competitive advantage term, + 1st order linear expansion,
-        # - minus 2nd order correction of expectation.
-        juvCompRateFactor = ( 1-np.exp(-b*yEq) ) \
-                               + cr*( 1 - (1+b*yEq)*np.exp(-b*yEq) ) \
-                               - cr*( (b*yEq)**2*(1+cr)/(2+cr)*np.exp(-b*yEq) )
-                               sp.
+        if (compFix_option ==  1):
+            # this approximation relies on small cr << 1 (up to c~0.1). Smaller values
+            # of b*yEq will improve the approx due heavier Poisson tails but this approx
+            # is largely drive by cr. Larger cr requires more Z/(Z+cr) terms to be included
+            # 
+            # To get better approximation, compute (1+cr)*E[ Z/(Z+cr) | l_WildType ].
+            # 
+            # Below we include, no competitive advantage term, + 1st order linear expansion,
+            # - minus 2nd order correction of expectation.
+            juvCompRateFactor = ( 1-np.exp(-b[0]*yEq) ) \
+                                   + cr*( 1 - (1+b[0]*yEq)*np.exp(-b[0]*yEq) ) \
+                                   - cr*( (b[0]*yEq)**2*(1+cr)/(2+cr)*np.exp(-b[0]*yEq) )
+                                   
+        elif (compFix_option ==  2):
+            # this approximation relies on small cr << 1 (up to c~0.1). Smaller values
+            # of b*yEq will improve the approx due heavier Poisson tails but this approx
+            # is largely drive by cr. Larger cr requires more Z/(Z+cr) terms to be included
+            # 
+            # To get better approximation, compute (1+cr)*E[ Z/(Z+cr) | l_WildType ].
+            # 
+            # Below we include, no competitive advantage term, + 1st order linear expansion,
+            # - minus 2nd order correction of expectation.
+            juvCompRateFactor = ( 1-np.exp(-b[0]*yEq) ) \
+                                   + cr*( 1 - (1+b[0]*yEq)*np.exp(-b[0]*yEq) ) \
+                                   - cr*( (b[0]*yEq)**2*(1+cr)/(2+cr)*np.exp(-b[0]*yEq) )
                                
     else:
         return 0
     
-    if (yEq != 0):
+    if (yEq > 0):
         
         # mutant lineage's rate of acquisition for territories (one mutant adult)
-        lMut_1 = ( (1-yEq)/yEq ) * juvCompRateFactor * np.exp(-b/T)
+        lMut_1 = ( (1-yEq)/yEq ) * juvCompRateFactor * np.exp(-b[1]/params['T'])
         
         # calculate coefficients of the first step analysis polynomial
         # include coefficients up to kMax order 
@@ -124,6 +127,8 @@ def calc_pFix_FSA(b,T,d,c,kMax):
         # calculate pFix 
         pFix = 1-pExt
     else:
+        # Issue here is whether mutant arises before population dies off.
+        # assuming no population.
         pFix = 0
 
     return pFix

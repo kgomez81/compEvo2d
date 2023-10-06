@@ -83,34 +83,82 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # parameters and rates.
         
         # Recursively calculate set of absolute fitness classes 
-        dMax = self.params['b']+1
-        di = [self.params['dOpt']]
+        # we also solve for the equilibrium densities along with the absolute 
+        # fitness parameters
+        yi_option  = 1
         
-        while (di[-1] < dMax):
-            # loop until at dMax or greater (max death term for viable pop)
-            di = di+[di[-1]*(1+self.params['sd']*(di[-1]-1))]
-        
-        # Finally reverse order and remove dOpt from state space
-        self.di = np.asarray(di[::-1][:-1])
+        if self.absFitType == 'dEvo':
+            
+            # ###################################### #
+            # State space definition for d-Evolution
+            # ###################################### #
+            
+            dMax = self.params['b']+1
+            di    = [ self.params['dOpt']                             ]
+            bi    = [ self.params['b']                                ]
+            eq_yi = [ lmFun.get_eqPopDensity(bi[-1],di[-1],yi_option) ]  # okay to solve here since we start from most fit
+            
+            while (di[-1] < dMax):
+                # loop until at dMax or greater (max death term for viable pop)
+                di    = di    + [ di[-1]*(1+self.params['sa']*(di[-1]-1))         ]
+                bi    = bi    + [ self.params['b']                                ]
+                eq_yi = eq_yi + [ lmFun.get_eqPopDensity(bi[-1],di[-1],yi_option) ]
+            
+            # Finally reverse order and remove dOpt from state space
+            self.di = np.asarray(di[::-1][:-1])
+            self.bi = np.asarray(bi[::-1][:-1])
+            self.eq_yi = np.asarray(eq_yi[::-1][:-1])
+            
+        elif self.absFitType == 'bEvo':
+            
+            # ###################################### #
+            # State space definition for b-Evolution
+            # ###################################### #
+
+            bi    = [ (self.params['d']-1)*self.params['T'] / (self.params['T']-1) ]
+            di    = [ self.params['d']                                             ]
+            eq_yi = [ 1/self.params['T']                                           ]  # choose min equil pop density
+            
+            while (bi[-1] < self.params['bMax']):
+                # calculate next b-increment
+                # calculate b-increment in steps
+                f0 = self.params['sa']*(di[-1]-1)
+                f1 = (1-eq_yi[-1]) * np.exp(-bi[-1]*eq_yi[-1])
+                
+                if ( np.abs( f0 * (1-f1) / f1 ) < 0.0001 ):
+                    # small density
+                    delta_b = f0 * (bi[-1] + 1)
+                else:
+                    # large density
+                    delta_b = -np.log( 1 - f0 * (1-f1) / f1 ) / eq_yi[-1]
+                
+                # set next elements of state space
+                bi    = bi    + [ bi[-1] + delta_b                                ]
+                di    = di    + [ self.params['d']                                ]
+                eq_yi = eq_yi + [ lmFun.get_eqPopDensity(bi[-1],di[-1],yi_option) ]  # next equil. pop density
+            
+            # No need to reverse order here
+            self.di    = np.asarray(di)       # b terms for absolute fitness state space
+            self.bi    = np.asarray(bi)       # d terms for absolute fitness state space
+            self.eq_yi = np.asarray(eq_yi)    # equilibrium density of fitness class i
         
         # Now that the state space is defined, adjust the size of all other arrays
         # that store evolution parameters and rates
         
         # state space evolution parameters
         self.state_i = np.zeros(self.di.size) # state number
-        self.Ud_i    = np.zeros(self.di.size) # absolute fitness mutation rate
+        self.Ua_i    = np.zeros(self.di.size) # absolute fitness mutation rate
         self.Uc_i    = np.zeros(self.di.size) # relative fitness mutation rate
-        self.eq_yi   = np.zeros(self.di.size) # equilibrium density of fitness class i
         self.eq_Ni   = np.zeros(self.di.size) # equilibrium population size of fitness class i
-        self.sd_i    = np.zeros(self.di.size) # selection coefficient of "d" trait beneficial mutation
+        self.sa_i    = np.zeros(self.di.size) # selection coefficient of "d" trait beneficial mutation
         self.sc_i    = np.zeros(self.di.size) # selection coefficient of "c" trait beneficial mutation
         
         # state space pFix values
-        self.pFix_d_i = np.zeros(self.di.size) # pFix of "d" trait beneficial mutation
+        self.pFix_a_i = np.zeros(self.di.size) # pFix of "d" trait beneficial mutation
         self.pFix_c_i = np.zeros(self.di.size) # pFix of "c" trait beneficial mutation
         
         # state space evolution rates
-        self.vd_i    = np.zeros(self.di.size) # rate of adaptation in absolute fitness trait alone
+        self.va_i    = np.zeros(self.di.size) # rate of adaptation in absolute fitness trait alone
         self.vc_i    = np.zeros(self.di.size) # rate of adaptation in relative fitness trait alone
         self.ve_i    = np.zeros(self.di.size) # rate of fitness decrease due to environmental degradation
         
@@ -120,7 +168,7 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # 2 = multiple mutations
         # 3 = diffusion 
         # 4 = regime undetermined
-        self.evoRegime_d_i = np.zeros(self.di.shape) 
+        self.evoRegime_a_i = np.zeros(self.di.shape) 
         self.evoRegime_c_i = np.zeros(self.di.shape) 
         
         return None
@@ -133,28 +181,30 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # the evolution parameters are calculated along the absolute fitness state space
         # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
         
-        yi_option = 3   # numerically solve for equilibrium population densities
-        
         # loop through state space to calculate following: 
-        # mutation rates, equilb. density, equilb. popsize, selection coefficients
+        # mutation rates, equilb. popsize, selection coefficients
         #
         # NOTE: pFix value not calculate here, but in sepearate function to that method 
         # of getting pFix values can be selected without mucking up the code here.
-        for ii in range(self.di.size):
-            self.state_i[ii] = -(self.get_iExt()-ii)
+        #
+        # NOTE: state space always order from least fit to most fit in arrays
+        for ii in range(self.get_stateSpaceSize()):
+            if self.absFitType == 'dEvo':
+                self.state_i[ii] = -(self.get_iExt()-ii)
+            elif self.absFitType == 'bEvo':
+                self.state_i[ii] = ii
             
             # mutation rates (per birth per generation - NEED TO CHECK IF CORRECT)
-            self.Ud_i[ii]    = self.params['UdMax']*float(-self.state_i[ii])/self.get_iExt()
+            self.Ua_i[ii]    = self.params['UaMax']*(1 - ii/self.get_stateSpaceSize())
             self.Uc_i[ii]    = self.params['Uc']
             
-            # population sizes and densities 
-            self.eq_yi[ii]   = lmFun.get_eqPopDensity(self.params['b'],self.di[ii],yi_option)
+            # population sizes 
             self.eq_Ni[ii]   = self.params['T']*self.eq_yi[ii]
             
             # selection coefficients ( time scale = 1 generation)
-            self.sc_i[ii]    = lmFun.get_c_SelectionCoeff(self.params['b'],self.eq_yi[ii], \
+            self.sc_i[ii]    = lmFun.get_c_SelectionCoeff(self.bi[ii],self.eq_yi[ii], \
                                                           self.params['cp'],self.di[ii])
-            self.sd_i[ii]    = self.params['sd']    # di defined for constant selection coeff
+            self.sa_i[ii]    = self.params['sa']    # di/bi defined for constant selection coeff
             
         return None 
     
@@ -164,16 +214,49 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # get_last_di() calculates next d-term after di[-1], this value is 
         # occasionally need it to calculate pfix and the rate of adaption.
         
-        # get next d-term after last di, which for RM will be dOpt
-        di_last = self.params['dOpt']
-        
+        if self.absFitType == 'dEvo':
+            # get next d-term after last di, which for RM will be dOpt
+            di_last = self.params['dOpt']
+            
+        elif self.absFitType == 'bEvo':
+            # with b-evolution, di array is constant, so just use first
+            di_last = self.di[0]
+            
         return di_last
+    
+    #------------------------------------------------------------------------------
+        
+    def get_last_bi(self):
+        # get_last_di() calculates next d-term after di[-1], this value is 
+        # occasionally need it to calculate pfix and the rate of adaption.
+        
+        if self.absFitType == 'dEvo':
+            # with d-evolution, bi array is constant, so just use first
+            bi_last = self.bi[0]
+            
+        elif self.absFitType == 'bEvo':
+            # We have to calculate the next b-increment to get next b since 
+            # b-evolution is unbounded
+            f0 = self.params['sa']*(self.di[-1]-1)            
+            f1 = (1-self.eq_yi[-1]) * np.exp(-self.bi[-1]*self.eq_yi[-1])
+            f2 = f1 / ( f1 - f0*(1-f1) )
+            delta_b = np.log( f2 )/self.eq_yi[-1]
+            
+            bi_last = self.bi[-1] + delta_b
+        
+        return bi_last
     
     #%% ----------------------------------------------------------------------------
     #  List of conrete methods from MC class
     # ------------------------------------------------------------------------------
 
     """
+    
+    def get_stateSpaceSize(self):
+        
+        # get the size of the state space.
+    
+    # ------------------------------------------------------------------------------
     
     def get_stateSpacePfixValues(self):
         
@@ -258,9 +341,18 @@ class mcEvoModel_RM(mc.mcEvoModel):
     
     def get_iExt(self):      
         # get_iExt()  returns the last state space corresponding to extinction 
-        # of the pop. Since dOpt is always zero and not part of the di array, 
+        # of the pop. 
+        #
+        # For d-evolution, dOpt is not part of the di array, so then  
         # then dExt is just the size of di array.
-        
-        return self.di.size
+        # 
+        # For b-evolution, bExt is always the first state where bi = d-1. 
+        #
+        if self.absFitType == 'dEvo':
+            iExt = self.di.size
+        elif self.absFitType == 'bEvo':
+            iExt = 0
+            
+        return iExt
     
     #------------------------------------------------------------------------------

@@ -39,13 +39,11 @@ def birthTermFunction(b,y):
 b1 = 0.5
 b2 = 100
 
-d1 = b+1
-d2 = 1.2
+d1 = 1.1
 
 y = [ ii/500.0 for ii in range(0,500)]
 
 fd1 = deathTermFunction(d1,y)
-fd2 = deathTermFunction(d2,y)
 
 fb1  = birthTermFunction(b1,y)
 fb2  = birthTermFunction(b2,y)
@@ -53,10 +51,9 @@ fb2  = birthTermFunction(b2,y)
 # Figure for Appendix
 fig, ax = plt.subplots(1,1)
 
-ax.plot(y,fb1,c='k',linestyle = '-.',label = r'RHS: $b=1$')
+ax.plot(y,fb1,c='k',linestyle = '-.',label = r'RHS: $b=0.5$')
 ax.plot(y,fb2,c='k',linestyle = '--',label = r'RHS: $b=100$')
-# ax.plot(y,fd1,c='k',linestyle = '-.',label = r'LHS: $d_H = b+1$' )
-ax.plot(y,fd2,c='k',linestyle = '-',label = r'LHS: $d_H = 1.2$')
+ax.plot(y,fd1,c='k',linestyle = '-',label = r'LHS: $d_H = 1.1$')
 
 ax.set_xticks([ii/10.0 for ii in range(0,11)])
 ax.set_xticklabels([str(ii/10.0) for ii in range(0,11)])

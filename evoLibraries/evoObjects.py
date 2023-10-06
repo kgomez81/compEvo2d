@@ -28,12 +28,15 @@ class evoOptions:
     # Constructor
     # --------------------------------------------------------------------------
     
-    def __init__(self,paramFilePath,modelType):
+    def __init__(self,paramFilePath,modelType,absFitType):
         # file path to csv with parameters
         self.paramFilePath  = paramFilePath
         
         # set model type (str = 'RM' or 'DRE') 
         self.modelType      = modelType
+        
+        # set absolute fitness type (str = 'RM' or 'DRE') 
+        self.absFitType     = absFitType
         
         # initialize with empty params dictionary
         self.params = {}
@@ -53,10 +56,22 @@ class evoOptions:
         # with the parameters and their values 
     
         # create array to store values and define the parameter names
-        if self.modelType == 'RM':
-            self.paramList = ['T','b','dOpt','sd','UdMax','UdDel','cp','Uc','UcDel','R','se']
-        else:
-            self.paramList = ['T','b','dOpt','alpha','Ud','UdDel','cp','Uc','UcDel','R','se','jStart','cdfOption']
+        # absolute fitness parameters designated with "a" in variable name
+        if (self.modelType == 'RM') and (self.absFitType == 'dEvo'):
+            
+            self.paramList = ['T','b','dOpt','sa','UaMax','UaDel','cp','Uc','UcDel','R','se']
+            
+        elif (self.modelType == 'RM') and (self.absFitType == 'bEvo'):
+            
+            self.paramList = ['T','d','bMax','sa','UaMax','UaDel','cp','Uc','UcDel','R','se']
+            
+        elif (self.modelType == 'DRE') and (self.absFitType == 'dEvo'):
+            
+            self.paramList = ['T','b','dOpt','alpha','Ua','UaDel','cp','Uc','UcDel','R','se','jStart','cdfOption']
+        
+        elif (self.modelType == 'DRE') and (self.absFitType == 'bEvo'):
+            
+            self.paramList = ['T','d','bMax','sa_0','Ua','UaDel','cp','Uc','UcDel','R','se','iMax'] 
         
         # save the number of parameters
         nParams = len(self.paramList)

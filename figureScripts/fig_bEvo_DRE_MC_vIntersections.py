@@ -142,4 +142,4 @@ ax2.text(8,1.39e-4,r'(B)', fontsize = 22)
 
 # save figure
 plt.tight_layout()
-fig1.savefig(os.getcwd() + '/figures/MainDoc/fig_MarkovChain_VaVeVrIntersectionDRE_bEvo.pdf')
+fig1.savefig(os.getcwd() + '/figures/MainDoc/fig_bEvo_DRE_MC_vIntersections.pdf')

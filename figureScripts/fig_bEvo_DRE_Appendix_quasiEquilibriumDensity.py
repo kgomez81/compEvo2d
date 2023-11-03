@@ -93,4 +93,4 @@ ax.set_ylim([0,1.0])
 ax.set_xlabel(r'Population density ($\gamma$)')
 ax.legend()
 
-fig.savefig(os.getcwd() + '/figures/Appendix/fig_Appendix_quasiEquilibriumDensity_bEvo.pdf')
+fig.savefig(os.getcwd() + '/figures/Appendix/fig_bEvo_DRE_Appendix_quasiEquilibriumDensity.pdf')

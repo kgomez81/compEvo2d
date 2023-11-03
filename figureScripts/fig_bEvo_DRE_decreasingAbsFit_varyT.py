@@ -120,4 +120,4 @@ ax1.legend(custom_lines,[ T_vals_strLgd[ii] for ii in T_select],fontsize=14)
 
 # save figure
 plt.tight_layout()
-fig1.savefig('figures/MainDoc/fig_MChain_VaVrIntersectionVariableT_DRE_bEvo_AbsClass.pdf')
+fig1.savefig('figures/MainDoc/fig_bEvo_DRE_decreasingAbsFit_varyT.pdf')

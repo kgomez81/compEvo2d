@@ -83,7 +83,7 @@ ax1.set_yticklabels([str(5*i/10.0) for i in range(0,4)],fontsize=16)
 
 #ax1.set_xlabel(r'Absolute fitness class',fontsize=20,labelpad=8)
 ax1.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
-ax1.legend(fontsize = 14,ncol=1,loc='upper right')
+# ax1.legend(fontsize = 20,ncol=1,loc='lower right')
 
 # annotations
 iEq1 = 71
@@ -121,7 +121,7 @@ ax2.set_yticklabels([str(5*i/10.0) for i in range(0,4)],fontsize=16)
 
 ax2.set_xlabel(r'Absolute fitness class',fontsize=20,labelpad=8)
 ax2.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
-ax2.legend(fontsize = 14,ncol=1,loc='upper right')
+ax2.legend(fontsize = 20,ncol=1,loc='right')
 
 ## annotations
 iEq2 = 87

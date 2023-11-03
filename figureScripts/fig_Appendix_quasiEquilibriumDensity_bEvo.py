@@ -8,6 +8,10 @@ Created on Sun Aug 07 14:17:12 2022
 import numpy as np
 import matplotlib.pyplot as plt
 
+import os
+import sys
+sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
+
 # ------------------------------------------------------------------
 
 def deathTermFunction(d,y):
@@ -36,10 +40,25 @@ def birthTermFunction(b,y):
 
 # ------------------------------------------------------------------
 
-b1 = 0.5
-b2 = 100
+def birthTermFunctionInf(y):
+# inputs:
+# - b equals fixed birth term
+# - y equals list of densities between 0 and 1    
+# output:
+# - right side of equil-density equation (d-1)y=(1-y)*(1-e^(-by))    
 
-d1 = 1.1
+    f = [ (1-y[ii]) for ii in range(len(y))] 
+    
+    return f
+
+# ------------------------------------------------------------------
+
+b1 = 0.4
+b2 = 0.8
+b3 = 1.6
+b4 = 10
+
+d1 = 1.2
 
 y = [ ii/500.0 for ii in range(0,500)]
 
@@ -47,13 +66,19 @@ fd1 = deathTermFunction(d1,y)
 
 fb1  = birthTermFunction(b1,y)
 fb2  = birthTermFunction(b2,y)
+fb3  = birthTermFunction(b3,y)
+fb4  = birthTermFunction(b4,y)
+fbInf = birthTermFunctionInf(y)
 
 # Figure for Appendix
 fig, ax = plt.subplots(1,1)
 
-ax.plot(y,fb1,c='k',linestyle = '-.',label = r'RHS: $b=0.5$')
-ax.plot(y,fb2,c='k',linestyle = '--',label = r'RHS: $b=100$')
-ax.plot(y,fd1,c='k',linestyle = '-',label = r'LHS: $d_H = 1.1$')
+ax.plot(y,fb1,c='b',linestyle = '-',label = r'RHS: $b_1=0.4$')
+ax.plot(y,fb2,c='g',linestyle = '-',label = r'RHS: $b_2=0.8$')
+ax.plot(y,fb3,c='m',linestyle = '-',label = r'RHS: $b_3=1.6$')
+ax.plot(y,fb4,c='r',linestyle = '-',label = r'RHS: $b_4=10$')
+ax.plot(y,fbInf,c='k',linestyle = '--',label = r'RHS: $b=\infty$')
+ax.plot(y,fd1,c='k',linestyle = '-',label = r'LHS: $d = 1.2$')
 
 ax.set_xticks([ii/10.0 for ii in range(0,11)])
 ax.set_xticklabels([str(ii/10.0) for ii in range(0,11)])
@@ -68,4 +93,4 @@ ax.set_ylim([0,1.0])
 ax.set_xlabel(r'Population density ($\gamma$)')
 ax.legend()
 
-fig.savefig('figures/Appendix/fig_Appendix_quasiEquilibriumDensity_bEvo.pdf')
+fig.savefig(os.getcwd() + '/figures/Appendix/fig_Appendix_quasiEquilibriumDensity_bEvo.pdf')

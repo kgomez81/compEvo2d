@@ -399,12 +399,34 @@ class mcEvoModel(ABC):
         
         [va_vc_intersect_idx,va_vc_intersect_type] = self.get_va_vc_intersection_index()
         
-        if (np.abs(va_vc_intersect_type) == 2) or \
-                    (va_vc_intersect_idx == 0) or \
-                    (va_vc_intersect_idx == self.get_stateSpaceSize()-1) or \
-                    (self.evoRegime_a_i[va_vc_intersect_idx] == 3) or \
-                    (self.evoRegime_c_i[va_vc_intersect_idx] == 3):
-        # if (np.abs(vd_vc_intersect_type) == 2):            
+        # Check the intersection to see if it is valid. To summarize, algorithm above
+        # provides the following (see MC_functions.calculate_v_intersections for details):
+        # 
+        # va_vc_intersect_idx       = index of first type -1 crossing, va crosses below v
+        #                             occuring between endpoints of state space.
+        #
+        # va_vc_intersect_type      = -1
+        
+        # NOW CHECK FOR FOLLOWING CONDITIONS to assign a NaN for rho:
+        #
+        # 1) intersection is not at the start or end of the state space (proper crossing)
+        #    this should not happen, but we check anyways.
+        crssCond1 = (np.abs(va_vc_intersect_type) == 2) or (va_vc_intersect_idx == 0) \
+                    or (va_vc_intersect_idx == self.get_stateSpaceSize()-1)
+            
+        # 2) The intersection type is at a Diffusive Mutation regime location
+        crssCond2 = (self.evoRegime_a_i[va_vc_intersect_idx] == 3) or (self.evoRegime_c_i[va_vc_intersect_idx] == 3)
+        
+        # 3) points above and below (abs fit scale) are also in MM regime
+        #    We check the band around the intersection +/- 5 steps
+        ilw = va_vc_intersect_idx - min([10,va_vc_intersect_idx])
+        ihi = va_vc_intersect_idx + min([10,self.get_stateSpaceSize()-1-va_vc_intersect_idx])
+        
+        crssCond3 = ( min(self.evoRegime_a_i[ilw:ihi]) < 2 ) or ( max(self.evoRegime_a_i[ilw:ihi]) > 2  )\
+                    or ( min(self.evoRegime_c_i[ilw:ihi]) < 2 ) or ( max(self.evoRegime_c_i[ilw:ihi]) > 2  )
+        
+        if crssCond1 or crssCond2 or crssCond3:
+            # bad intersection, don't calc rho            
             rho = np.nan
         else:
             # build evo param dictionary for absolute fitness trait

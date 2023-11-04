@@ -681,18 +681,17 @@ from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_RM_class as mcRM
 from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
 
-ii=9
+ii=0
 jj=10
 
-mcTestParams = mcModels.get_params_ij(ii,jj)
+mcTestEvoOptions = mcModels.get_params_ij(ii,jj)
 # mcTestParams2 = mcModels.get_params_ij(0,0)
 # mcTestParams3 = mcModels.get_params_ij(2,2)
 
-mcTestModel = mcDRE.mcEvoModel_DRE(mcTestParams)
-mcTestEqParams = mcTestModel.get_stable_state_evo_parameters()
+mcTestModel = mcDRE.mcEvoModel_DRE(mcTestEvoOptions)
 
-
-# testParamGrid = mcModels.get_evoParam_grid('UdMax',0)
+# mcTestEqParams = mcTestModel.get_stable_state_evo_parameters()
+# # testParamGrid = mcModels.get_evoParam_grid('UdMax',0)
 
 # fig,(ax1,ax2,ax3) = plt.subplots(3,1,figsize=[7,12])
 # ax1.scatter(mcTestModel.state_i,np.log10(mcTestModel.vd_i),label='vd')

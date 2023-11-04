@@ -160,55 +160,85 @@ def calculate_v_intersections(vDiff):
     crossings   = []
     cross_types = []
     
-    vDiffSgn = np.sign(vDiff)
+    # NOTE:     vDiff = va-vr or = va-ve 
+    vDiffSgn = np.sign(vDiff)       
     
-    cross_1 = np.where(vDiffSgn                      == 0)[0]
+    # select indices where sign is 0, i.e. va = v
+    cross_1 = np.where(vDiffSgn                      == 0)[0]   
+    
+    # select indices where sign of va - v changes
     cross_2 = np.where(vDiffSgn[0:-1] + vDiffSgn[1:] == 0)[0]
     
-    # check cross type 1 where v1 == v2
+    # check all crossings of type 1 where va == v
     for ii in range(len(cross_1)):
         idx = cross_1[ii]
         
         if idx == 0:
-            crossings   = crossings   + [ idx             ]
-            cross_types = cross_types + [2*vDiffSgn[idx+1]]
-            
+            # crossing at start of state space
+            crossings   = crossings   + [ idx             ]     # add index of cross to list
+            cross_types = cross_types + [2*vDiffSgn[idx+1]]     # save cross type
+                                                                #   =  2 if "iExt: va == v" => "iExt+1: va > v", i.e. va cross up v
+                                                                #   = -2 if "iExt: va == v" => "iExt+1: va < v", i.e. va cross down v
         elif idx == len(vDiffSgn)-1:
-            crossings   = crossings   + [ idx              ]
-            cross_types = cross_types + [-2*vDiffSgn[idx-1]]
-            
+            # crossing at end of state space
+            crossings   = crossings   + [ idx              ]    # add index of cross to list
+            cross_types = cross_types + [-2*vDiffSgn[idx-1]]    # save cross type
+                                                                #   = -2 if "iMax-1: va > v" => "iMax: va == v", i.e. va cross down v
+                                                                #   =  2 if "iMax-1: va < v" => "iMax: va == v", i.e. va cross up v
         else:
+            # crossing between min and max indices of state space
+            # NOTE: this type of crossing is important to the analysis
             if (vDiffSgn[idx-1] != vDiffSgn[idx+1]):
-                crossSign   = np.sign(vDiffSgn[idx+1] - vDiffSgn[idx-1])
+                crossSign   = np.sign(vDiffSgn[idx+1] - vDiffSgn[idx-1])    # calc cross sign
+                                                                            #   =  1 if va > v before cross & va < v after cross
+                                                                            #   = -1 if va < v before cross & va > v after cross
                 
-                crossings   = crossings   + [idx       ]
-                cross_types = cross_types + [crossSign ]
+                crossings   = crossings   + [idx       ]        # add index of cross to list
+                cross_types = cross_types + [crossSign ]        # save cross type
     
-    # check cross type 1 where v1 == v2
+    # check all crossings of type 2 where sign(va(i)-v2(i)) != sign(va(i+1)-v2(i+1))
+    # this will not include crosses of type 1.
     for ii in range(len(cross_2)):
     
         idx = cross_2[ii]
         
         if (idx == 0):
+            # crossing near the start of the state space
+            # select as the crossing, idx which minimizes the v-difference
             minIdx = np.argmin([vDiff[idx],vDiff[idx+1]])
             
-            crossings   = crossings   + [ idx + minIdx     ]
-            cross_types = cross_types + [ 2*vDiffSgn[idx+1]]
+            crossings   = crossings   + [ idx + minIdx     ]    # add index of cross to list
+            cross_types = cross_types + [ 2*vDiffSgn[idx+1]]    # save cross type
+                                                                #   =  2 if "iExt: va == v" => "iExt+1: va > v", i.e. va cross up v
+                                                                #   = -2 if "iExt: va == v" => "iExt+1: va < v", i.e. va cross down v
             
         elif (idx == len(vDiffSgn)-1):
+            # crossing near the end of the state space
+            # select as the crossing, idx which minimizes the v-difference
             minIdx = np.argmin([vDiff[idx],vDiff[idx-1]])
             
-            crossings   = crossings   + [ idx - minIdx     ]
-            cross_types = cross_types + [-2*vDiffSgn[idx-1]]
+            crossings   = crossings   + [ idx - minIdx     ]     # add index of cross to list
+            cross_types = cross_types + [-2*vDiffSgn[idx-1]]     # save cross type
+                                                                 #   = -2 if "iMax-1: va > v" => "iMax: va == v", i.e. va cross down v
+                                                                 #   =  2 if "iMax-1: va < v" => "iMax: va == v", i.e. va cross up v
             
         else:
+            # crossing between min and max indices of state space
+            # NOTE: this type of crossing is important to the analysis
             if (vDiffSgn[idx] != vDiffSgn[idx+1]):
-                crossSign   = np.sign(vDiffSgn[idx+1] - vDiffSgn[idx-1])
-                minIdx = np.argmin([vDiff[idx],vDiff[idx+1]])
+                crossSign   = np.sign(vDiffSgn[idx+1] - vDiffSgn[idx-1])    # calc cross sign
+                minIdx = np.argmin([vDiff[idx],vDiff[idx+1]])               # select as cross, idx that minizes the v-difference
                 
-                crossings   = crossings   + [idx + minIdx ]
-                cross_types = cross_types + [crossSign    ]
-                
+                crossings   = crossings   + [idx + minIdx ]     # add index of cross to list
+                cross_types = cross_types + [crossSign    ]     # save cross type
+        
+    # summary of outputs:
+    # crossings     = list of indices for all crossings
+    #
+    # cross_types   = +/- 2 cross at endpoints of state space, 
+    #               = +/- 1 cross between state space endpoints
+    #                   + implies va crosses up above v
+    #                   - implies va crosses down below v
     crossings   = np.asarray(crossings)
     cross_types = np.asarray(cross_types)
         

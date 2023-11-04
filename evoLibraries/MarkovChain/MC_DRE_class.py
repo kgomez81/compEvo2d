@@ -32,23 +32,24 @@ class mcEvoModel_DRE(mc.mcEvoModel):
     # MC_class for list of class attribures
     #
     # Fitness landscape
+    # bi      #absolute fitness landscape (array of bi terms), 
     # di      #absolute fitness landscape (array of di terms), 
     
     # state space evolution parameters
     # state_i # state number
-    # Ud_i    # absolute fitness mutation rate
+    # Ua_i    # absolute fitness mutation rate
     # Uc_i    # relative fitness mutation rate
     # eq_yi   # equilibrium density of fitness class i
     # eq_Ni   # equilibrium population size of fitness class i
-    # sd_i    # selection coefficient of "d" trait beneficial mutation
+    # sa_i    # selection coefficient of "b" or "d" trait beneficial mutation
     # sc_i    # selection coefficient of "c" trait beneficial mutation
     
     # state space pFix values
-    # pFix_d_i = np.zeros(self.di.shape) # pFix of "d" trait beneficial mutation
+    # pFix_a_i = np.zeros(self.di.shape) # pFix of "b" or "d" trait beneficial mutation
     # pFix_c_i = np.zeros(self.di.shape) # pFix of "c" trait beneficial mutation
     
     # state space evolution rates
-    # vd_i    # rate of adaptation in absolute fitness trait alone
+    # va_i    # rate of adaptation in absolute fitness trait alone
     # vc_i    # rate of adaptation in relative fitness trait alone
     # ve_i    # rate of fitness decrease due to environmental degradation
     

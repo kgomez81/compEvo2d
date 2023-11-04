@@ -25,7 +25,7 @@ from evoLibraries.MarkovChain import MC_functions as mcFun
 
 from joblib import Parallel, delayed
 
-class mcEvoGrid(evoObj.evoOptions):
+class mcEvoGrid():
     # evoGridOptions encapsulates evolution parameters and bounds to define 
     # a grid of Markov Chain models for figures.
     
@@ -33,10 +33,13 @@ class mcEvoGrid(evoObj.evoOptions):
     # Constructor
     # --------------------------------------------------------------------------
     
-    def __init__(self,paramFilePath,modelType,varNames,varBounds):
+    def __init__(self,paramFilePath,modelType,absFitType,varNames,varBounds):
         
         # intialize member variables that are part of evoOptions super class
-        super().__init__(paramFilePath,modelType)
+        # paramFilePath - path to file with parameters
+        # modelType     - string selecting RM or DRE
+        # absFitType    - string selecting bEvo or dEvo
+        self.mcEvoOptions = evoObj.evoOptions(paramFilePath,modelType,absFitType)
         
         # set list of variable names that will be used to specify the grid
         # and the bounds with increments needed to define the grid.
@@ -61,24 +64,25 @@ class mcEvoGrid(evoObj.evoOptions):
         
         # density and absolute fitness at intersection
         self.eff_y_ij   = np.zeros(self.get_evoArray_dim())        
+        self.eff_b_ij   = np.zeros(self.get_evoArray_dim())        
         self.eff_d_ij   = np.zeros(self.get_evoArray_dim())        
         
         # arrays with effective evolution parameters at intersections
         self.eff_N_ij       = np.zeros(self.get_evoArray_dim())
-        self.eff_Ud_ij      = np.zeros(self.get_evoArray_dim())
+        self.eff_Ua_ij      = np.zeros(self.get_evoArray_dim())
         self.eff_Uc_ij      = np.zeros(self.get_evoArray_dim())
-        self.eff_sd_ij      = np.zeros(self.get_evoArray_dim())
+        self.eff_sa_ij      = np.zeros(self.get_evoArray_dim())
         self.eff_sc_ij      = np.zeros(self.get_evoArray_dim())
-        self.eff_pFix_d_ij  = np.zeros(self.get_evoArray_dim())
+        self.eff_pFix_a_ij  = np.zeros(self.get_evoArray_dim())
         self.eff_pFix_c_ij  = np.zeros(self.get_evoArray_dim())
         
         # arrays with evolution/environment rates
-        self.eff_vd_ij  = np.zeros(self.get_evoArray_dim())
+        self.eff_va_ij  = np.zeros(self.get_evoArray_dim())
         self.eff_vc_ij  = np.zeros(self.get_evoArray_dim())
         self.eff_ve_ij  = np.zeros(self.get_evoArray_dim())
         
         # arrays for vd and vc regime ids
-        self.eff_evoRegime_d_ij  = np.zeros(self.get_evoArray_dim())
+        self.eff_evoRegime_a_ij  = np.zeros(self.get_evoArray_dim())
         self.eff_evoRegime_c_ij  = np.zeros(self.get_evoArray_dim())
         
         # density and absolute fitness at intersection
@@ -110,16 +114,16 @@ class mcEvoGrid(evoObj.evoOptions):
         
         if (ii > evoGridDim[0]-1) or (jj > evoGridDim[1]-1): 
             # if indices invalid, then return empty list
-            params_ij = {}
+            mcEvoOptions_ij = {}
         else:
             # get primary dictionary with evo parameters
-            params_ij = cp.deepcopy(self.params)
+            mcEvoOptions_ij = cp.deepcopy(self.mcEvoOptions)
             
             # scale evo parameters that were selected to vary by the appropriate of 10**k
-            params_ij[self.varNames[0]] = params_ij[self.varNames[0]] * 10**self.varBounds[0][ii]
-            params_ij[self.varNames[1]] = params_ij[self.varNames[1]] * 10**self.varBounds[1][jj]
+            mcEvoOptions_ij.params[self.varNames[0]] = mcEvoOptions_ij.params[self.varNames[0]] * 10**self.varBounds[0][ii]
+            mcEvoOptions_ij.params[self.varNames[1]] = mcEvoOptions_ij.params[self.varNames[1]] * 10**self.varBounds[1][jj]
         
-        return params_ij
+        return mcEvoOptions_ij
     
     # --------------------------------------------------------------------------
     
@@ -141,16 +145,16 @@ class mcEvoGrid(evoObj.evoOptions):
         elif (axisNum == 0) and (evoParamName == self.varNames[0]):
             # get value primary dictionary and calculate value after scaling by
             # power of 10 in varBounds
-            evoParam_ij = self.params[evoParamName] * 10**self.varBounds[0][ii]
+            evoParam_ij = self.mcEvoOptions.params[evoParamName] * 10**self.varBounds[0][ii]
             
         elif (axisNum == 1) and (evoParamName == self.varNames[1]):
             # get value primary dictionary and calculate value after scaling by
             # power of 10 in varBounds
-            evoParam_ij = self.params[evoParamName] * 10**self.varBounds[1][jj]
+            evoParam_ij = self.mcEvoOptions.params[evoParamName] * 10**self.varBounds[1][jj]
         else:
             # if requesting parameter that doesn't vary in model, then just
             # return the base parameter value
-            evoParam_ij = self.params[evoParamName]
+            evoParam_ij = self.mcEvoOptions.params[evoParamName]
                 
         return evoParam_ij
     
@@ -182,14 +186,20 @@ class mcEvoGrid(evoObj.evoOptions):
         
         gridMap = []
         
+        # creating a grid map to flatten grid for a parallelized run
         for ii in range(evoGridDim[0]):
             for jj in range(evoGridDim[1]):
                 gridMap = gridMap + [[ii,jj]]
                 
         
-        params_stable_state_arry = Parallel(n_jobs=6)(delayed(self.get_evoModel)(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),self.modelType,kk) for kk in range(len(gridMap)))
+        # Running parallelized jobs to get effective parameters for each MC 
+        # model on the constructed grid. The grid is flatted to used on for 
+        # loop indexed by kk, but the mapping of kk to the ii,jj indices of
+        # of the original grid is stored in gridMap
+        params_stable_state_arry = Parallel(n_jobs=6)(delayed(self.get_evoModel)(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap)))
+        #params_stable_state_arry =  [self.get_evoModel(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap))]  # DEBUG verions of parallel call
         
-        # loop through each MC model
+        # loop through each MC model to collect effective parameters
         for kk in range(len(gridMap)):
             
             # get evo data from parallel array
@@ -206,24 +216,25 @@ class mcEvoGrid(evoObj.evoOptions):
             # density and absolute fitness at intersection
             
             self.eff_y_ij[ii,jj]   = params_stable_state['y']
+            self.eff_b_ij[ii,jj]   = params_stable_state['b']
             self.eff_d_ij[ii,jj]   = params_stable_state['d']
             
             # arrays with effective evolution parameters at intersections
             self.eff_N_ij[ii,jj]       = params_stable_state['N']
-            self.eff_Ud_ij[ii,jj]      = params_stable_state['Ud']
+            self.eff_Ua_ij[ii,jj]      = params_stable_state['Ua']
             self.eff_Uc_ij[ii,jj]      = params_stable_state['Uc']
-            self.eff_sd_ij[ii,jj]      = params_stable_state['sd']
+            self.eff_sa_ij[ii,jj]      = params_stable_state['sa']
             self.eff_sc_ij[ii,jj]      = params_stable_state['sc']
-            self.eff_pFix_d_ij[ii,jj]  = params_stable_state['pFix_d']
+            self.eff_pFix_a_ij[ii,jj]  = params_stable_state['pFix_a']
             self.eff_pFix_c_ij[ii,jj]  = params_stable_state['pFix_c']
             
             # arrays with evolution/environment rates
-            self.eff_vd_ij[ii,jj]  = params_stable_state['vd']
+            self.eff_va_ij[ii,jj]  = params_stable_state['va']
             self.eff_vc_ij[ii,jj]  = params_stable_state['vc']
             self.eff_ve_ij[ii,jj]  = params_stable_state['ve']
             
             # save evo regimes
-            self.eff_evoRegime_d_ij[ii,jj]  = params_stable_state['regID_d']
+            self.eff_evoRegime_a_ij[ii,jj]  = params_stable_state['regID_a']
             self.eff_evoRegime_c_ij[ii,jj]  = params_stable_state['regID_c']
             
             # calculate rho of the MC model
@@ -235,15 +246,15 @@ class mcEvoGrid(evoObj.evoOptions):
     
     # --------------------------------------------------------------------------
     
-    def get_evoModel(self,params_kk,modelType,kk):
+    def get_evoModel(self,mcEvoOptions_kk,kk):
         
         # check the MC model type and get intersection evo params
-        if (self.modelType == 'RM'):
+        if (self.mcEvoOptions.modelType == 'RM'):
             # get the MC evo model and find the intersection
-            temp_mcModel = mcRM.mcEvoModel_RM( params_kk )
+            temp_mcModel = mcRM.mcEvoModel_RM( mcEvoOptions_kk )
         else:
             # get the MC evo model and find the intersection
-            temp_mcModel = mcDRE.mcEvoModel_DRE( params_kk )
+            temp_mcModel = mcDRE.mcEvoModel_DRE( mcEvoOptions_kk )
             
         # calculate intersections and find the stochastically stable
         # state of absolute fitness

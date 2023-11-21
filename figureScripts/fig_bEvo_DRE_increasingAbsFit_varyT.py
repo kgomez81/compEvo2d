@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Fri Nov 17 15:08:10 2023
+
+@author: Owner
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Fri Feb 25 12:39:02 2022
 
 @author: dirge
@@ -52,7 +59,7 @@ from matplotlib.lines import Line2D
 #
 
 # The parameter file is read and a dictionary with their values is generated.
-paramFilePath1 = os.getcwd()+'/inputs/evoExp_DRE_bEvo_03_parameters.csv'
+paramFilePath1 = os.getcwd()+'/inputs/evoExp_DRE_bEvo_04_parameters.csv'
 modelType = 'DRE'
 absFitType = 'bEvo'
 
@@ -102,24 +109,24 @@ for ii in range(len(mcModels)):
 # ax1.set_xlim(0,1)
 xTickMax = int(mcModels[0].get_iMax()/25+1)
 
-xBack = 3
-ax1.set_xlim(50,25*(xTickMax-1-xBack))    
+xBack = 2
+ax1.set_xlim(75,25*(xTickMax-1-xBack))    
 ax1.set_xticks([25*i for i in range(2,xTickMax-xBack)])
 ax1.set_xticklabels([str(25*i) for i in range(2,xTickMax-xBack)],fontsize=16)
-ax1.set_yticks([0.2*i for i in range(0,7)])
-ax1.set_yticklabels([str(2*i/10.0) for i in range(0,7)],fontsize=16)
-ax1.set_ylim(0,1.4)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
+ax1.set_yticks([0.05*i for i in range(0,5)])
+ax1.set_yticklabels([str(5*i/100.0) for i in range(0,5)],fontsize=16)
+ax1.set_ylim(0,0.2)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
 ax1.set_xlabel(r'Absolute Fitness Class',fontsize=20,labelpad=8)
 ax1.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 
-arrwLngth1 = 4
-arrwOffset = -2
+arrwLngth1 = 5
+arrwOffset = 2
 vScale = 0.1
-ax1.annotate("", xy=(iEq[0]-arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), xytext=(iEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor),arrowprops={'arrowstyle':'->','lw':2})
+ax1.annotate("", xy=(iEq[0]+arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), xytext=(iEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor),arrowprops={'arrowstyle':'->','lw':2})
 
 custom_lines = [Line2D([0], [0], color=myColors[ii], lw=2) for ii in range(len(mcModels))]
 ax1.legend(custom_lines,[ T_vals_strLgd[ii] for ii in T_select],fontsize=14)
 
 # save figure
 plt.tight_layout()
-fig1.savefig('figures/MainDoc/fig_bEvo_DRE_decreasingAbsFit_varyT.pdf')
+fig1.savefig('figures/Appendix/fig_bEvo_DRE_increasingAbsFit_varyT.pdf')

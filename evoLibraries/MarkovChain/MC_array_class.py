@@ -138,7 +138,7 @@ class mcEvoGrid():
         # check if ii and jj are permissible indices
         evoGridDim = self.get_evoArray_dim()
         
-        if (ii > evoGridDim[0]-1) or (jj > evoGridDim[1]-1) or ( not (evoParamName in self.params) ): 
+        if (ii > evoGridDim[0]-1) or (jj > evoGridDim[1]-1) or ( not (evoParamName in self.mcEvoOptions.params) ): 
             # if indices invalid, then return empty list
             evoParam_ij = []
             

@@ -15,7 +15,7 @@ data and create figures in the mutation-driven adaptation manuscript.
 
 import numpy as np
 import scipy.stats as st
-
+import scipy.integrate as spInt
 import scipy.optimize as opt
 from numpy.polynomial import Polynomial
 
@@ -92,17 +92,16 @@ def calc_pFix_FSA(params,b,d,c,kMax):
                                    - cr*( (b[0]*yEq)**2*(1+cr)/(2+cr)*np.exp(-b[0]*yEq) )
                                    
         elif (compFix_option ==  2):
-            # this approximation relies on small cr << 1 (up to c~0.1). Smaller values
-            # of b*yEq will improve the approx due heavier Poisson tails but this approx
-            # is largely drive by cr. Larger cr requires more Z/(Z+cr) terms to be included
-            # 
-            # To get better approximation, compute (1+cr)*E[ Z/(Z+cr) | l_WildType ].
-            # 
-            # Below we include, no competitive advantage term, + 1st order linear expansion,
-            # - minus 2nd order correction of expectation.
+            # this calculation is derived from Mathematica's reduction of the infinite series
+            # characterizing the expectation (see appendix of paper).
+            juvCompRateFactor = b[0]*(1+c[1])(1-yEq)*spInt.quad(lambda x: np.exp(-b*(yEq*(1-x)+1/params['T'])*x**cr, 0, 1)
+                                                                
+        elif (compFix_option ==  3):
+            # This attempts to calculate a partial sum approximating the expectation up to 
             juvCompRateFactor = ( 1-np.exp(-b[0]*yEq) ) \
                                    + cr*( 1 - (1+b[0]*yEq)*np.exp(-b[0]*yEq) ) \
                                    - cr*( (b[0]*yEq)**2*(1+cr)/(2+cr)*np.exp(-b[0]*yEq) )
+            
                                
     else:
         return 0

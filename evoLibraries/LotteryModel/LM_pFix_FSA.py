@@ -58,7 +58,7 @@ def calc_pFix_FSA(params,b,d,c,kMax):
     # calculate the equilibrium density for the wild type pop
     # using the numerical estimate
     yi_option = 3
-    compFix_option = 1
+    compFix_option = 2
     if ( b[0] > d[0]-1 ):
         yEq = lmFun.get_eqPopDensity(b[0],d[0],yi_option)
     else:
@@ -94,15 +94,8 @@ def calc_pFix_FSA(params,b,d,c,kMax):
         elif (compFix_option ==  2):
             # this calculation is derived from Mathematica's reduction of the infinite series
             # characterizing the expectation (see appendix of paper).
-            juvCompRateFactor = b[0]*(1+c[1])(1-yEq)*spInt.quad(lambda x: np.exp(-b*(yEq*(1-x)+1/params['T'])*x**cr, 0, 1)
+            juvCompRateFactor = b[0]*(1+c[1])(1-yEq)*spInt.quad(lambda x: np.exp(-b*(yEq*(1-x)+1/params['T'])*x**cr, 0, 1))
                                                                 
-        elif (compFix_option ==  3):
-            # This attempts to calculate a partial sum approximating the expectation up to 
-            juvCompRateFactor = ( 1-np.exp(-b[0]*yEq) ) \
-                                   + cr*( 1 - (1+b[0]*yEq)*np.exp(-b[0]*yEq) ) \
-                                   - cr*( (b[0]*yEq)**2*(1+cr)/(2+cr)*np.exp(-b[0]*yEq) )
-            
-                               
     else:
         return 0
     

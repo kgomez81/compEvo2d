@@ -51,7 +51,7 @@ def getScatterData(X,Y,Z):
 # --------------------------------------------------------------------------
 
 # The parameter file is read and a dictionary with their values is generated.
-paramFilePath = os.getcwd()+'/inputs/evoExp_DRE_bEvo_06_parameters.csv'
+paramFilePath = os.getcwd()+'\../inputs/evoExp_DRE_bEvo_06_parameters.csv'
 modelType = 'DRE'
 absFitType = 'bEvo'
 
@@ -100,8 +100,12 @@ zRange = np.max(np.abs(z-1))
 
 #%% Final section to check individual entries of rho plots MC models
 
-ii=2
-jj=8
+# ii=8
+# jj=6
+
+ii=7
+jj=1
+
 figSelect = 1
 
 mcTestEvoOptions = mcModels.get_params_ij(ii,jj)
@@ -135,8 +139,10 @@ if figSelect == 1:
     ax11.scatter(mcTestModel.state_i,mcTestModel.vc_i,label='vc')
     ax11.set_xlabel('MC state')
     ax11.set_ylabel('RoA (v)')
+    ymax = max([max(mcTestModel.va_i),max(mcTestModel.vc_i)])
     params_stable_state = mcTestModel.get_stable_state_evo_parameters()
-    ax11.text(0,0.5*max(mcTestModel.va_i),params_stable_state['eqState'], fontsize = 22)
+    ax11.text(0,0.5*ymax,params_stable_state['eqState'], fontsize = 22)
+    ax11.text(0,0.75*ymax,mcTestModel.calculate_evoRho(), fontsize = 22)
     ax11.legend()
     ax21.scatter(mcTestModel.state_i,mcTestModel.evoRegime_a_i,label='reg_a')
     ax21.scatter(mcTestModel.state_i,mcTestModel.evoRegime_c_i,label='reg_c')

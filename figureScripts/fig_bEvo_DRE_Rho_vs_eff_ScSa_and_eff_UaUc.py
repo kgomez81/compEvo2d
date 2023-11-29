@@ -105,7 +105,7 @@ zRange = np.max(np.abs(z-1))
 fig, ax1 = plt.subplots(1,1,figsize=[9,7])
 
 # plot a 3D surface like in the example mplot3d/surface3d_demo
-map1 = ax1.scatter(x, y, c=z, s=60, cmap='seismic', vmin = 1-zRange, vmax = 1+zRange, edgecolor='black')
+map1 = ax1.scatter(x, y, c=z, s=60, cmap='bwr', vmin = 1-zRange, vmax = 1+zRange, edgecolor='black')
 
 ax1.set_xlabel(r'$log_{10}(s_c/s_a)$',fontsize=26,labelpad=8)
 ax1.set_ylabel(r'$log_{10}(U_a/U_c)$',fontsize=26,labelpad=8)

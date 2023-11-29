@@ -145,6 +145,9 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             # limit of eq 13 in app C with b->infinity
             minSelCoeff_c = 0.01*self.params['cp']/self.params['d']
             
+            DreMod    = self.params['DreMod']
+            dreFactor = self.params['alpha']
+            
             # fix the increment size scale with the selection coefficient for the
             # first b-increase from extinction. Also set bMax value from parameters
             delta_b = self.params['d']*(self.params['d']-1)*self.params['sa_0']
@@ -165,7 +168,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
                 
                 # update bCrnt, bNext and selCoeff to check if add new state
                 bCrnt           = bNext
-                bNext           = bNext + ii*delta_b
+                bNext           = bNext + delta_b
                 yCrnt           = yNext 
                 yNext           = lmFun.get_eqPopDensity(bCrnt,di[-1],yi_option)
                 selCoeff_b_ii   = lmFun.get_b_SelectionCoeff(bCrnt,bNext,yCrnt,self.params['d'])
@@ -177,6 +180,24 @@ class mcEvoModel_DRE(mc.mcEvoModel):
                     eq_yi = eq_yi + [ yCrnt             ]  # next equil. pop density
                     sa_i  = sa_i  + [ selCoeff_b_ii     ]
                     ii    = ii    + 1
+                    
+                    # ----------------------------------------
+                    # Select DRE Model (b-increment scheme)
+                    # ----------------------------------------
+                    if (DreMod == 1):
+                        delta_b = ii*self.params['d']*(self.params['d']-1)*self.params['sa_0']
+                        
+                    if (DreMod == 2):
+                        # calculate next increment but check for valid inputs
+                        temp_sa_i = self.params['sa_0']*dreFactor/(dreFactor+(1-dreFactor)*ii) #dreFactor/(dreFactor+(1-dreFactor)*np.log(ii))
+                        temp_calc = 1-temp_sa_i*di[-1]*(di[-1]-1)*eq_yi[-1]/(1-di[-1]*eq_yi[-1])
+                        if (temp_calc < 1) and (temp_calc > 0):
+                            delta_b = -(1/eq_yi[-1])*np.log(temp_calc)
+                        else:
+                            temp_sa_i = 0.5*(1-di[-1]*eq_yi[-1])/(di[-1]*(di[-1]-1)*eq_yi[-1])
+                            temp_calc = 1-temp_sa_i*di[-1]*(di[-1]-1)*eq_yi[-1]/(1-di[-1]*eq_yi[-1])
+                            delta_b   = -(1/eq_yi[-1])*np.log(temp_calc)
+                    
                 else:
                     getNext_bi = False
         

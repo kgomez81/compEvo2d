@@ -58,58 +58,53 @@ def calc_pFix_FSA(params,b,d,c,kMax):
     # calculate the equilibrium density for the wild type pop
     # using the numerical estimate
     yi_option = 3
-    compFix_option = 1
+    compFix_option = 2
     if ( b[0] > d[0]-1 ):
         yEq = lmFun.get_eqPopDensity(b[0],d[0],yi_option)
     else:
         yEq = 0
     
-    # determine the type of beneficial mutation 
-    if ( (b[1] == b[0]) & (d[1] < d[0]) & (c[1] == c[0]) ):
-        # benficial mutation in d-trait (simplest case)
-        juvCompRateFactor = ( 1-np.exp(-b[0]*yEq) )
-        
-    elif ( (b[1] > b[0]) & (d[1] == d[0]) & (c[1] == c[0]) ):
-        # benficial mutation in b (requires jumpfactor adjustment)
-        juvCompRateFactor = (1-np.exp(-b[0]*yEq)) * b[1] / b[0]
-        
-    elif ( (b[1] == b[0]) & (d[1] == d[0]) & (c[1] > c[0]) ):
-        # benefical mutation in c-trait
-        # compute the increment for the competition term
-        cr = c[1]-c[0]
-        
-        if (compFix_option ==  1):
-            # this approximation relies on small cr << 1 (up to c~0.1). Smaller values
-            # of b*yEq will improve the approx due heavier Poisson tails but this approx
-            # is largely drive by cr. Larger cr requires more Z/(Z+cr) terms to be included
-            # 
-            # To get better approximation, compute (1+cr)*E[ Z/(Z+cr) | l_WildType ].
-            # 
-            # Below we include, no competitive advantage term, + 1st order linear expansion,
-            # - minus 2nd order correction of expectation.
-            juvCompRateFactor = ( 1-np.exp(-b[0]*yEq) ) \
-                                   + cr*( 1 - (1+b[0]*yEq)*np.exp(-b[0]*yEq) ) \
-                                   - cr*( (b[0]*yEq)**2*(1+cr)/(2+cr)*np.exp(-b[0]*yEq) )
-                                   
-        elif (compFix_option ==  2):
-            # this calculation is derived from Mathematica's reduction of the infinite series
-            # characterizing the expectation (see appendix of paper).
-            juvCompRateFactor = b[0]*(1+c[1])(1-yEq)*spInt.quad(lambda x: np.exp(-b*(yEq*(1-x)+1/params['T'])*x**cr, 0, 1)
-                                                                
-        elif (compFix_option ==  3):
-            # This attempts to calculate a partial sum approximating the expectation up to 
-            juvCompRateFactor = ( 1-np.exp(-b[0]*yEq) ) \
-                                   + cr*( 1 - (1+b[0]*yEq)*np.exp(-b[0]*yEq) ) \
-                                   - cr*( (b[0]*yEq)**2*(1+cr)/(2+cr)*np.exp(-b[0]*yEq) )
-            
-                               
-    else:
-        return 0
-    
+    # calculate pfix only if the equilibrium density is strictly positive
     if (yEq > 0):
+
+        # determine the type of beneficial mutation 
+        if ( (b[1] == b[0]) & (d[1] < d[0]) & (c[1] == c[0]) ):
+            # benficial mutation in d-trait (no competitive advantage)
+            ProbJuvWins = ( 1-np.exp(-b[0]*yEq) ) / ( b[0]*yEq )
+            
+        elif ( (b[1] > b[0]) & (d[1] == d[0]) & (c[1] == c[0]) ):
+            # benficial mutation in b-trait (no competitive advantage)
+            ProbJuvWins = (1-np.exp(-b[0]*yEq)) / ( b[0]*yEq )
+            
+        elif ( (b[1] == b[0]) & (d[1] == d[0]) & (c[1] > c[0]) ):
+            # benefical mutation in c-trait
+            # compute the increment for the competition term
+            cr = c[1]-c[0]
+            
+            if (compFix_option ==  1):
+                # this approximation relies on small cr << 1 (up to c~0.1). Smaller values
+                # of b*yEq will improve the approx due heavier Poisson tails but this approx
+                # is largely drive by cr. Larger cr requires more Z/(Z+cr) terms to be included
+                # 
+                # To get better approximation, compute (1+cr)*E[ Z/(Z+cr) | l_WildType ].
+                # 
+                # Below we include, no competitive advantage term, + 1st order linear expansion,
+                # - minus 2nd order correction of expectation.
+                ProbJuvWins = ( 1-np.exp(-b[0]*yEq) ) \
+                                       + cr*( 1 - (1+b[0]*yEq)*np.exp(-b[0]*yEq) ) \
+                                       - cr*( (b[0]*yEq)**2*(1+cr)/(2+cr)*np.exp(-b[0]*yEq) )
+                                       
+            elif (compFix_option ==  2):
+                # This expresssion uses the integral version of (1+cr)*E[ Z/(Z+cr) | l_WildType ]
+                # which is derived in the appendix of paper.
+                ProbJuvWins = (1+cr)*((spInt.quad(lambda x: np.exp(-b[0]*yEq*(1-x))*x**cr, 0, 1,epsabs=1e-12,epsrel=1e-12))[0])
+                                   
+        else:
+            return 0
         
         # mutant lineage's rate of acquisition for territories (one mutant adult)
-        lMut_1 = ( (1-yEq)/yEq ) * juvCompRateFactor * np.exp(-b[1]/params['T'])
+        # note: first term gives U * P(Z_x = 1) 
+        lMut_1 = b[1] * (1-yEq) * np.exp(-b[1]/params['T']) * ProbJuvWins
         
         # calculate coefficients of the first step analysis polynomial
         # include coefficients up to kMax order 

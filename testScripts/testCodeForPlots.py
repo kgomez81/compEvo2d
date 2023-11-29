@@ -793,12 +793,17 @@ plt.plot(mcModel.state_i,mcModel.pFix_d_i)
 
 #%%
 
-ii = 0
-jj = 3
+# code to get model grid parameteris
+
+ii = 8
+jj = 6
 mcModels.get_evoParam_grid('Ua',0)[ii,jj]
 mcModels.get_evoParam_grid('cp',1)[ii,jj]
 
-
+ii = 0
+jj = 10
+mcModels.get_evoParam_grid('Ua',0)[ii,jj]
+mcModels.get_evoParam_grid('cp',1)[ii,jj]
 
 #%%
 
@@ -910,3 +915,75 @@ ax1.legend(custom_lines,[ T_vals_strLgd[ii] for ii in T_select],fontsize=14)
 
 # save figure
 plt.tight_layout()
+
+
+#%%
+
+import scipy.integrate as spInt
+import numpy as np
+import matplotlib.pyplot as plt
+
+def calc_juvCompRateFactor(b,cr,yEq,T,compFix_option):
+    # get_pFix_dTrait_FSA() calculates the probability of fixation (pFix) using
+    # the transitions probabilities associated with going from 1 mutant adult to
+    # k mutant adults, and solves for pFix using first step analysis. 
+    # 
+    # get_pFix_FSA() assumes that the mutant lineage arises from a single 
+    # beneficial mutation in the d-trait or c-trait (not both). Additionally,
+    # This function assumes there are only two subpopulations, the wild type
+    # and a second mutant subpopulation consisting of one adult.
+    # 
+    # b - array with birth term
+    # T - Territory size
+    # d - array with death terms
+    # c - array with competition terms
+    # kMax - highest order to use when solving the first step analysis polynomial
+        
+    juvCompRateFactor = 0
+        
+    if (compFix_option ==  1):
+        # this approximation relies on small cr << 1 (up to c~0.1). Smaller values
+        # of b*yEq will improve the approx due heavier Poisson tails but this approx
+        # is largely drive by cr. Larger cr requires more Z/(Z+cr) terms to be included
+        # 
+        # To get better approximation, compute (1+cr)*E[ Z/(Z+cr) | l_WildType ].
+        # 
+        # Below we include, no competitive advantage term, + 1st order linear expansion,
+        # - minus 2nd order correction of expectation.
+        juvCompRateFactor = ( 1-np.exp(-b*yEq) ) \
+                               + cr*( 1 - (1+b*yEq)*np.exp(-b*yEq) ) \
+                               - cr*( (b*yEq)**2*(1+cr)/(2+cr)*np.exp(-b*yEq) )
+                               
+    else:
+        # this calculation is derived from Mathematica's reduction of the infinite series
+        # characterizing the expectation (see appendix of paper).
+        juvCompRateFactor = (1+cr)*((spInt.quad(lambda x: np.exp(-b*(yEq*(1-x)))*x**cr, 0, 1,epsabs=1e-13,epsrel=1e-13))[0])
+        
+
+    return juvCompRateFactor
+
+
+b = 2
+yEq = 0.8
+T = 10**9
+
+cr_vals = [ii*10**-2 for ii in range(11)]
+
+rateFact_1 = [calc_juvCompRateFactor(b,cr_vals[ii],yEq,T,1) for ii in range(len(cr_vals))]
+rateFact_2 = [calc_juvCompRateFactor(b,cr_vals[ii],yEq,T,2) for ii in range(len(cr_vals))]
+
+fig,ax = plt.subplots(1,1,figsize=[7,6])
+ax.plot(cr_vals,rateFact_1,c='blue',linestyle='-.')
+ax.plot(cr_vals,rateFact_2,c='red',linestyle='--')
+
+#%%
+
+
+fig,ax = plt.subplots(1,1,figsize=[7,6])
+ax.plot(mcModels[0].state_i,mcModels[0].pFix_c_i,c='blue',linestyle='-.')
+ax.plot(mcModels[1].state_i,mcModels[1].pFix_c_i,c='red',linestyle='--')
+
+
+#%% 
+
+plt.scatter(mcModel1.eq_yi,mcModel1.sa_i)

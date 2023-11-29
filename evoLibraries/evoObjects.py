@@ -71,7 +71,7 @@ class evoOptions:
         
         elif (self.modelType == 'DRE') and (self.absFitType == 'bEvo'):
             
-            self.paramList = ['T','d','bMax','sa_0','Ua','UaDel','cp','Uc','UcDel','R','se','iMax'] 
+            self.paramList = ['T','d','bMax','sa_0','Ua','UaDel','cp','Uc','UcDel','R','se','iMax','alpha','DreMod'] 
         
         # save the number of parameters
         nParams = len(self.paramList)

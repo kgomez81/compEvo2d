@@ -89,8 +89,8 @@ for ii in range(len(mcModels)):
 
 # equilibrium states and equilibrium rates of adaptation
 idx = [mcModels[ii].get_mc_stable_state_idx() for ii in range(len(mcModels))]
-iEq = np.asarray([mcModels[ii].state_i[idx[ii]-1] for ii in range(len(mcModels))])
-vEq = np.asarray([mcModels[ii].va_i[idx[ii]-1] for ii in range(len(mcModels))])
+iEq = np.asarray([mcModels[ii].state_i[idx[ii]] for ii in range(len(mcModels))])
+vEq = np.asarray([mcModels[ii].va_i[idx[ii]] for ii in range(len(mcModels))])
 
 for ii in range(len(mcModels)):
     ax1.scatter(iEq[ii],vEq[ii]*scaleFactor,marker="o",s=40,c="black")
@@ -102,20 +102,22 @@ for ii in range(len(mcModels)):
 # ax1.set_xlim(0,1)
 xTickMax = int(mcModels[0].get_iMax()/25+1)
 
-xBack = 3
 # ax1.set_xlim(50,25*(xTickMax-1-xBack))    
-ax1.set_xticks([25*i for i in range(2,xTickMax-xBack)])
-ax1.set_xticklabels([str(25*i) for i in range(2,xTickMax-xBack)],fontsize=16)
-ax1.set_yticks([0.2*i for i in range(0,7)])
-ax1.set_yticklabels([str(2*i/10.0) for i in range(0,7)],fontsize=16)
-ax1.set_ylim(0,1.4)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
-ax1.set_xlabel(r'Absolute Fitness Class',fontsize=20,labelpad=8)
+ax1.set_xticks([10*i for i in range(13,16)])
+ax1.set_xticklabels([str(10*i) for i in range(13,16)],fontsize=16)
+ax1.set_xlim(130,150)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
+ax1.set_yticks([0.1*i for i in range(0,6)])
+ax1.set_yticklabels([str(1*i/10.0) for i in range(0,6)],fontsize=16)
+ax1.set_ylim(0,0.4)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
+# ax1.set_xlabel(r'Absolute Fitness Class',fontsize=20,labelpad=8)
 ax1.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 
-arrwLngth1 = 4
-arrwOffset = -2
+arrwLngth1 = 2
+arrwOffset = 0
 vScale = 0.1
 ax1.annotate("", xy=(iEq[0]-arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), xytext=(iEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor),arrowprops={'arrowstyle':'->','lw':2})
+
+ax1.text(130.5,0.37,r'(A)', fontsize = 22)            
 
 custom_lines = [Line2D([0], [0], color=myColors[ii], lw=2) for ii in range(len(mcModels))]
 ax1.legend(custom_lines,[ T_vals_strLgd[ii] for ii in T_select],fontsize=14)

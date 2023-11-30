@@ -795,13 +795,13 @@ plt.plot(mcModel.state_i,mcModel.pFix_d_i)
 
 # code to get model grid parameteris
 
-ii = 8
-jj = 6
+ii = 7
+jj = 3
 mcModels.get_evoParam_grid('Ua',0)[ii,jj]
 mcModels.get_evoParam_grid('cp',1)[ii,jj]
 
 ii = 0
-jj = 10
+jj = 1
 mcModels.get_evoParam_grid('Ua',0)[ii,jj]
 mcModels.get_evoParam_grid('cp',1)[ii,jj]
 

@@ -184,13 +184,19 @@ class mcEvoModel_DRE(mc.mcEvoModel):
                     # ----------------------------------------
                     # Select DRE Model (b-increment scheme)
                     # ----------------------------------------
+                    
+                    # first model just scales the increments by an alpha parameter
                     if (DreMod == 1):
-                        delta_b = ii*self.params['d']*(self.params['d']-1)*self.params['sa_0']
                         
+                        delta_b = (dreFactor/(1-dreFactor))*ii*self.params['d']*(self.params['d']-1)*self.params['sa_0']
+                        
+                    # second model uses an initial sa that is scaled down by alpha
                     if (DreMod == 2):
+                        
                         # calculate next increment but check for valid inputs
                         temp_sa_i = self.params['sa_0']*dreFactor/(dreFactor+(1-dreFactor)*ii) #dreFactor/(dreFactor+(1-dreFactor)*np.log(ii))
                         temp_calc = 1-temp_sa_i*di[-1]*(di[-1]-1)*eq_yi[-1]/(1-di[-1]*eq_yi[-1])
+                        
                         if (temp_calc < 1) and (temp_calc > 0):
                             delta_b = -(1/eq_yi[-1])*np.log(temp_calc)
                         else:

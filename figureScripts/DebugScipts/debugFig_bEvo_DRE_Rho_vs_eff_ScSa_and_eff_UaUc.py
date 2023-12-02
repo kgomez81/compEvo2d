@@ -106,7 +106,7 @@ zRange = np.max(np.abs(z-1))
 ii=0
 jj=1
 
-figSelect = 1
+figSelect = 2
 
 mcTestEvoOptions = mcModels.get_params_ij(ii,jj)
 mcTestModel = mcDRE.mcEvoModel_DRE(mcTestEvoOptions)
@@ -190,6 +190,9 @@ if figSelect == 2:
     ax11.scatter(mcTestModel.bi,mcTestModel.vc_i,label='vc')
     ax11.set_xlabel('b_i')
     ax11.set_ylabel('RoA (v)')
+    ymax = max([max(mcTestModel.va_i),max(mcTestModel.vc_i)])
+    params_stable_state = mcTestModel.get_stable_state_evo_parameters()
+    ax11.text(0,0.75*ymax,mcTestModel.calculate_evoRho(), fontsize = 22)
     ax11.legend()
     ax21.scatter(mcTestModel.bi,mcTestModel.evoRegime_a_i,label='reg_a')
     ax21.scatter(mcTestModel.bi,mcTestModel.evoRegime_c_i,label='reg_c')

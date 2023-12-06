@@ -116,8 +116,8 @@ xMax = int(np.ceil(max(x))+1)
 yMin = int(np.floor(min(y)))
 yMax = int(np.ceil(max(y))+1)
 
-ax1.set_xticks([ii for ii in range(xMin,xMax)])
-ax1.set_xticklabels([str(ii) for ii in range(xMin,xMax)],fontsize=22)
+ax1.set_xticks([0.5*ii for ii in range(xMin-1,xMax+1)])
+ax1.set_xticklabels([str(0.5*ii) for ii in range(xMin-1,xMax+1)],fontsize=22)
 
 ax1.set_yticks([ii for ii in range(yMin,yMax)])
 ax1.set_yticklabels([str(ii) for ii in range(yMin,yMax)],fontsize=22)

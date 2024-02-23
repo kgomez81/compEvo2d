@@ -145,66 +145,54 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             # limit of eq 13 in app C with b->infinity
             minSelCoeff_c = 0.01*self.params['cp']/self.params['d']
             
-            DreMod    = self.params['DreMod']
-            dreFactor = self.params['alpha']
-            
             # fix the increment size scale with the selection coefficient for the
             # first b-increase from extinction. Also set bMax value from parameters
-            delta_b = self.params['d']*(self.params['d']-1)*self.params['sa_0']
-            bMax    = self.params['bMax']
-            
             bCrnt           = (self.params['d']-1)*self.params['T'] / (self.params['T']-1)
-            bNext           = bCrnt + delta_b
             yCrnt           = 1/self.params['T']
-            yNext           = lmFun.get_eqPopDensity(bNext,self.params['d'],yi_option)
-            selCoeff_b_ii   = lmFun.get_b_SelectionCoeff(bCrnt,bNext,yCrnt,self.params['d'])
             
+            # calculate next terms so we can get sbi for current state            
+            delta_b = self.params['d']*(self.params['d']-1)*self.params['sa_0']
+            
+            bNext           = bCrnt + delta_b
+            yNext           = lmFun.get_eqPopDensity(bNext,self.params['d'],yi_option)
+            
+            selCoeff_bNext  = lmFun.get_b_SelectionCoeff(bCrnt,bNext,yCrnt,self.params['d'])
+            
+            # add first terms to the set of arrays
             bi    = [ bCrnt                 ]
             di    = [ self.params['d']      ]
             eq_yi = [ yCrnt                 ]  # choose min equil pop density
-            sa_i  = [ self.params['sa_0']     ]
+            sa_i  = [ self.params['sa_0']   ]
             
             while (getNext_bi):
                 
-                # update bCrnt, bNext and selCoeff to check if add new state
+                # update bCrnt, yCrnt
                 bCrnt           = bNext
-                bNext           = bNext + delta_b
-                yCrnt           = yNext 
-                yNext           = lmFun.get_eqPopDensity(bCrnt,di[-1],yi_option)
-                selCoeff_b_ii   = lmFun.get_b_SelectionCoeff(bCrnt,bNext,yCrnt,self.params['d'])
+                yCrnt           = yNext
                 
-                if (bi[-1] < bMax) and (selCoeff_b_ii > minSelCoeff_b) and (self.params['iMax'] > ii):
+                # get next b and y term
+                delta_b = self.get_next_delta_b(self.params['sa_0'], self.params['d'], \
+                                                self.params['alpha'], ii, self.params['DreMod'])
+                
+                bNext           = bNext + delta_b
+                yNext           = lmFun.get_eqPopDensity(bCrnt,di[-1],yi_option)
+                
+                selCoeff_bNext  = lmFun.get_b_SelectionCoeff(bCrnt,bNext,yCrnt,self.params['d'])
+                
+                # check if we should add the current b and y to the list
+                # - is the next b-term larger than the max b value? Stop if so.
+                # - is the selection coefficient smaller than the min sb? Stop if so.
+                # - is the state count larger than the max number of states allowed? stop if so
+                if (bi[-1] < self.params['bMax']) and (selCoeff_bNext > minSelCoeff_b) and (self.params['iMax'] > ii):
                     # set next elements of state space
                     bi    = bi    + [ bCrnt             ]
                     di    = di    + [ self.params['d']  ]
                     eq_yi = eq_yi + [ yCrnt             ]  # next equil. pop density
-                    sa_i  = sa_i  + [ selCoeff_b_ii     ]
+                    sa_i  = sa_i  + [ selCoeff_bNext    ]
                     ii    = ii    + 1
                     
-                    # ----------------------------------------
-                    # Select DRE Model (b-increment scheme)
-                    # ----------------------------------------
-                    
-                    # first model just scales the increments by an alpha parameter
-                    if (DreMod == 1):
-                        
-                        delta_b = (dreFactor/(1-dreFactor))*ii*self.params['d']*(self.params['d']-1)*self.params['sa_0']
-                        
-                    # second model uses an initial sa that is scaled down by alpha
-                    if (DreMod == 2):
-                        
-                        # calculate next increment but check for valid inputs
-                        temp_sa_i = self.params['sa_0']*dreFactor/(dreFactor+(1-dreFactor)*ii) #dreFactor/(dreFactor+(1-dreFactor)*np.log(ii))
-                        temp_calc = 1-temp_sa_i*di[-1]*(di[-1]-1)*eq_yi[-1]/(1-di[-1]*eq_yi[-1])
-                        
-                        if (temp_calc < 1) and (temp_calc > 0):
-                            delta_b = -(1/eq_yi[-1])*np.log(temp_calc)
-                        else:
-                            temp_sa_i = 0.5*(1-di[-1]*eq_yi[-1])/(di[-1]*(di[-1]-1)*eq_yi[-1])
-                            temp_calc = 1-temp_sa_i*di[-1]*(di[-1]-1)*eq_yi[-1]/(1-di[-1]*eq_yi[-1])
-                            delta_b   = -(1/eq_yi[-1])*np.log(temp_calc)
-                    
                 else:
+                    # else break loop
                     getNext_bi = False
         
         # set the di, bi, and eq_yi arrays. Note that there is no need to 
@@ -433,5 +421,46 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             Fjj = (st.logser.cdf(jj+jjStart,alpha)-st.logser.cdf(jjStart,alpha))/(1-st.logser.cdf(jjStart,alpha)) 
         
         return Fjj
+    
+    #------------------------------------------------------------------------------
+    
+    def get_next_delta_b(self,yCrnt,sb0,d,alpha,ii,DreMod):
+        # get_next_deltab calculates the appropriate delta b to generate a b
+        # sequence whose selection coeff have near geometric decay:
+        #
+
+        # ----------------------------------------
+        # Select DRE Model (b-increment scheme)
+        # ----------------------------------------
+        
+        if (DreMod == 1):
+            # first model just scales the increments by an alpha parameter    
+            delta_b = (alpha/(1-alpha))*ii*d *(d-1)*sb0
+            
+        # second model uses an initial sa that is scaled down by alpha
+        elif (DreMod == 2):
+            
+            # calculate next increment but check for valid inputs
+            # by choosing an increment that inverts the exponential in the 
+            # b-sel coeff formula, but need to check that log of that value
+            # does exist.
+            
+            temp_sa_i = sb0*alpha/(alpha+(1-alpha)*ii)              #alpha/(alpha+(1-alpha)*np.log(ii))
+            
+            temp_calc = 1 - temp_sa_i * (d*(d-1)*yCrnt/(1-d*yCrnt)) # will cancel out with factor
+            
+            if (temp_calc < 1) and (temp_calc > 0):
+                delta_b = -(1/yCrnt)*np.log(temp_calc)
+            
+            else:
+                temp_sa_i = 0.5*(1-d*yCrnt)/(d*(d-1)*yCrnt)
+                temp_calc = 1-temp_sa_i*d*(d-1)*yCrnt/(1-d*yCrnt)
+                
+                delta_b   = -(1/yCrnt)*np.log(temp_calc)
+        else:
+            # use the geometric decay model
+            delta_b = (1/yCrnt)*np.log(1/(1-sb0*d*alpha**ii))
+        
+        return delta_b
     
     #------------------------------------------------------------------------------

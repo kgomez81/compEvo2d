@@ -104,7 +104,7 @@ zRange = np.max(np.abs(z-1))
 # jj=6
 
 ii=8
-jj=10
+jj=5
 
 figSelect = 2
 
@@ -229,7 +229,8 @@ if figSelect == 2:
     
     ax24.scatter(mcTestModel.sa_i,mcTestModel.pFix_a_i,label='pfix_a vs sa')
     ax24.scatter(mcTestModel.sc_i,mcTestModel.pFix_c_i,label='pFix_c vs sc')
-    ax24.plot([0,max([max(mcTestModel.sa_i),max(mcTestModel.sc_i)])],[0,max([max(mcTestModel.pFix_a_i),max(mcTestModel.pFix_c_i)])],c='black',label='y=x')
+    ax24.plot([0,max([max(mcTestModel.sa_i),max(mcTestModel.sc_i)])],[0,max([max(mcTestModel.sa_i),max(mcTestModel.sc_i)])],c='black',label='y=x')
     ax24.set_xlabel('selection coeff')
     ax24.set_ylabel('pFix')
+    ax24.set_ylim([0,max(mcTestModel.sc_i)])
     ax24.legend()

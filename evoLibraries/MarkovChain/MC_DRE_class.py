@@ -171,7 +171,8 @@ class mcEvoModel_DRE(mc.mcEvoModel):
                 yCrnt           = yNext
                 
                 # get next b and y term
-                delta_b = self.get_next_delta_b(self.params['sa_0'], self.params['d'], \
+                delta_b = self.get_next_delta_b(yCrnt, self.params['sa_0'], \
+                                                bCrnt, self.params['d'], \
                                                 self.params['alpha'], ii, self.params['DreMod'])
                 
                 bNext           = bNext + delta_b
@@ -181,9 +182,15 @@ class mcEvoModel_DRE(mc.mcEvoModel):
                 
                 # check if we should add the current b and y to the list
                 # - is the next b-term larger than the max b value? Stop if so.
+                cond1 = (bi[-1] < self.params['bMax'])
                 # - is the selection coefficient smaller than the min sb? Stop if so.
+                cond2 = (selCoeff_bNext > minSelCoeff_b)
+                # - is the has the density achieved maximum size? stop if so
+                cond3 = (yCrnt < 1/self.params['d']-1/self.params['T'])
                 # - is the state count larger than the max number of states allowed? stop if so
-                if (bi[-1] < self.params['bMax']) and (selCoeff_bNext > minSelCoeff_b) and (self.params['iMax'] > ii):
+                cond4 = (self.params['iMax'] > ii)
+                
+                if cond1 and cond2 and cond3 and cond4:
                     # set next elements of state space
                     bi    = bi    + [ bCrnt             ]
                     di    = di    + [ self.params['d']  ]
@@ -424,7 +431,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
     
     #------------------------------------------------------------------------------
     
-    def get_next_delta_b(self,yCrnt,sb0,d,alpha,ii,DreMod):
+    def get_next_delta_b(self,yCrnt,sb0,b,d,alpha,ii,DreMod):
         # get_next_deltab calculates the appropriate delta b to generate a b
         # sequence whose selection coeff have near geometric decay:
         #
@@ -438,28 +445,40 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             delta_b = (alpha/(1-alpha))*ii*d *(d-1)*sb0
             
         # second model uses an initial sa that is scaled down by alpha
-        elif (DreMod == 2):
+        else:
             
             # calculate next increment but check for valid inputs
             # by choosing an increment that inverts the exponential in the 
             # b-sel coeff formula, but need to check that log of that value
             # does exist.
             
-            temp_sa_i = sb0*alpha/(alpha+(1-alpha)*ii)              #alpha/(alpha+(1-alpha)*np.log(ii))
+            densityFactor   = (d-1)*d*yCrnt/(1-d*yCrnt) 
             
-            temp_calc = 1 - temp_sa_i * (d*(d-1)*yCrnt/(1-d*yCrnt)) # will cancel out with factor
             
-            if (temp_calc < 1) and (temp_calc > 0):
-                delta_b = -(1/yCrnt)*np.log(temp_calc)
+            # NOTE: the calculation above works if |sb0 * alpha**ii *densityFactor| < 1
+            # but densityFactor -> infty as yCrnt approaches 1/d. 
+            # 
+            # A high gamma (yCrnt) approximation for densityFact = d(exp(b/d)-1)
+            # which goes to infinity as b -> infty. So can write
+            #
+            #    densityFactor ~ alpha**{ ( log(d) + (b/d) )/log(alpha) }
+            # 
+            # so we need:      ii + { ( log(d) + (b/d) )/log(alpha) } > 0
+            #
+            # To fix the potential issue, are forced to pick ii sufficiently large.
+            
+            if ( np.abs(sb0 * alpha**ii * densityFactor) < 1 ):
+                # check if density factor is good
+                sa_logFactor    = 1 / (1 - sb0 * alpha**ii * densityFactor)             
             
             else:
-                temp_sa_i = 0.5*(1-d*yCrnt)/(d*(d-1)*yCrnt)
-                temp_calc = 1-temp_sa_i*d*(d-1)*yCrnt/(1-d*yCrnt)
+                # if densityFactor too large then use adjusted value, use 
+                # an additional factor to strengthen the DRE effect.
+                iiIncr = np.ceil( 1.5 * np.abs(ii +  ( np.log(d) + (b/d) )/np.log(alpha) ) )
                 
-                delta_b   = -(1/yCrnt)*np.log(temp_calc)
-        else:
-            # use the geometric decay model
-            delta_b = (1/yCrnt)*np.log(1/(1-sb0*d*alpha**ii))
+                sa_logFactor    = 1 / (1 - sb0 * alpha**(ii+iiIncr) * densityFactor)
+                
+            delta_b = (1/yCrnt)*np.log(sa_logFactor)
         
         return delta_b
     

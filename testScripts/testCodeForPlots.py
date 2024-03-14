@@ -987,3 +987,15 @@ ax.plot(mcModels[1].state_i,mcModels[1].pFix_c_i,c='red',linestyle='--')
 #%% 
 
 plt.scatter(mcModel1.eq_yi,mcModel1.sa_i)
+
+
+paramFilePath1 = os.getcwd()+'/inputs/evoExp_DRE_bEvo_01_parameters.csv'
+modelType = 'DRE'
+absFitType = 'bEvo'
+
+mcParams1 = evoObj.evoOptions(paramFilePath1, modelType, absFitType)
+mcModel1 = mcDRE.mcEvoModel_DRE(mcParams1)
+
+plt.scatter(mcModel1.state_i,mcModel1.bi)
+plt.scatter(mcModel1.state_i,mcModel1.sa_i)
+plt.scatter(mcModel1.state_i,mcModel1.eq_yi)

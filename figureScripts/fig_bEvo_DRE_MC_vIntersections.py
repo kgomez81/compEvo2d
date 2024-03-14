@@ -71,31 +71,31 @@ ax1.scatter(mcModel1.state_i, \
 
 # axes and label adjustements
 iMax = mcModel1.get_iMax()
-ax1.set_xlim(0,iMax)
-ax1.set_ylim(0,1.5e-4)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
+ax1.set_xlim(2,iMax)
+ax1.set_ylim(0,0.31e-4)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
 
 xTickMax = int(iMax/50+1)
-ax1.set_xticks([50*i for i in range(0,xTickMax)])
-ax1.set_xticklabels(["" for i in range(0,xTickMax)],fontsize=16)
+ax1.set_xticks([50*i for i in range(1,xTickMax)])
+ax1.set_xticklabels(["" for i in range(1,xTickMax)],fontsize=16)
 
-ax1.set_yticks([5e-5*i for i in range(0,4)])
-ax1.set_yticklabels([str(5*i/10.0) for i in range(0,4)],fontsize=16)
+ax1.set_yticks([1e-5*i for i in range(0,4)])
+ax1.set_yticklabels([str(1*i/10.0) for i in range(0,4)],fontsize=16)
 
 #ax1.set_xlabel(r'Absolute fitness class',fontsize=20,labelpad=8)
 ax1.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 # ax1.legend(fontsize = 20,ncol=1,loc='lower right')
 
 # annotations
-iEq1 = 71
-vEq1 = 0.75e-4
-arrwLngth1 = 30
+iEq1 = 59
+vEq1 = 0.14e-4
+arrwLngth1 = 25
 ax1.plot([iEq1,iEq1],[0,vEq1],c="black",linewidth=2,linestyle='--')
-ax1.annotate("", xy=(iEq1,5.0e-5), xytext=(iEq1-arrwLngth1,5.0e-5),arrowprops={'arrowstyle':'-|>','lw':4,'color':'blue'})
-ax1.annotate("", xy=(iEq1,5.0e-5), xytext=(iEq1+arrwLngth1,5.0e-5),arrowprops={'arrowstyle':'-|>','lw':4})
+ax1.annotate("", xy=(iEq1,0.5*vEq1), xytext=(iEq1-arrwLngth1,0.5*vEq1),arrowprops={'arrowstyle':'-|>','lw':4,'color':'blue'})
+ax1.annotate("", xy=(iEq1,0.5*vEq1), xytext=(iEq1+arrwLngth1,0.5*vEq1),arrowprops={'arrowstyle':'-|>','lw':4})
 #plt.text(iEq1,3.29e-4,r'$x^*=71$',fontsize = 18)
 #plt.text(-84,3.10e-4,r'$i_{ext}=180$',fontsize = 18)
 #plt.text(-190,5.50e-4,r'$\times 10^{-4}$', fontsize = 20)
-ax1.text(8,1.39e-4,r'(A)', fontsize = 22)            
+ax1.text(15,0.29e-4,r'(A)', fontsize = 22)            
 
 # --------------------------------------------------------------------------
 #                               Figure - Panel (B)
@@ -109,31 +109,31 @@ ax2.scatter(mcModel2.state_i, \
 
 # axes and label adjustements
 iMax = mcModel2.get_iMax()
-ax2.set_xlim(0,iMax)
-ax2.set_ylim(0,1.5e-4)       # 1.5*max([max(va_i),max(vr_i)])
+ax2.set_xlim(2,iMax)
+ax2.set_ylim(0,0.31e-4)       # 1.5*max([max(va_i),max(vr_i)])
 
 xTickMax = int(iMax/50+1)
-ax2.set_xticks([50*i for i in range(0,xTickMax)])
-ax2.set_xticklabels([str(50*i) for i in range(0,xTickMax)],fontsize=16)
+ax2.set_xticks([50*i for i in range(1,xTickMax)])
+ax2.set_xticklabels([str(50*i) for i in range(1,xTickMax)],fontsize=16)
 
-ax2.set_yticks([5e-5*i for i in range(0,4)])
-ax2.set_yticklabels([str(5*i/10.0) for i in range(0,4)],fontsize=16)
+ax2.set_yticks([1e-5*i for i in range(0,4)])
+ax2.set_yticklabels([str(1*i/10.0) for i in range(0,4)],fontsize=16)
 
 ax2.set_xlabel(r'Absolute fitness class',fontsize=20,labelpad=8)
 ax2.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
-ax2.legend(fontsize = 20,ncol=1,loc='right')
+ax2.legend(fontsize = 20,ncol=1,loc='upper right')
 
 ## annotations
-iEq2 = 87
-vEq2 = 4.6e-5
-arrwLngth2 = 30
+iEq2 = 103
+vEq2 = 0.66e-5
+arrwLngth2 = 25
 ax2.plot([iEq2,iEq2],[0,vEq2],c="black",linewidth=2,linestyle='--')
-ax2.annotate("", xy=(iEq2,3.3e-5), xytext=(iEq2-0.6*arrwLngth2,3.3e-5),arrowprops={'arrowstyle':'-|>','lw':3,'color':'blue'})
-ax2.annotate("", xy=(iEq2,2.5e-5), xytext=(iEq2-arrwLngth2,2.5e-5),arrowprops={'arrowstyle':'-|>','lw':4,'color':'red'})
+ax2.annotate("", xy=(iEq2,0.75*vEq2), xytext=(iEq2-0.6*arrwLngth2,0.75*vEq2),arrowprops={'arrowstyle':'-|>','lw':3,'color':'blue'})
+ax2.annotate("", xy=(iEq2,0.5*vEq2), xytext=(iEq2-arrwLngth2,0.5*vEq2),arrowprops={'arrowstyle':'-|>','lw':4,'color':'red'})
 #plt.text(-78,0.29e-4,r'$i^*=84$',fontsize = 18)
 #plt.text(-78,0.10e-4,r'$i_{ext}=180$',fontsize = 18)
 #plt.text(-190,2.58e-4,r'$\times 10^{-4}$', fontsize = 20)
-ax2.text(8,1.39e-4,r'(B)', fontsize = 22)
+ax2.text(15,0.29e-4,r'(B)', fontsize = 22)
 
 # diEqStr1 = "%.3f" % (mcModel1.di[iEq1])
 # plt.text(120,1.2e-4,'d1*='+diEqStr1,fontsize = 11)

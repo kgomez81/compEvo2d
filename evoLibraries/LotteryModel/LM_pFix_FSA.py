@@ -49,8 +49,8 @@ def calc_pFix_FSA(params,b,d,c,kMax):
     # This function assumes there are only two subpopulations, the wild type
     # and a second mutant subpopulation consisting of one adult.
     # 
+    # params - dictionary with evo model parameters
     # b - array with birth term
-    # T - Territory size
     # d - array with death terms
     # c - array with competition terms
     # kMax - highest order to use when solving the first step analysis polynomial
@@ -116,7 +116,7 @@ def calc_pFix_FSA(params,b,d,c,kMax):
         polynomialFSA = Polynomial(coeffFSA) 
         
         # find root of FSA poly to get probability of extinction 
-        pExt = opt.broyden1(polynomialFSA,[0.1], f_tol=1e-14)
+        pExt = opt.broyden1(polynomialFSA,[0.1], f_tol=1e-14)[0]
         
         # calculate pFix 
         pFix = 1-pExt

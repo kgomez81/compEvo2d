@@ -103,8 +103,8 @@ zRange = np.max(np.abs(z-1))
 # ii=8
 # jj=6
 
-ii=8
-jj=5
+ii=7
+jj=3
 
 figSelect = 2
 

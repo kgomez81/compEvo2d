@@ -95,7 +95,8 @@ ax1.annotate("", xy=(iEq1,0.5*vEq1), xytext=(iEq1+arrwLngth1,0.5*vEq1),arrowprop
 #plt.text(iEq1,3.29e-4,r'$x^*=71$',fontsize = 18)
 #plt.text(-84,3.10e-4,r'$i_{ext}=180$',fontsize = 18)
 #plt.text(-190,5.50e-4,r'$\times 10^{-4}$', fontsize = 20)
-ax1.text(15,0.29e-4,r'(A)', fontsize = 22)            
+ax1.text(15,0.29e-4,r'(A)', fontsize = 22) 
+ax1.legend(fontsize = 20,ncol=1,loc='upper right')           
 
 # --------------------------------------------------------------------------
 #                               Figure - Panel (B)
@@ -121,7 +122,6 @@ ax2.set_yticklabels([str(1*i/10.0) for i in range(0,4)],fontsize=16)
 
 ax2.set_xlabel(r'Absolute fitness class',fontsize=20,labelpad=8)
 ax2.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
-ax2.legend(fontsize = 20,ncol=1,loc='upper right')
 
 ## annotations
 iEq2 = 103

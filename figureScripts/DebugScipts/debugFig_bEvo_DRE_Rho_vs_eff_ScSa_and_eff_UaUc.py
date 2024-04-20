@@ -17,9 +17,8 @@ import os
 import sys
 sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
 
-from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_array_class as mcArry
-from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
+# from evoLibraries.MarkovChain import MC_functions as mcFun
 
 def getScatterData(X,Y,Z):
     
@@ -51,7 +50,7 @@ def getScatterData(X,Y,Z):
 # --------------------------------------------------------------------------
 
 # The parameter file is read and a dictionary with their values is generated.
-paramFilePath = os.getcwd()+'\../inputs/evoExp_DRE_bEvo_06_parameters.csv'
+paramFilePath = os.getcwd()+'/inputs/evoExp_DRE_bEvo_06_parameters.csv'
 modelType = 'DRE'
 absFitType = 'bEvo'
 
@@ -103,8 +102,8 @@ zRange = np.max(np.abs(z-1))
 # ii=8
 # jj=6
 
-ii=7
-jj=3
+ii=9
+jj=10
 
 figSelect = 2
 

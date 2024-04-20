@@ -441,44 +441,12 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # ----------------------------------------
         
         if (DreMod == 1):
-            # first model just scales the increments by an alpha parameter    
-            delta_b = (alpha/(1-alpha))*ii*d *(d-1)*sb0
-            
-        # second model uses an initial sa that is scaled down by alpha
+            # ignore geom. decay model, and just use sb0
+            delta_b = d * b * sb0 
         else:
+            # DRE model with alpha
+            delta_b = d * b * (sb0 * alpha**ii)
             
-            # calculate next increment but check for valid inputs
-            # by choosing an increment that inverts the exponential in the 
-            # b-sel coeff formula, but need to check that log of that value
-            # does exist.
-            
-            densityFactor   = (d-1)*d*yCrnt/(1-d*yCrnt) 
-            
-            
-            # NOTE: the calculation above works if |sb0 * alpha**ii *densityFactor| < 1
-            # but densityFactor -> infty as yCrnt approaches 1/d. 
-            # 
-            # A high gamma (yCrnt) approximation for densityFact = d(exp(b/d)-1)
-            # which goes to infinity as b -> infty. So can write
-            #
-            #    densityFactor ~ alpha**{ ( log(d) + (b/d) )/log(alpha) }
-            # 
-            # so we need:      ii + { ( log(d) + (b/d) )/log(alpha) } > 0
-            #
-            # To fix the potential issue, are forced to pick ii sufficiently large.
-            
-            if ( np.abs(sb0 * alpha**ii * densityFactor) < 1 ):
-                # check if density factor is good
-                sa_logFactor    = 1 / (1 - sb0 * alpha**ii * densityFactor)             
-            
-            else:
-                # if densityFactor too large then use adjusted value, use 
-                # an additional factor to strengthen the DRE effect.
-                iiIncr = np.ceil( 1.5 * np.abs(ii +  ( np.log(d) + (b/d) )/np.log(alpha) ) )
-                
-                sa_logFactor    = 1 / (1 - sb0 * alpha**(ii+iiIncr) * densityFactor)
-                
-            delta_b = (1/yCrnt)*np.log(sa_logFactor)
         
         return delta_b
     

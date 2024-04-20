@@ -235,16 +235,15 @@ def get_b_SelectionCoeff(bWt,bMt,y,d):
     del_b = bMt-bWt
     
     # rate of frequency increase per time iteration
-    # r_abs = (1-y)*(1-np.exp(-del_b*y))/(np.exp(bWt*y)-(1-y))
-    r_abs = ((1-d*y)/(d*y))*(1-np.exp(-del_b*y))
+    r_abs = (d-1)*del_b/(bWt*d)
     
     # get time-scale of a generation
     tau = get_iterationsPerGenotypeGeneration(d)
     
     # re-scale time to get rate of increase in frequency per generation
-    sd = r_abs * tau
+    sb = r_abs * tau
     
-    return sd
+    return sb
 
 #------------------------------------------------------------------------------
     

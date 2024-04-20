@@ -40,7 +40,7 @@ from matplotlib.lines import Line2D
 # given in the csv file.
 #
 # T   = 1e9          # carrying capacity
-# b   = 2.0          # birth rate
+# b   = 2.0          # eq_yirth rate
 # do  = 100/98.0     # minimum death rate / death rate of optimal genotype
 # sa  = 1e-2         # selection coefficient of beneficial mutation in 
 # Ua  = 1e-5         # max beneficial mutation rate in trait "d"
@@ -79,31 +79,35 @@ for ii in T_select:
     
 # some basic paramters for plotting and annotations
 scaleFactor     = 1e2
-arrwLngth1      = 1
+arrwLngth1      = 0.005  
 arrwOffset      = 0
 vScale          = 0.1
-xlow            = 26
-xhigh           = 34
+xlow            = 0.76
+xhigh           = 0.8
+vMaxFact        = 1.5
+bOffset         = [0.00,0.00]
 
 for ii in range(len(mcModels)):
-    ax1.plot(mcModels[ii].state_i,mcModels[ii].va_i*scaleFactor,color=myColors[ii],linewidth=2,label=T_vals_strVd[ii])
-    ax1.plot(mcModels[ii].state_i,mcModels[ii].vc_i*scaleFactor,'-.',color=myColors[ii],linewidth=2,label=T_vals_strVc[ii])
+    ax1.plot(mcModels[ii].eq_yi,mcModels[ii].va_i*scaleFactor,color=myColors[ii],linewidth=2,label=T_vals_strVd[ii])
+    ax1.plot(mcModels[ii].eq_yi,mcModels[ii].vc_i*scaleFactor,'-.',color=myColors[ii],linewidth=2,label=T_vals_strVc[ii])
 
 # equilibrium states and equilibrium rates of adaptation
-idx = [mcModels[ii].get_mc_stable_state_idx() for ii in range(len(mcModels))]
-iEq = np.asarray([mcModels[ii].state_i[idx[ii]]-1 for ii in range(len(mcModels))])
+idx = [mcModels[ii].get_mc_stable_state_idx()-1 for ii in range(len(mcModels))]
+bEq = np.asarray([mcModels[ii].eq_yi[idx[ii]]+bOffset[ii] for ii in range(len(mcModels))])
 vEq = np.asarray([mcModels[ii].va_i[idx[ii]] for ii in range(len(mcModels))])
 
 for ii in range(len(mcModels)):
-    ax1.scatter(iEq[ii],vEq[ii]*scaleFactor,marker="o",s=40,c="black")
-
+    ax1.scatter(bEq[ii],vEq[ii]*scaleFactor,marker="o",s=40,c="black")
+    
+        
 for ii in range(len(mcModels)):
-    ax1.plot([iEq[ii],iEq[ii]],[0,vEq[ii]*scaleFactor],c="black",linewidth=1,linestyle=':')
+    ax1.plot([bEq[ii],bEq[ii]],[0,vEq[ii]*scaleFactor],c="black",linewidth=1,linestyle=':')
 
-xTickVals = [ii for ii in range(xlow,xhigh+1)]
-xTickLbls = [str(ii) for ii in range(xlow,xhigh+1)]
-yTickVals = [np.round(0.2*ii,1) for ii in range(9)]
-yTickLbls = [str(np.round(0.2*ii,1)) for ii in range(9)]
+
+xTickVals = [i/100 for i in range(int(xlow*100),int(xhigh*100+1))]
+xTickLbls = [str(i/100) for i in range(int(xlow*100),int(xhigh*100+1))]
+yTickVals = [np.round(0.2*ii,1) for ii in range(7)]
+yTickLbls = [str(np.round(0.2*ii,1)) for ii in range(7)]
 
 # axes and label adjustements
 ax1.set_xticks(xTickVals)
@@ -111,17 +115,14 @@ ax1.set_xticklabels(xTickLbls,fontsize=16)
 ax1.set_xlim(xlow,xhigh)    
 
 # no yticks needed
-ax1.set_ylim(0,2*max(vEq)*scaleFactor)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
-
-
 ax1.set_yticks(yTickVals)
 ax1.set_yticklabels(yTickLbls,fontsize=16)
+ax1.set_ylim(0,vMaxFact*max(vEq)*scaleFactor)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
 
 ax1.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 
-
-ax1.annotate("", xy=(iEq[0]-arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), xytext=(iEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor),arrowprops={'arrowstyle':'->','lw':2})
-ax1.text(xlow+0.02*(xhigh-xlow),1.9*max(vEq)*scaleFactor,r'(A)', fontsize = 22)            
+ax1.annotate("", xy=(bEq[0]-arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), xytext=(bEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor),arrowprops={'arrowstyle':'->','lw':2})
+ax1.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.95*max(vEq)*scaleFactor,r'(A)', fontsize = 22)            
 
 # custom legend
 custom_lines = [Line2D([0], [0], color=myColors[ii], lw=2) for ii in range(len(mcModels))]
@@ -152,32 +153,32 @@ for ii in T_select:
     
 # some basic paramters for plotting and annotations
 scaleFactor     = 1e6
-xBack           = 2
-arrwLngth1      = 21
+arrwLngth1      = 0.012
 arrwOffset      = 0
 vScale          = 0.1
-xlow            = 130
-xhigh           = 230
+xlow            = 0.54
+xhigh           = 0.60
+vMaxFact        = 1.6
 
 for ii in range(len(mcModels)):
-    ax2.plot(mcModels[ii].state_i,mcModels[ii].va_i*scaleFactor,color=myColors[ii],linewidth=2,label=T_vals_strVd[ii])
-    ax2.plot(mcModels[ii].state_i,mcModels[ii].vc_i*scaleFactor,'-.',color=myColors[ii],linewidth=2,label=T_vals_strVc[ii])
+    ax2.plot(mcModels[ii].eq_yi,mcModels[ii].va_i*scaleFactor,color=myColors[ii],linewidth=2,label=T_vals_strVd[ii])
+    ax2.plot(mcModels[ii].eq_yi,mcModels[ii].vc_i*scaleFactor,'-.',color=myColors[ii],linewidth=2,label=T_vals_strVc[ii])
 
 # equilibrium states and equilibrium rates of adaptation
-idx = [mcModels[ii].get_mc_stable_state_idx() for ii in range(len(mcModels))]
-iEq = np.asarray([mcModels[ii].state_i[idx[ii]] for ii in range(len(mcModels))])
+idx = [mcModels[ii].get_mc_stable_state_idx()-1 for ii in range(len(mcModels))]
+bEq = np.asarray([mcModels[ii].eq_yi[idx[ii]] for ii in range(len(mcModels))])
 vEq = np.asarray([mcModels[ii].va_i[idx[ii]] for ii in range(len(mcModels))])
 
 for ii in range(len(mcModels)):
-    ax2.scatter(iEq[ii],vEq[ii]*scaleFactor,marker="o",s=40,c="black")
+    ax2.scatter(bEq[ii],vEq[ii]*scaleFactor,marker="o",s=40,c="black")
 
 for ii in range(len(mcModels)):
-    ax2.plot([iEq[ii],iEq[ii]],[0,vEq[ii]*scaleFactor],c="black",linewidth=1,linestyle=':')
+    ax2.plot([bEq[ii],bEq[ii]],[0,vEq[ii]*scaleFactor],c="black",linewidth=1,linestyle=':')
 
-xTickVals = [10*i for i in range(13,24)]
-xTickLbls = [str(10*i) for i in range(13,24)]
-yTickVals = [np.round(0.1*ii,1) for ii in range(7)]
-yTickLbls = [str(np.round(0.1*ii,1)) for ii in range(7)]
+xTickVals = [i/100 for i in range(int(xlow*100),int(xhigh*100+1))]
+xTickLbls = [str(i/100) for i in range(int(xlow*100),int(xhigh*100+1))]
+yTickVals = [np.round(0.1*ii,1) for ii in range(6)]
+yTickLbls = [str(np.round(0.1*ii,1)) for ii in range(6)]
 
 # axes and label adjustements
 ax2.set_xticks(xTickVals)
@@ -187,15 +188,15 @@ ax2.set_xlim(xlow,xhigh)
 # no yticks needed
 ax2.set_yticks(yTickVals)
 ax2.set_yticklabels(yTickLbls,fontsize=16)
-ax2.set_ylim(0,2*max(vEq)*scaleFactor)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
+ax2.set_ylim(0,vMaxFact*max(vEq)*scaleFactor)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
 
-ax2.set_xlabel(r'Absolute Fitness Class',fontsize=20,labelpad=8)
+ax2.set_xlabel(r'Population Density ($\gamma$)',fontsize=20,labelpad=8)
 ax2.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 
 # annotations
-ax2.annotate("", xy=(iEq[0]+arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), xytext=(iEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor),arrowprops={'arrowstyle':'->','lw':2})
-ax2.text(xlow+0.02*(xhigh-xlow),1.9*max(vEq)*scaleFactor,r'(B)', fontsize = 22)            
+ax2.annotate("", xy=(bEq[0]+arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), xytext=(bEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor),arrowprops={'arrowstyle':'->','lw':2})
+ax2.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.95*max(vEq)*scaleFactor,r'(B)', fontsize = 22)            
 
 # save figure
 plt.tight_layout()
-fig1.savefig('figures/MainDoc/fig_bEvo_DRE_Decr_Incr_AbsFit_varyT.pdf')
+fig1.savefig('figures/MainDoc/fig_bEvo_DRE_Decr_Incr_AbsFit_varyT_yAxis.pdf')

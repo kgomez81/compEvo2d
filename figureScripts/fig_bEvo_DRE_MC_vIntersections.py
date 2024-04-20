@@ -124,8 +124,8 @@ ax2.set_xlabel(r'Absolute fitness class',fontsize=20,labelpad=8)
 ax2.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 
 ## annotations
-iEq2 = 103
-vEq2 = 0.66e-5
+iEq2 = 106
+vEq2 = 0.63e-5
 arrwLngth2 = 25
 ax2.plot([iEq2,iEq2],[0,vEq2],c="black",linewidth=2,linestyle='--')
 ax2.annotate("", xy=(iEq2,0.75*vEq2), xytext=(iEq2-0.6*arrwLngth2,0.75*vEq2),arrowprops={'arrowstyle':'-|>','lw':3,'color':'blue'})

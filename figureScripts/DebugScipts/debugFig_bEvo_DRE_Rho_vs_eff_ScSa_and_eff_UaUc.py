@@ -2,7 +2,9 @@
 """
 Created on Fri Nov  3 13:59:26 2023
 
-@author: Owner
+@author: kgomez
+
+This script was generate to test the MC array class results
 """
 
 # --------------------------------------------------------------------------

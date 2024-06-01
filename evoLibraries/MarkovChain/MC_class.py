@@ -174,8 +174,8 @@ class mcEvoModel(ABC):
             if (select_pfix_solver == 1):
                 # n2 >= n1 Required, determines pFix = P(n2 = mutants)
                 # use value 2/sc bounded by 100 and 500.
-                n1 = int(max( [100, 1/max( [1/500, 0.5*self.sc_i[ii]] ) ] ))
-                n2 = n1           
+                n1 = int(max( [100, 1/max( [1/500, 0.5*self.sc_i[ii]] ) ] ))+100
+                n2 = n1 - 100           
                 pfix_option = 0     # option 0: solve P(# mut off spring = n2)
                                     # option 1: solve P(# mut off spring = 0)
                                     

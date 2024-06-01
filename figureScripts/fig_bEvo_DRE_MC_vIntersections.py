@@ -63,7 +63,7 @@ mcModel2 = mcDRE.mcEvoModel_DRE(mcParams2)
 fig1, (ax1,ax2) = plt.subplots(2,1,figsize=[7,12])
 
 ax1.plot(   mcModel1.state_i, \
-            mcModel1.ve_i,color="black",linewidth=3,label=r'$v_e$')
+            mcModel1.ve_i,color="black",linewidth=3,label=r'$v_E$')
 ax1.scatter(mcModel1.state_i, \
             mcModel1.va_i,color="blue",s=8,label=r'$v_b$')
 ax1.scatter(mcModel1.state_i, \
@@ -102,7 +102,7 @@ ax1.legend(fontsize = 20,ncol=1,loc='upper right')
 #                               Figure - Panel (B)
 # --------------------------------------------------------------------------
 ax2.plot(   mcModel2.state_i, \
-            mcModel2.ve_i,color="black",linewidth=3,label=r'$v_e$')
+            mcModel2.ve_i,color="black",linewidth=3,label=r'$v_E$')
 ax2.scatter(mcModel2.state_i, \
             mcModel2.va_i,color="blue",s=8,label=r'$v_b$')
 ax2.scatter(mcModel2.state_i, \

@@ -19,12 +19,14 @@ sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
 
 from evoLibraries.MarkovChain import MC_array_class as mcArry
 # from evoLibraries.MarkovChain import MC_functions as mcFun
+from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
 
-def getScatterData(X,Y,Z):
+def getScatterData(X,Y,Z,W):
     
     x = []
     y = []
     z = []
+    w = []
     
     for ii in range(Z.shape[0]):
         for jj in range(Z.shape[1]):
@@ -33,17 +35,20 @@ def getScatterData(X,Y,Z):
             xGood = not np.isnan(X[ii,jj]) and not np.isinf(X[ii,jj])
             yGood = not np.isnan(Y[ii,jj]) and not np.isinf(Y[ii,jj])
             zGood = not np.isnan(Z[ii,jj]) and not np.isinf(Z[ii,jj])
+            wGood = not np.isnan(W[ii,jj]) and not np.isinf(W[ii,jj])
             
-            if xGood and yGood and zGood:
+            if xGood and yGood and zGood and wGood:
                 x = x + [ X[ii,jj] ]
                 y = y + [ Y[ii,jj] ]
                 z = z + [ Z[ii,jj] ]
+                w = w + [ W[ii,jj] ]
     
     x = np.asarray(x)
     y = np.asarray(y)
     z = np.asarray(z)
+    w = np.asarray(w)
     
-    return [x,y,z]
+    return [x,y,z,w]
 
 #%% ------------------------------------------------------------------------
 # Get parameters/options
@@ -92,8 +97,9 @@ print(time.time()-tic)
 X = np.log10(mcModels.eff_sc_ij / mcModels.eff_sa_ij)   # sc/sd
 Y = np.log10(mcModels.eff_Ua_ij / mcModels.eff_Uc_ij)   # Ud/Uc
 Z = mcModels.rho_ij                                     # rho
+W = mcModels.eff_y_ij
 
-[x,y,z] = getScatterData(X,Y,Z)
+[x,y,z,w] = getScatterData(X,Y,Z,W)
 
 zRange = np.max(np.abs(z-1))
 

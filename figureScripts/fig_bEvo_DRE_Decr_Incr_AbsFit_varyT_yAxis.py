@@ -79,7 +79,7 @@ for ii in T_select:
     
 # some basic paramters for plotting and annotations
 scaleFactor     = 1e2
-arrwLngth1      = 0.005  
+arrwLngth1      = 0.006  
 arrwOffset      = 0
 vScale          = 0.1
 xlow            = 0.76
@@ -121,12 +121,12 @@ ax1.set_ylim(0,vMaxFact*max(vEq)*scaleFactor)    # 2,5e04 ~ 1.5*max([max(va_i),m
 
 ax1.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 
-ax1.annotate("", xy=(bEq[0]-arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), xytext=(bEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor),arrowprops={'arrowstyle':'->','lw':2})
+ax1.annotate("", xy=(bEq[0]-arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), xytext=(bEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor),arrowprops={'arrowstyle':'->','lw':4})
 ax1.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.95*max(vEq)*scaleFactor,r'(A)', fontsize = 22)            
 
 # custom legend
 custom_lines = [Line2D([0], [0], color=myColors[ii], lw=2) for ii in range(len(mcModels))]
-ax1.legend(custom_lines,[ T_vals_strLgd[ii] for ii in T_select],fontsize=14)
+ax1.legend(custom_lines,[ T_vals_strLgd[ii] for ii in T_select],fontsize = 20)
 
 
 # --------------------------------------------------------------------------
@@ -153,7 +153,7 @@ for ii in T_select:
     
 # some basic paramters for plotting and annotations
 scaleFactor     = 1e6
-arrwLngth1      = 0.012
+arrwLngth1      = 0.0129
 arrwOffset      = 0
 vScale          = 0.1
 xlow            = 0.54
@@ -194,7 +194,7 @@ ax2.set_xlabel(r'Population Density ($\gamma$)',fontsize=20,labelpad=8)
 ax2.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 
 # annotations
-ax2.annotate("", xy=(bEq[0]+arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), xytext=(bEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor),arrowprops={'arrowstyle':'->','lw':2})
+ax2.annotate("", xy=(bEq[0]+arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), xytext=(bEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor),arrowprops={'arrowstyle':'->','lw':4})
 ax2.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.95*max(vEq)*scaleFactor,r'(B)', fontsize = 22)            
 
 # save figure

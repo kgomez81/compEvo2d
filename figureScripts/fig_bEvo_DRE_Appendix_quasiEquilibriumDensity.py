@@ -53,10 +53,9 @@ def birthTermFunctionInf(y):
 
 # ------------------------------------------------------------------
 
-b1 = 0.4
+b1 = 0.1
 b2 = 0.8
-b3 = 1.6
-b4 = 10
+b3 = 10
 
 d1 = 1.2
 
@@ -67,16 +66,14 @@ fd1 = deathTermFunction(d1,y)
 fb1  = birthTermFunction(b1,y)
 fb2  = birthTermFunction(b2,y)
 fb3  = birthTermFunction(b3,y)
-fb4  = birthTermFunction(b4,y)
 fbInf = birthTermFunctionInf(y)
 
 # Figure for Appendix
 fig, ax = plt.subplots(1,1)
 
-ax.plot(y,fb1,c='b',linestyle = '-',label = r'RHS: $b_1=0.4$')
-ax.plot(y,fb2,c='g',linestyle = '-',label = r'RHS: $b_2=0.8$')
-ax.plot(y,fb3,c='m',linestyle = '-',label = r'RHS: $b_3=1.6$')
-ax.plot(y,fb4,c='r',linestyle = '-',label = r'RHS: $b_4=10$')
+ax.plot(y,fb1,c='b',linestyle = '-',label = r'RHS: $b=0.1$')
+ax.plot(y,fb2,c='g',linestyle = '-',label = r'RHS: $b=0.8$')
+ax.plot(y,fb3,c='m',linestyle = '-',label = r'RHS: $b=10$')
 ax.plot(y,fbInf,c='k',linestyle = '--',label = r'RHS: $b=\infty$')
 ax.plot(y,fd1,c='k',linestyle = '-',label = r'LHS: $d = 1.2$')
 

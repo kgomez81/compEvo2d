@@ -107,8 +107,8 @@ fig, ax1 = plt.subplots(1,1,figsize=[9,7])
 # plot a 3D surface like in the example mplot3d/surface3d_demo
 map1 = ax1.scatter(x, y, c=z, s=40, cmap='bwr', vmin = 1-zRange, vmax = 1+zRange, edgecolor='none')
 
-ax1.set_xlabel(r'$log_{10}(s_c/s_a)$',fontsize=26,labelpad=8)
-ax1.set_ylabel(r'$log_{10}(U_a/U_c)$',fontsize=26,labelpad=8)
+ax1.set_xlabel(r'$log_{10}(s_c/s_b)$',fontsize=26,labelpad=8)
+ax1.set_ylabel(r'$log_{10}(U_b/U_c)$',fontsize=26,labelpad=8)
 
 xMin = int(np.floor(min(x)))
 xMax = int(np.ceil(max(x))+1)
@@ -116,11 +116,23 @@ xMax = int(np.ceil(max(x))+1)
 yMin = int(np.floor(min(y)))
 yMax = int(np.ceil(max(y))+1)
 
-ax1.set_xticks([0.5*ii for ii in range(xMin-1,xMax+1)])
-ax1.set_xticklabels([str(0.5*ii) for ii in range(xMin-1,xMax+1)],fontsize=22)
+# ax1.set_xticks([0.5*ii for ii in range(xMin-1,xMax+1)])
+# ax1.set_xticklabels([str(0.5*ii) for ii in range(xMin-1,xMax+1)],fontsize=22)
 
-ax1.set_yticks([ii for ii in range(yMin,yMax)])
-ax1.set_yticklabels([str(ii) for ii in range(yMin,yMax)],fontsize=22)
+# ax1.set_yticks([ii for ii in range(yMin,yMax)])
+# ax1.set_yticklabels([str(ii) for ii in range(yMin,yMax)],fontsize=22)
+
+xTicks      = [-1,-0.5,0,0.5,1]
+xTickLbls   = [str(0.1),'',str(1),'',str(10)]
+
+yTicks      = [-3,-2,-1,0,1,2]
+yTickLbls   = [str(0.001),str(0.01),str(0.1),str(1),str(10),str(100)]
+               
+ax1.set_xticks(xTicks)
+ax1.set_xticklabels(xTickLbls,fontsize=22)
+
+ax1.set_yticks(yTicks)
+ax1.set_yticklabels(yTickLbls,fontsize=22)
 
 plt.grid(True)
 

@@ -126,7 +126,7 @@ class mcEvoModel(ABC):
         # set up parameters/arrays for pfix calculations
         # 1) use matrix solution
         # 2) use first step analysis
-        select_pfix_solver = 2   
+        select_pfix_solver = self.params['pfixSolver']   
         
         # loop through state space to calculate following: 
         # pFix values
@@ -153,17 +153,21 @@ class mcEvoModel(ABC):
                 
                 # n2 >= n1 Required, determines pFix = P(n2 = mutants)
                 # use value 2/sa bounded by 100 and 500.
-                n1 = int(max( [100, 1/max( [1/500, 0.5*self.sa_i[ii]] ) ] ))
-                n2 = n1           
+                n1 = int( min( [ max( [100, 2/self.sa_i[ii]] ), 500 ] ) ) + 100
+                n2 = n1 - 100
                 pfix_option = 0     # option 0: solve P(# mut off spring = n2)
                                     # option 1: solve P(# mut off spring = 0)
                 # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
                 # self.pFix_a_i[ii] = lmPfix_FSA.calc_pFix_FSA(self.params,bArry, dArry, cArry, kMax)                
                 self.pFix_a_i[ii] = lmPfix_MA.calc_pFix_MA(self.params, bArry, dArry, cArry, n1, n2, pfix_option)
-            else:
+                
+            elif (select_pfix_solver == 2):
                 # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
                 kMax = 10   # use up to 10th order term of Prob Generating function to root find pFix
                 self.pFix_a_i[ii] = lmPfix_FSA.calc_pFix_FSA(self.params,bArry, dArry, cArry, kMax)           
+                
+            else:    
+                self.pFix_a_i[ii] = self.sa_i[ii]
                 
             # pFix c-trait beneficial mutation
             # NOTE: second array entry of cArry corresponds to mutation
@@ -174,7 +178,7 @@ class mcEvoModel(ABC):
             if (select_pfix_solver == 1):
                 # n2 >= n1 Required, determines pFix = P(n2 = mutants)
                 # use value 2/sc bounded by 100 and 500.
-                n1 = int(max( [100, 1/max( [1/500, 0.5*self.sc_i[ii]] ) ] ))+100
+                n1 = int( min( [ max( [100, 2/self.sa_i[ii]] ), 500 ] ) ) + 100
                 n2 = n1 - 100           
                 pfix_option = 0     # option 0: solve P(# mut off spring = n2)
                                     # option 1: solve P(# mut off spring = 0)
@@ -182,9 +186,12 @@ class mcEvoModel(ABC):
                 # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
                 self.pFix_c_i[ii] = lmPfix_MA.calc_pFix_MA(self.params, bArry, dArry, cArry, n1, n2, pfix_option)
                 
-            else:
+            elif (select_pfix_solver == 2):
                 # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
-                self.pFix_c_i[ii] = lmPfix_FSA.calc_pFix_FSA(self.params, bArry, dArry, cArry, kMax)    
+                self.pFix_c_i[ii] = lmPfix_FSA.calc_pFix_FSA(self.params, bArry, dArry, cArry, kMax)  
+                
+            else:
+                self.pFix_c_i[ii] = self.sc_i[ii]
             
         return None
     

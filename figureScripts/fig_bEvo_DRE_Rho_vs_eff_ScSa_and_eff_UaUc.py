@@ -12,6 +12,7 @@ Created on Sun May 08 11:22:43 2022
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+import pickle 
 
 import os
 import sys
@@ -84,6 +85,27 @@ varBounds = [Ua_Bnds, cp_Bnds]
 tic = time.time()
 mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, absFitType, varNames, varBounds)
 print(time.time()-tic)
+
+# save the data to a pickle file
+outputs  = [paramFilePath, modelType, absFitType, varNames, varBounds, mcModels]
+saveOutputsPath = os.getcwd()+'/outputs/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc_evoExp_DRE_bEvo_06_parameters.pickle'
+with open(saveOutputsPath, 'wb') as file:
+    # Serialize and write the variable to the file
+    pickle.dump(outputs, file)
+
+## To load the data, just run the imports section, followed by code below
+# saveOutputsPath = os.getcwd()+'/outputs/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc_evoExp_DRE_bEvo_06_parameters.pickle'
+
+# with open(saveOutputsPath, 'rb') as file:
+#     # Serialize and write the variable to the file
+#     loaded_data = pickle.load(file)
+    
+# paramFilePath   = loaded_data[0]
+# modelType       = loaded_data[1]
+# absFitType      = loaded_data[2]
+# varNames        = loaded_data[3]
+# varBounds       = loaded_data[4]
+# mcModels        = loaded_data[5]
 
 #%% ------------------------------------------------------------------------
 # construct plot variables

@@ -59,19 +59,19 @@ class evoOptions:
         # absolute fitness parameters designated with "a" in variable name
         if (self.modelType == 'RM') and (self.absFitType == 'dEvo'):
             
-            self.paramList = ['T','b','dOpt','sa','UaMax','UaDel','cp','Uc','UcDel','R','se']
+            self.paramList = ['T','b','dOpt','sa','UaMax','UaDel','cp','Uc','UcDel','R','se','pfixSolver','parallelSelect']
             
         elif (self.modelType == 'RM') and (self.absFitType == 'bEvo'):
             
-            self.paramList = ['T','d','bMax','sa','UaMax','UaDel','cp','Uc','UcDel','R','se']
+            self.paramList = ['T','d','bMax','sa','UaMax','UaDel','cp','Uc','UcDel','R','se','pfixSolver','parallelSelect']
             
         elif (self.modelType == 'DRE') and (self.absFitType == 'dEvo'):
             
-            self.paramList = ['T','b','dOpt','alpha','Ua','UaDel','cp','Uc','UcDel','R','se','jStart','cdfOption']
+            self.paramList = ['T','b','dOpt','alpha','Ua','UaDel','cp','Uc','UcDel','R','se','jStart','cdfOption','pfixSolver','parallelSelect']
         
         elif (self.modelType == 'DRE') and (self.absFitType == 'bEvo'):
             
-            self.paramList = ['T','d','bMax','sa_0','Ua','UaDel','cp','Uc','UcDel','R','se','iMax','alpha','DreMod'] 
+            self.paramList = ['T','d','bMax','sa_0','Ua','UaDel','cp','Uc','UcDel','R','se','iMax','alpha','DreMod','pfixSolver','parallelSelect'] 
         
         # save the number of parameters
         nParams = len(self.paramList)

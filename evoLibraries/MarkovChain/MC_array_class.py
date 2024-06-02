@@ -33,7 +33,7 @@ class mcEvoGrid():
     # Constructor
     # --------------------------------------------------------------------------
     
-    def __init__(self,paramFilePath,modelType,absFitType,varNames,varBounds):
+    def __init__(self,paramFilePath,modelType,absFitType,varNames,varBounds,mcArrayOutputPath):
         
         # intialize member variables that are part of evoOptions super class
         # paramFilePath - path to file with parameters
@@ -90,6 +90,9 @@ class mcEvoGrid():
         
         # get the full set of effective evo parameters and rates
         self.get_evoGrid_effEvoParams()
+        
+        # set path to generate files for tracking progress
+        self.mcArrayOutputPath = mcArrayOutputPath
         
     #%% ------------------------------------------------------------------------
     # Methods
@@ -191,6 +194,8 @@ class mcEvoGrid():
             for jj in range(evoGridDim[1]):
                 gridMap = gridMap + [[ii,jj]]
                 
+        # Select whether you want to generate MC models in parallel
+        
         
         # Running parallelized jobs to get effective parameters for each MC 
         # model on the constructed grid. The grid is flatted to used on for 
@@ -260,5 +265,8 @@ class mcEvoGrid():
         # state of absolute fitness
         params_stable_state = temp_mcModel.get_stable_state_evo_parameters()
         rho                 = temp_mcModel.calculate_evoRho()
+        
+        # output to a file completion of mcModel calculation
+        self.outputFile(kk)
         
         return [kk,params_stable_state,rho]

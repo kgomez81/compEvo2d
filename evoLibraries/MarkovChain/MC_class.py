@@ -126,72 +126,132 @@ class mcEvoModel(ABC):
         # set up parameters/arrays for pfix calculations
         # 1) use matrix solution
         # 2) use first step analysis
-        select_pfix_solver = self.params['pfixSolver']   
+        select_pfix_solver = self.params['pfixSolver']
         
-        # loop through state space to calculate following: 
-        # pFix values
-        for ii in range(self.di.size):
-            # ----- Probability of Fixation Calculations -------
-            # Expand this section alter to select different options for calculating pFix
-            # 1) First step analysis, (fastest but likely not as accurate across parameter space)
-            # 2) Transition matrix steady state (slower but improved accuracy, requires tuning matrix size)
-            # 3) Simulation (slowest but most accurate across parameter space)
+        if (select_pfix_solver ==  1):
             
-            # pFix d-trait beneficial mutation
-            # NOTE: second array entry of dArry corresponds to mutation
-            if (ii == self.get_stateSpaceSize()-1):
-                bArry = np.array( [self.bi[ii], self.get_last_bi() ] )
-                dArry = np.array( [self.di[ii], self.get_last_di() ] )
-            else:
-                # if not at first state space then evolution goes from ii -> ii-1
-                bArry = np.array( [self.bi[ii], self.bi[ii+1]       ] )
-                dArry = np.array( [self.di[ii], self.di[ii+1]       ] )
-                
-            cArry = np.array( [1, 1] )
+            # NON-PARALLEL LOOP 
             
-            if (select_pfix_solver == 1):
+            # loop through state space to calculate following: 
+            # pFix values
+            for ii in range(self.di.size):
+                # ----- Probability of Fixation Calculations -------
+                # Expand this section alter to select different options for calculating pFix
+                # 1) First step analysis, (fastest but likely not as accurate across parameter space)
+                # 2) Transition matrix steady state (slower but improved accuracy, requires tuning matrix size)
+                # 3) Simulation (slowest but most accurate across parameter space)
                 
-                # n2 >= n1 Required, determines pFix = P(n2 = mutants)
-                # use value 2/sa bounded by 100 and 500.
-                n1 = int( min( [ max( [100, 2/self.sa_i[ii]] ), 500 ] ) ) + 100
-                n2 = n1 - 100
-                pfix_option = 0     # option 0: solve P(# mut off spring = n2)
-                                    # option 1: solve P(# mut off spring = 0)
-                # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
-                # self.pFix_a_i[ii] = lmPfix_FSA.calc_pFix_FSA(self.params,bArry, dArry, cArry, kMax)                
-                self.pFix_a_i[ii] = lmPfix_MA.calc_pFix_MA(self.params, bArry, dArry, cArry, n1, n2, pfix_option)
+                # pFix d-trait beneficial mutation
+                # NOTE: second array entry of dArry corresponds to mutation
+                if (ii == self.get_stateSpaceSize()-1):
+                    bArry = np.array( [self.bi[ii], self.get_last_bi() ] )
+                    dArry = np.array( [self.di[ii], self.get_last_di() ] )
+                else:
+                    # if not at first state space then evolution goes from ii -> ii-1
+                    bArry = np.array( [self.bi[ii], self.bi[ii+1]       ] )
+                    dArry = np.array( [self.di[ii], self.di[ii+1]       ] )
+                    
+                cArry = np.array( [1, 1] )
                 
-            elif (select_pfix_solver == 2):
-                # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
-                kMax = 10   # use up to 10th order term of Prob Generating function to root find pFix
-                self.pFix_a_i[ii] = lmPfix_FSA.calc_pFix_FSA(self.params,bArry, dArry, cArry, kMax)           
+                if (select_pfix_solver == 1):
+                    
+                    # n2 >= n1 Required, determines pFix = P(n2 = mutants)
+                    # use value 2/sa bounded by 100 and 500.
+                    n1 = int( min( [ max( [100, 2/self.sa_i[ii]] ), 500 ] ) ) + 100
+                    n2 = n1 - 100
+                    pfix_option = 0     # option 0: solve P(# mut off spring = n2)
+                                        # option 1: solve P(# mut off spring = 0)
+                    # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
+                    # self.pFix_a_i[ii] = lmPfix_FSA.calc_pFix_FSA(self.params,bArry, dArry, cArry, kMax)                
+                    self.pFix_a_i[ii] = lmPfix_MA.calc_pFix_MA(self.params, bArry, dArry, cArry, n1, n2, pfix_option)
+                    
+                elif (select_pfix_solver == 2):
+                    # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
+                    kMax = 10   # use up to 10th order term of Prob Generating function to root find pFix
+                    self.pFix_a_i[ii] = lmPfix_FSA.calc_pFix_FSA(self.params,bArry, dArry, cArry, kMax)           
+                    
+                else:    
+                    self.pFix_a_i[ii] = self.sa_i[ii]
+                    
+                # pFix c-trait beneficial mutation
+                # NOTE: second array entry of cArry corresponds to mutation
+                bArry = np.array( [self.bi[ii], self.bi[ii]         ] )
+                dArry = np.array( [self.di[ii], self.di[ii]         ] )
+                cArry = np.array( [1          , 1+self.params['cp'] ] )  # mutation in c-trait
                 
-            else:    
-                self.pFix_a_i[ii] = self.sa_i[ii]
-                
-            # pFix c-trait beneficial mutation
-            # NOTE: second array entry of cArry corresponds to mutation
-            bArry = np.array( [self.bi[ii], self.bi[ii]         ] )
-            dArry = np.array( [self.di[ii], self.di[ii]         ] )
-            cArry = np.array( [1          , 1+self.params['cp'] ] )  # mutation in c-trait
+                if (select_pfix_solver == 1):
+                    # n2 >= n1 Required, determines pFix = P(n2 = mutants)
+                    # use value 2/sc bounded by 100 and 500.
+                    n1 = int( min( [ max( [100, 2/self.sa_i[ii]] ), 500 ] ) ) + 100
+                    n2 = n1 - 100           
+                    pfix_option = 0     # option 0: solve P(# mut off spring = n2)
+                                        # option 1: solve P(# mut off spring = 0)
+                                        
+                    # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
+                    self.pFix_c_i[ii] = lmPfix_MA.calc_pFix_MA(self.params, bArry, dArry, cArry, n1, n2, pfix_option)
+                    
+                elif (select_pfix_solver == 2):
+                    # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
+                    self.pFix_c_i[ii] = lmPfix_FSA.calc_pFix_FSA(self.params, bArry, dArry, cArry, kMax)  
+                    
+                else:
+                    self.pFix_c_i[ii] = self.sc_i[ii]
+        else:
             
-            if (select_pfix_solver == 1):
-                # n2 >= n1 Required, determines pFix = P(n2 = mutants)
-                # use value 2/sc bounded by 100 and 500.
-                n1 = int( min( [ max( [100, 2/self.sa_i[ii]] ), 500 ] ) ) + 100
-                n2 = n1 - 100           
-                pfix_option = 0     # option 0: solve P(# mut off spring = n2)
-                                    # option 1: solve P(# mut off spring = 0)
-                                    
-                # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
-                self.pFix_c_i[ii] = lmPfix_MA.calc_pFix_MA(self.params, bArry, dArry, cArry, n1, n2, pfix_option)
+            # PARALLEL LOOP OPTION
+            
+            # Running parallelized jobs to get effective parameters for each MC 
+            # model on the constructed grid. The grid is flatted to used on for 
+            # loop indexed by kk, but the mapping of kk to the ii,jj indices of
+            # of the original grid is stored in gridMap
+            params_stable_state_arry = Parallel(n_jobs=6)(delayed(self.get_evoModel)(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap)))
+            #params_stable_state_arry =  [self.get_evoModel(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap))]  # DEBUG verions of parallel call
+            
+            # loop through each MC model to collect effective parameters
+            for kk in range(len(gridMap)):
                 
-            elif (select_pfix_solver == 2):
-                # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
-                self.pFix_c_i[ii] = lmPfix_FSA.calc_pFix_FSA(self.params, bArry, dArry, cArry, kMax)  
+                # get evo data from parallel array
+                ii = gridMap[params_stable_state_arry[kk][0]][0]
+                jj = gridMap[params_stable_state_arry[kk][0]][1]
                 
-            else:
-                self.pFix_c_i[ii] = self.sc_i[ii]
+                params_stable_state = params_stable_state_arry[kk][1]
+                rho                 = params_stable_state_arry[kk][2]
+                
+                # -------------------------------------------------------
+                # save all evo parameter values
+                self.intersect_state_ij[ii,jj] = params_stable_state['eqState']
+                
+                # density and absolute fitness at intersection
+                
+                self.eff_y_ij[ii,jj]   = params_stable_state['y']
+                self.eff_b_ij[ii,jj]   = params_stable_state['b']
+                self.eff_d_ij[ii,jj]   = params_stable_state['d']
+                
+                # arrays with effective evolution parameters at intersections
+                self.eff_N_ij[ii,jj]       = params_stable_state['N']
+                self.eff_Ua_ij[ii,jj]      = params_stable_state['Ua']
+                self.eff_Uc_ij[ii,jj]      = params_stable_state['Uc']
+                self.eff_sa_ij[ii,jj]      = params_stable_state['sa']
+                self.eff_sc_ij[ii,jj]      = params_stable_state['sc']
+                self.eff_pFix_a_ij[ii,jj]  = params_stable_state['pFix_a']
+                self.eff_pFix_c_ij[ii,jj]  = params_stable_state['pFix_c']
+                
+                # arrays with evolution/environment rates
+                self.eff_va_ij[ii,jj]  = params_stable_state['va']
+                self.eff_vc_ij[ii,jj]  = params_stable_state['vc']
+                self.eff_ve_ij[ii,jj]  = params_stable_state['ve']
+                
+                # save evo regimes
+                self.eff_evoRegime_a_ij[ii,jj]  = params_stable_state['regID_a']
+                self.eff_evoRegime_c_ij[ii,jj]  = params_stable_state['regID_c']
+                
+                # calculate rho of the MC model
+                # NOTE: rho is not calculated at stable state! it is calculated
+                #       at the intersection of vd and vc.
+                self.rho_ij[ii,jj]  = rho
+            
+        
+        
             
         return None
     

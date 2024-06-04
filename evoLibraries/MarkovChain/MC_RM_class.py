@@ -263,7 +263,14 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # calculate population parameters for each of the states in the markov chain model
         # the evolution parameters are calculated along the absolute fitness state space
         # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
+        
+    # ------------------------------------------------------------------------------
     
+    def get_pfixValuesWrapperFunction(self):
+        
+        # wrapper function added to use parallization when calucating pfix values across
+        # the state space of the MC model.
+        
     # ------------------------------------------------------------------------------
     
     def get_vd_i_perUnitTime(self):      

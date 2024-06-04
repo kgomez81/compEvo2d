@@ -312,6 +312,13 @@ class mcEvoModel_DRE(mc.mcEvoModel):
     
     # ------------------------------------------------------------------------------
     
+    def get_pfixValuesWrapperFunction(self):
+        
+        # wrapper function added to use parallization when calucating pfix values across
+        # the state space of the MC model.
+        
+    # ------------------------------------------------------------------------------
+    
     def get_vd_i_perUnitTime(self):      
         # get_vd_i_perUnitTime()  returns the set of vd_i but with respect to the 
         # time scale of the model (i.e., time per iteration).

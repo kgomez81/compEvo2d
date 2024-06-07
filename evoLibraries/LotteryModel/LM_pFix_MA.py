@@ -168,7 +168,7 @@ def calc_pFix_MA(params,b,d,c,n1,n2,pfix_option):
     # mathematically, we use left multiplication for transition matrices 
     # applied to distribition p, i.e. p*T = p is solved for steady state. 
     # Instead we will solve T'*p' = p'
-    Tc = normalize_transProbMatrix(Tc,0)    # enforce column sum = 1
+    # Tc = normalize_transProbMatrix(Tc,0)    # enforce column sum = 1
     
     # TRANSITION MATRIX for death phase
     #
@@ -184,7 +184,7 @@ def calc_pFix_MA(params,b,d,c,n1,n2,pfix_option):
                 # here we calculate transition ii -> jj 
                 Td[jj,ii]=transProb_deathPhase(d[1],ii,jj)
                 
-    Td = normalize_transProbMatrix(Td,0)    # enforce column sum = 1
+    # Td = normalize_transProbMatrix(Td,0)    # enforce column sum = 1
     
     # multiply the two matrices to get the full transition matrix
     # by transposing the system of equations, 

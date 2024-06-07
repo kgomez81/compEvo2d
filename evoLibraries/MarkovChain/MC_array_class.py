@@ -186,6 +186,7 @@ class mcEvoGrid():
         # (i.e. the evo params at intersection)
         
         evoGridDim = self.get_evoArray_dim()
+        select_parallelOpt = self.mcEvoOptions.params['parallelSelect']
         
         gridMap = []
         
@@ -196,13 +197,17 @@ class mcEvoGrid():
                 
         # Select whether you want to generate MC models in parallel
         
+        if (select_parallelOpt == 1):
         
-        # Running parallelized jobs to get effective parameters for each MC 
-        # model on the constructed grid. The grid is flatted to used on for 
-        # loop indexed by kk, but the mapping of kk to the ii,jj indices of
-        # of the original grid is stored in gridMap
-        params_stable_state_arry = Parallel(n_jobs=6)(delayed(self.get_evoModel)(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap)))
-        #params_stable_state_arry =  [self.get_evoModel(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap))]  # DEBUG verions of parallel call
+            # Running parallelized jobs to get effective parameters for each MC 
+            # model on the constructed grid. The grid is flatted to used on for 
+            # loop indexed by kk, but the mapping of kk to the ii,jj indices of
+            # of the original grid is stored in gridMap
+            params_stable_state_arry = Parallel(n_jobs=6)(delayed(self.get_evoModel)(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap)))
+            #params_stable_state_arry =  [self.get_evoModel(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap))]  # DEBUG verions of parallel call
+        
+        else:
+            params_stable_state_arry = [self.get_evoModel(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap))]
         
         # loop through each MC model to collect effective parameters
         for kk in range(len(gridMap)):

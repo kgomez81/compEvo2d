@@ -11,6 +11,8 @@ Created on Sat Mar 05 15:30:20 2022
 
 import matplotlib.pyplot as plt
 
+import time
+
 import os
 import sys
 sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
@@ -37,6 +39,7 @@ from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
 # Urd = 1e-5         # deleterious mutation rate in trait "c"
 # R  = 1/130.0       # rate of environmental change per iteration
 #
+tic = time.time()
 
 # The parameter file is read and a dictionary with their values is generated.
 paramFilePath1 = os.getcwd()+'/inputs/evoExp_DRE_bEvo_01_parameters.csv'
@@ -143,3 +146,4 @@ ax2.text(15,0.29e-4,r'(B)', fontsize = 22)
 # save figure
 plt.tight_layout()
 fig1.savefig(os.getcwd() + '/figures/MainDoc/fig_bEvo_DRE_MC_vIntersections.pdf')
+print(time.time()-tic)

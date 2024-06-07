@@ -127,8 +127,7 @@ class mcEvoModel(ABC):
         # 1) use Parallezation for pfix calculations over the state space
         # 2) use normal for loop for pfix calculations over the state space
         select_pfix_solver = self.params['pfixSolver']
-        pfix_option = 0     # option 0: solve P(# mut off spring = n2)
-                            # option 1: solve P(# mut off spring = 0)
+        select_parallelOpt = self.params['parallelSelect']
         
         # Running parallelized jobs requires getting a list of the parameters 
         # for the MC model, which we form here. We use these also for the normal
@@ -139,9 +138,6 @@ class mcEvoModel(ABC):
         bArry_ii = []
         dArry_ii = []
         cArry_ii = []
-        kMax_ii  = []
-        n1_ii    = []
-        n2_ii    = []
         
         for ii in range(self.di.size):
             # ----- Probability of Fixation Parameters -------
@@ -157,41 +153,25 @@ class mcEvoModel(ABC):
                 
             # last is the cArray, which corresponds to no mutations in the c-trait
             cArry_ii = cArry_ii + [ np.array( [1, 1] ) ]
-            kMax_ii  = [  10  ] + kMax_ii
-            
-            # n2 >= n1 Required, determines pFix = P(n2 = mutants)
-            # use value 2/sa bounded by 100 and 500.
-            n1_ii = n1_ii + [ int( min( [ max( [100, 2/self.sa_i[ii]] ), 500 ] ) ) + 100 ]
-            n2_ii = n2_ii + [ n1_ii[-1] - 100                                            ]
-            
-            
-            
             
         # calculate absolute fitness pfix values
-        if (select_pfix_solver ==  2):
-            # PARALLEL LOOP OPTION (default will be left to no use of parallelization)
-        if (select_pfix_solver == 1):
+        if (select_parallelOpt ==  2):
+            # PARALLEL LOOP OPTION 
+            pfixVals = Parallel(n_jobs=6)(delayed(self.get_pFixValuesWrapperFunction)(self.params, bArry_ii[kk], dArry_ii[kk], cArry_ii[kk], self.sa_i[kk], select_pfix_solver) for kk in range(len(self.di)))
             
-            
-            self.pFix_a_i[ii] = lmPfix_MA.calc_pFix_MA(self.params, bArry, dArry, cArry, n1, n2, pfix_option)
-            
-        elif (select_pfix_solver == 2):
-            # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
-            kMax = 10   # use up to 10th order term of Prob Generating function to root find pFix
-            self.pFix_a_i[ii] = lmPfix_FSA.calc_pFix_FSA(self.params,bArry, dArry, cArry, kMax)           
-            
-        else:    
-            self.pFix_a_i[ii] = self.sa_i[ii]
-            
+        else:
+            # NON PARALLEL LOOP OPTION
+            pfixVals = [self.get_pFixValuesWrapperFunction(self.params, bArry_ii[kk], dArry_ii[kk], cArry_ii[kk], self.sa_i[kk], select_pfix_solver) for kk in range(len(self.di))]
+        
+        for ii in range(self.di.size):
+            self.pFix_a_i[ii] = pfixVals[ii]
+    
         # ----------------------------------------------------------------------
         
         # Parameters for relative fitness pfix calculations
         bArry_ii = []
         dArry_ii = []
         cArry_ii = []
-        kMax_ii  = []
-        n1_ii    = []
-        n2_ii    = []
         
         for ii in range(self.di.size):
             # pFix c-trait beneficial mutation
@@ -199,87 +179,25 @@ class mcEvoModel(ABC):
             bArry_ii = bArry_ii + [ np.array( [self.bi[ii], self.bi[ii]         ] ) ]
             dArry_ii = dArry_ii + [ np.array( [self.di[ii], self.di[ii]         ] ) ]
             cArry_ii = cArry_ii + [ np.array( [1          , 1+self.params['cp'] ] ) ]  # mutation in c-trait
-            kMax_ii  = [  10  ] +  kMax_ii        
             
         # calculate relative fitness pfix values
-        
-        
-        
-            
-            
-                
-                
-                    
-                
-            
-            
-            
-            params_stable_state_arry = Parallel(n_jobs=6)(delayed(self.get_pFixValuesWrapperFunction)
-                                                          (
-                                                              self.get_params_ij(gridMap[kk][0],
-                                                                                 gridMap[kk][1])
-                                                              ,kk)
-                                                          
-                                                          for kk in range(len(self.di)))
-            #params_stable_state_arry =  [self.get_evoModel(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap))]  # DEBUG verions of parallel call
-            
-            # loop through each MC model to collect effective parameters
-            for kk in range(len(gridMap)):
-                
-                # get evo data from parallel array
-                ii = gridMap[params_stable_state_arry[kk][0]][0]
-                jj = gridMap[params_stable_state_arry[kk][0]][1]
-                
-                params_stable_state = params_stable_state_arry[kk][1]
-                rho                 = params_stable_state_arry[kk][2]
-                
-                # -------------------------------------------------------
-                # save all evo parameter values
-                self.intersect_state_ij[ii,jj] = params_stable_state['eqState']
-                
-                # density and absolute fitness at intersection
-                
-                self.eff_y_ij[ii,jj]   = params_stable_state['y']
-                self.eff_b_ij[ii,jj]   = params_stable_state['b']
-                self.eff_d_ij[ii,jj]   = params_stable_state['d']
-                
-                # arrays with effective evolution parameters at intersections
-                self.eff_N_ij[ii,jj]       = params_stable_state['N']
-                self.eff_Ua_ij[ii,jj]      = params_stable_state['Ua']
-                self.eff_Uc_ij[ii,jj]      = params_stable_state['Uc']
-                self.eff_sa_ij[ii,jj]      = params_stable_state['sa']
-                self.eff_sc_ij[ii,jj]      = params_stable_state['sc']
-                self.eff_pFix_a_ij[ii,jj]  = params_stable_state['pFix_a']
-                self.eff_pFix_c_ij[ii,jj]  = params_stable_state['pFix_c']
-                
-                # arrays with evolution/environment rates
-                self.eff_va_ij[ii,jj]  = params_stable_state['va']
-                self.eff_vc_ij[ii,jj]  = params_stable_state['vc']
-                self.eff_ve_ij[ii,jj]  = params_stable_state['ve']
-                
-                # save evo regimes
-                self.eff_evoRegime_a_ij[ii,jj]  = params_stable_state['regID_a']
-                self.eff_evoRegime_c_ij[ii,jj]  = params_stable_state['regID_c']
-                
-                # calculate rho of the MC model
-                # NOTE: rho is not calculated at stable state! it is calculated
-                #       at the intersection of vd and vc.
-                self.rho_ij[ii,jj]  = rho
-                
+        if (select_parallelOpt ==  2):
+            # PARALLEL LOOP OPTION 
+            pfixVals = Parallel(n_jobs=6)(delayed(self.get_pFixValuesWrapperFunction)(self.params, bArry_ii[kk], dArry_ii[kk], cArry_ii[kk], self.sc_i[kk], select_pfix_solver) for kk in range(len(self.di)))
             
         else:
-            # NON-PARALLEL LOOP  (always)
-            
-            
-                
-                
+            # NON PARALLEL LOOP OPTION
+            pfixVals = [self.get_pFixValuesWrapperFunction(self.params, bArry_ii[kk], dArry_ii[kk], cArry_ii[kk], self.sc_i[kk], select_pfix_solver) for kk in range(len(self.di))]
+        
+        for ii in range(self.di.size):
+            self.pFix_c_i[ii] = pfixVals[ii]
         
             
         return None
     
     #------------------------------------------------------------------------------
     
-    def get_PfixValuesWrapperFunction(self, params, bArray, dArray, cArray, kMax, selCoeff):
+    def get_pFixValuesWrapperFunction(self, params, bArry, dArry, cArry, selCoeff, select_pfix_solver):
         
         # ----- Probability of Fixation Parameters -------
         # Expand this section alter to select different options for calculating pFix
@@ -288,11 +206,18 @@ class mcEvoModel(ABC):
         # 3) Selection coefficient substitution (fastest method, mainly for testing)
         #    this method doesn't not capture the impact of variance in birth deaths from the model
         
+        n2Min = 100
+        n2Max = 500
+        n1Buf = 100
+        
         if (select_pfix_solver == 1):
             # n2 >= n1 Required, determines pFix = P(n2 = mutants)
             # use value 2/sc bounded by 100 and 500.
-            n1 = int( min( [ max( [100, 2/selCoeff] ), 500 ] ) ) + 100
-            n2 = n1 - 100           
+            if ( n2Max*selCoeff < 2 ):
+                n1 = n2Max + n1Buf
+            else:
+                n1 = int( min( [ max( [n2Min, 2/selCoeff] ), n2Max ] ) ) + n1Buf
+            n2 = n1 - n1Buf
             pfix_option = 0     # option 0: solve P(# mut off spring = n2)
                                 # option 1: solve P(# mut off spring = 0)
                                 
@@ -300,6 +225,7 @@ class mcEvoModel(ABC):
             pFixValue = lmPfix_MA.calc_pFix_MA(params, bArry, dArry, cArry, n1, n2, pfix_option)
             
         elif (select_pfix_solver == 2):
+            kMax = 10
             # pfix calculation using either First Step Analysis (FSA) or Matrix Equation (MA)
             pFixValue = lmPfix_FSA.calc_pFix_FSA(params, bArry, dArry, cArry, kMax)  
             

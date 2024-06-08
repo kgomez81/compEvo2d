@@ -77,7 +77,7 @@ cp_Bnds = np.linspace(-1, 1, nArry)   # cannot exceed ~O(10^-1) for pFix estimat
 
 varBounds = [Ua_Bnds, cp_Bnds]
 
-mcArrayOutputPath = os.getcwd() + '\outputs'
+mcArrayOutputPath = os.getcwd() + '\\outputs\\fig_bEvo_DRE_Rho'
 
 #%% ------------------------------------------------------------------------
 # generate MC data
@@ -90,7 +90,7 @@ print(time.time()-tic)
 
 # save the data to a pickle file
 outputs  = [paramFilePath, modelType, absFitType, varNames, varBounds, mcModels]
-saveOutputsPath = os.getcwd()+'/outputs/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc_evoExp_DRE_bEvo_06_parameters.pickle'
+saveOutputsPath = os.getcwd()+'/outputs/fig_bEvo_DRE_Rho/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc_evoExp_DRE_bEvo_06_parameters.pickle'
 with open(saveOutputsPath, 'wb') as file:
     # Serialize and write the variable to the file
     pickle.dump(outputs, file)

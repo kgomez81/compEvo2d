@@ -88,11 +88,11 @@ class mcEvoGrid():
         # density and absolute fitness at intersection
         self.rho_ij     = np.zeros(self.get_evoArray_dim())        
         
-        # get the full set of effective evo parameters and rates
-        self.get_evoGrid_effEvoParams()
-        
         # set path to generate files for tracking progress
         self.mcArrayOutputPath = mcArrayOutputPath
+        
+        # get the full set of effective evo parameters and rates
+        self.get_evoGrid_effEvoParams()
         
     #%% ------------------------------------------------------------------------
     # Methods

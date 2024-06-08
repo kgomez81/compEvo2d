@@ -203,11 +203,11 @@ class mcEvoGrid():
             # model on the constructed grid. The grid is flatted to used on for 
             # loop indexed by kk, but the mapping of kk to the ii,jj indices of
             # of the original grid is stored in gridMap
-            params_stable_state_arry = Parallel(n_jobs=6)(delayed(self.get_evoModel)(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap)))
+            params_stable_state_arry = Parallel(n_jobs=6)(delayed(self.get_evoModel)(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk,self.mcArrayOutputPath) for kk in range(len(gridMap)))
             #params_stable_state_arry =  [self.get_evoModel(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap))]  # DEBUG verions of parallel call
         
         else:
-            params_stable_state_arry = [self.get_evoModel(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap))]
+            params_stable_state_arry = [self.get_evoModel(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk,self.mcArrayOutputPath) for kk in range(len(gridMap))]
         
         # loop through each MC model to collect effective parameters
         for kk in range(len(gridMap)):
@@ -256,7 +256,7 @@ class mcEvoGrid():
     
     # --------------------------------------------------------------------------
     
-    def get_evoModel(self,mcEvoOptions_kk,kk):
+    def get_evoModel(self,mcEvoOptions_kk,kk,outPath):
         
         # check the MC model type and get intersection evo params
         if (self.mcEvoOptions.modelType == 'RM'):
@@ -272,6 +272,9 @@ class mcEvoGrid():
         rho                 = temp_mcModel.calculate_evoRho()
         
         # output to a file completion of mcModel calculation
-        self.outputFile(kk)
+        outFile = outPath + "\mcmodel_" + str(kk) + "_complete.txt"
+        f = open(outFile, "x")
+        f.write("Done!")
+        f.close()
         
         return [kk,params_stable_state,rho]

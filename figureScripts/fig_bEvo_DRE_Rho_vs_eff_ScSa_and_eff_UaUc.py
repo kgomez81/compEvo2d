@@ -77,13 +77,15 @@ cp_Bnds = np.linspace(-1, 1, nArry)   # cannot exceed ~O(10^-1) for pFix estimat
 
 varBounds = [Ua_Bnds, cp_Bnds]
 
+mcArrayOutputPath = os.getcwd() + '\outputs'
+
 #%% ------------------------------------------------------------------------
 # generate MC data
 # --------------------------------------------------------------------------
 
 # generate grid
 tic = time.time()
-mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, absFitType, varNames, varBounds)
+mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, absFitType, varNames, varBounds, mcArrayOutputPath)
 print(time.time()-tic)
 
 # save the data to a pickle file

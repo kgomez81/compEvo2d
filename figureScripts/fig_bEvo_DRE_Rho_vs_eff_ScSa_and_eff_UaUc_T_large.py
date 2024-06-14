@@ -12,10 +12,11 @@ Created on Sun May 08 11:22:43 2022
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+import pickle 
 
 import os
 import sys
-sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
+sys.path.insert(0, os.getcwd() + '..\\')
 
 from evoLibraries.MarkovChain import MC_array_class as mcArry
 # from evoLibraries.MarkovChain import MC_functions as mcFun
@@ -50,7 +51,7 @@ def getScatterData(X,Y,Z):
 # --------------------------------------------------------------------------
 
 # The parameter file is read and a dictionary with their values is generated.
-paramFilePath = os.getcwd()+'/inputs/evoExp_DRE_bEvo_06_parameters.csv'
+paramFilePath = os.getcwd()+'/inputs/evoExp_DRE_bEvo_08_parameters.csv'
 modelType = 'DRE'
 absFitType = 'bEvo'
 
@@ -76,14 +77,37 @@ cp_Bnds = np.linspace(-1, 1, nArry)   # cannot exceed ~O(10^-1) for pFix estimat
 
 varBounds = [Ua_Bnds, cp_Bnds]
 
+mcArrayOutputPath = os.getcwd() + '\\outputs\\fig_bEvo_DRE_Rho_T_large'
+
 #%% ------------------------------------------------------------------------
 # generate MC data
 # --------------------------------------------------------------------------
 
 # generate grid
 tic = time.time()
-mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, absFitType, varNames, varBounds)
+mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, absFitType, varNames, varBounds, mcArrayOutputPath)
 print(time.time()-tic)
+
+# save the data to a pickle file
+outputs  = [paramFilePath, modelType, absFitType, varNames, varBounds, mcModels]
+saveOutputsPath = os.getcwd()+'/outputs/fig_bEvo_DRE_Rho_T_large/fig_bEvo_Rho_T_large_evoExp_DRE_bEvo_08_parameters.pickle'
+with open(saveOutputsPath, 'wb') as file:
+    # Serialize and write the variable to the file
+    pickle.dump(outputs, file)
+
+## To load the data, just run the imports section, followed by code below
+# saveOutputsPath = os.getcwd()+'/outputs/fig_bEvo_DRE_Rho_T_large/fig_bEvo_Rho_T_large_evoExp_DRE_bEvo_08_parameters.pickle'
+
+# with open(saveOutputsPath, 'rb') as file:
+#     # Serialize and write the variable to the file
+#     loaded_data = pickle.load(file)
+    
+# paramFilePath   = loaded_data[0]
+# modelType       = loaded_data[1]
+# absFitType      = loaded_data[2]
+# varNames        = loaded_data[3]
+# varBounds       = loaded_data[4]
+# mcModels        = loaded_data[5]
 
 #%% ------------------------------------------------------------------------
 # construct plot variables
@@ -143,5 +167,5 @@ cbar.ax.tick_params(labelsize=18)
 plt.show()
 plt.tight_layout()
 
-fig.savefig(os.getcwd() + '/figures/MainDoc/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc.pdf',bbox_inches='tight')
+fig.savefig(os.getcwd() + '/figures/MainDoc/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc_T_large.pdf',bbox_inches='tight')
 

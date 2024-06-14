@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 import os
 import sys
-sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
+sys.path.insert(0, os.getcwd() + '..\\')
 
 # ------------------------------------------------------------------
 

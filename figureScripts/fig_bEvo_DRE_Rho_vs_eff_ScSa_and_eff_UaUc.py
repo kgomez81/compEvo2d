@@ -16,7 +16,7 @@ import pickle
 
 import os
 import sys
-sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
+sys.path.insert(0, os.getcwd() + '..\\')
 
 from evoLibraries.MarkovChain import MC_array_class as mcArry
 # from evoLibraries.MarkovChain import MC_functions as mcFun

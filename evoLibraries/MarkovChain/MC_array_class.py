@@ -23,7 +23,7 @@ from evoLibraries.MarkovChain import MC_RM_class as mcRM
 from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
 from evoLibraries.MarkovChain import MC_functions as mcFun
 
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, cpu_count
 
 class mcEvoGrid():
     # evoGridOptions encapsulates evolution parameters and bounds to define 
@@ -203,7 +203,7 @@ class mcEvoGrid():
             # model on the constructed grid. The grid is flatted to used on for 
             # loop indexed by kk, but the mapping of kk to the ii,jj indices of
             # of the original grid is stored in gridMap
-            params_stable_state_arry = Parallel(n_jobs=6)(delayed(self.get_evoModel)(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk,self.mcArrayOutputPath) for kk in range(len(gridMap)))
+            params_stable_state_arry = Parallel(n_jobs=cpu_count())(delayed(self.get_evoModel)(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk,self.mcArrayOutputPath) for kk in range(len(gridMap)))
             #params_stable_state_arry =  [self.get_evoModel(self.get_params_ij(gridMap[kk][0],gridMap[kk][1]),kk) for kk in range(len(gridMap))]  # DEBUG verions of parallel call
         
         else:

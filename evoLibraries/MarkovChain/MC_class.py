@@ -18,7 +18,7 @@ import numpy as np
 import csv
 
 from abc import ABC, abstractmethod
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, cpu_count
 
 from evoLibraries.MarkovChain import MC_functions as mcFun
 
@@ -157,7 +157,7 @@ class mcEvoModel(ABC):
         # calculate absolute fitness pfix values
         if (select_parallelOpt ==  2):
             # PARALLEL LOOP OPTION 
-            pfixVals = Parallel(n_jobs=6)(delayed(self.get_pFixValuesWrapperFunction)(self.params, bArry_ii[kk], dArry_ii[kk], cArry_ii[kk], self.sa_i[kk], select_pfix_solver) for kk in range(len(self.di)))
+            pfixVals = Parallel(n_jobs=cpu_count())(delayed(self.get_pFixValuesWrapperFunction)(self.params, bArry_ii[kk], dArry_ii[kk], cArry_ii[kk], self.sa_i[kk], select_pfix_solver) for kk in range(len(self.di)))
             
         else:
             # NON PARALLEL LOOP OPTION

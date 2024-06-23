@@ -24,7 +24,7 @@ import numpy as np
 
 import os
 import sys
-sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
+sys.path.insert(0, os.getcwd() + '\\..')
 
 from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
@@ -65,12 +65,13 @@ absFitType = 'bEvo'
 
 mcParams = evoObj.evoOptions(paramFilePath1, modelType, absFitType)
 
-T_vals          = [1e5,1e7,1e12]
-myColors        = ["blue","lime","cyan"]
-T_vals_strVd    = [r'$v_d (T=10^5)$',r'$v_d (T=10^7)$',r'$v_d (T=10^{12})$']
-T_vals_strVc    = [r'$v_c (T=10^5)$',r'$v_c (T=10^7)$',r'$v_c (T=10^{12})$']
-T_vals_strLgd   = [r'$T=10^5$',r'$T=10^7$',r'$T=10^{12}$']
-T_select        = [1,2]
+T_vals          = [1e7,1e12]
+myColors        = ["blue","red"]
+myLineStyles    = ['-','-.']
+T_vals_strVd    = [r'$v_d (T=10^7)$',r'$v_d (T=10^{12})$']
+T_vals_strVc    = [r'$v_c (T=10^7)$',r'$v_c (T=10^{12})$']
+T_vals_strLgd   = [r'$T=10^7$',r'$T=10^{12}$']
+T_select        = [0,1]
 mcModels        = []
 
 for ii in T_select:
@@ -88,8 +89,8 @@ vMaxFact        = 1.5
 bOffset         = [0.00,0.00]
 
 for ii in range(len(mcModels)):
-    ax1.plot(mcModels[ii].eq_yi,mcModels[ii].va_i*scaleFactor,color=myColors[ii],linewidth=2,label=T_vals_strVd[ii])
-    ax1.plot(mcModels[ii].eq_yi,mcModels[ii].vc_i*scaleFactor,'-.',color=myColors[ii],linewidth=2,label=T_vals_strVc[ii])
+    ax1.plot(mcModels[ii].eq_yi,mcModels[ii].va_i*scaleFactor,myLineStyles[ii],color=myColors[0],linewidth=2,label=T_vals_strVd[ii])
+    ax1.plot(mcModels[ii].eq_yi,mcModels[ii].vc_i*scaleFactor,myLineStyles[ii],color=myColors[1],linewidth=2,label=T_vals_strVc[ii])
 
 # equilibrium states and equilibrium rates of adaptation
 idx = [mcModels[ii].get_mc_stable_state_idx()-1 for ii in range(len(mcModels))]
@@ -125,7 +126,7 @@ ax1.annotate("", xy=(bEq[0]-arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), x
 ax1.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.95*max(vEq)*scaleFactor,r'(A)', fontsize = 22)            
 
 # custom legend
-custom_lines = [Line2D([0], [0], color=myColors[ii], lw=2) for ii in range(len(mcModels))]
+custom_lines = [Line2D([0], [0], linestyle=myLineStyles[ii], color='black', lw=2) for ii in range(len(mcModels))]
 ax1.legend(custom_lines,[ T_vals_strLgd[ii] for ii in T_select],fontsize = 20)
 
 
@@ -139,12 +140,13 @@ absFitType = 'bEvo'
 
 mcParams = evoObj.evoOptions(paramFilePath1, modelType, absFitType)
 
-T_vals         = [1e5,1e7,1e12]
-myColors        = ["blue","lime","cyan"]
-T_vals_strVd    = [r'$v_d (T=10^5)$',r'$v_d (T=10^7)$',r'$v_d (T=10^{12})$']
-T_vals_strVc    = [r'$v_c (T=10^5)$',r'$v_c (T=10^7)$',r'$v_c (T=10^{12})$']
-T_vals_strLgd   = [r'$T=10^5$',r'$T=10^7$',r'$T=10^{12}$']
-T_select        = [1,2]
+T_vals          = [1e7,1e12]
+myColors        = ["blue","red"]
+myLineStyles    = ['-','-.']
+T_vals_strVd    = [r'$v_d (T=10^7)$',r'$v_d (T=10^{12})$']
+T_vals_strVc    = [r'$v_c (T=10^7)$',r'$v_c (T=10^{12})$']
+T_vals_strLgd   = [r'$T=10^7$',r'$T=10^{12}$']
+T_select        = [0,1]
 mcModels        = []
 
 for ii in T_select:
@@ -161,8 +163,8 @@ xhigh           = 0.60
 vMaxFact        = 1.6
 
 for ii in range(len(mcModels)):
-    ax2.plot(mcModels[ii].eq_yi,mcModels[ii].va_i*scaleFactor,color=myColors[ii],linewidth=2,label=T_vals_strVd[ii])
-    ax2.plot(mcModels[ii].eq_yi,mcModels[ii].vc_i*scaleFactor,'-.',color=myColors[ii],linewidth=2,label=T_vals_strVc[ii])
+    ax2.plot(mcModels[ii].eq_yi,mcModels[ii].va_i*scaleFactor,myLineStyles[ii],color=myColors[0],linewidth=2,label=T_vals_strVd[ii])
+    ax2.plot(mcModels[ii].eq_yi,mcModels[ii].vc_i*scaleFactor,myLineStyles[ii],color=myColors[1],linewidth=2,label=T_vals_strVc[ii])
 
 # equilibrium states and equilibrium rates of adaptation
 idx = [mcModels[ii].get_mc_stable_state_idx()-1 for ii in range(len(mcModels))]

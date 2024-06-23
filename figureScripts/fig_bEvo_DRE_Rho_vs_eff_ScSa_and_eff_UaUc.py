@@ -16,7 +16,7 @@ import pickle
 
 import os
 import sys
-sys.path.insert(0, os.getcwd() + '..\\')
+sys.path.insert(0, os.getcwd() + '\\..')
 
 from evoLibraries.MarkovChain import MC_array_class as mcArry
 # from evoLibraries.MarkovChain import MC_functions as mcFun
@@ -50,16 +50,28 @@ def getScatterData(X,Y,Z):
 # Get parameters/options
 # --------------------------------------------------------------------------
 
-# The parameter file is read and a dictionary with their values is generated.
-paramFilePath = os.getcwd()+'/inputs/evoExp_DRE_bEvo_06_parameters.csv'
-modelType = 'DRE'
-absFitType = 'bEvo'
+# filenames for saving outputs
+figFile     = 'fig_bEvo_DRE_Rho_vs_ScSa_UaUc_VaryUaCp.pdf'
+figDatDir   = 'fig_bEvo_DRE_RhoUaCp_pfix1'
+paramFile   = 'evoExp_DRE_bEvo_06_parameters.csv'
+paramTag    = 'param_06_DRE_bEvo'
+saveDatFile = ''.join(('_'.join((figDatDir,paramTag)),'.pickle'))
+
+# filepaths for loading and saving outputs
+inputsPath  = os.path.join(os.getcwd(),'inputs')
+outputsPath = os.path.join(os.getcwd(),'outputs')
+figSavePath = os.path.join(os.getcwd(),'figures','MainDoc')
+
+# The parameter file is read, and a dictionary with their values is generated.
+paramFilePath = os.path.join(inputsPath,paramFile)
+modelType   = 'DRE'
+absFitType  = 'bEvo'
 
 # set list of variable names that will be used to specify the grid
 # and the bounds with increments needed to define the grid.
 # varNames[0] = string with dictionary name of evo model parameter
 # varNames[1] = string with dictionary name of evo model parameter
-varNames       = ['Ua','cp']
+varNames    = ['Ua','cp']
 
 # varBounds values define the min and max bounds of parameters that are used to 
 # define the square grid. First index j=0,1 (one for each evo parameter). 
@@ -77,49 +89,54 @@ cp_Bnds = np.linspace(-1, 1, nArry)   # cannot exceed ~O(10^-1) for pFix estimat
 
 varBounds = [Ua_Bnds, cp_Bnds]
 
-mcArrayOutputPath = os.getcwd() + '\\outputs\\fig_bEvo_DRE_Rho'
-
 #%% ------------------------------------------------------------------------
 # generate MC data
 # --------------------------------------------------------------------------
 
-# generate grid
-tic = time.time()
-mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, absFitType, varNames, varBounds, mcArrayOutputPath)
-print(time.time()-tic)
+# set paths to generate output files for tracking progress of loop/parloop
+mcArrayOutputPath   = os.path.join(outputsPath,figDatDir) 
+saveDatFilePath     = os.path.join(mcArrayOutputPath,saveDatFile)
 
-# save the data to a pickle file
-outputs  = [paramFilePath, modelType, absFitType, varNames, varBounds, mcModels]
-saveOutputsPath = os.getcwd()+'/outputs/fig_bEvo_DRE_Rho/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc_evoExp_DRE_bEvo_06_parameters.pickle'
-with open(saveOutputsPath, 'wb') as file:
-    # Serialize and write the variable to the file
-    pickle.dump(outputs, file)
-
-## To load the data, just run the imports section, followed by code below
-# saveOutputsPath = os.getcwd()+'/outputs/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc_evoExp_DRE_bEvo_06_parameters.pickle'
-
-# with open(saveOutputsPath, 'rb') as file:
-#     # Serialize and write the variable to the file
-#     loaded_data = pickle.load(file)
+# get the mcArray data
+if not (os.path.exists(mcArrayOutputPath)):
+    # if the data does not exist then generate it
+    os.mkdir(mcArrayOutputPath)
     
-# paramFilePath   = loaded_data[0]
-# modelType       = loaded_data[1]
-# absFitType      = loaded_data[2]
-# varNames        = loaded_data[3]
-# varBounds       = loaded_data[4]
-# mcModels        = loaded_data[5]
+    # generate grid
+    tic = time.time()
+    mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, absFitType, varNames, varBounds, mcArrayOutputPath)
+    print(time.time()-tic)
+    
+    # save the data to a pickle file
+    outputs  = [paramFilePath, modelType, absFitType, varNames, varBounds, mcModels]
+    with open(saveDatFilePath, 'wb') as file:
+        # Serialize and write the variable to the file
+        pickle.dump(outputs, file)
+
+else:
+    # if data exist, then just load it to generate the figure
+    with open(saveDatFilePath, 'rb') as file:
+        # Serialize and write the variable to the file
+        loaded_data = pickle.load(file)
+        
+    paramFilePath   = loaded_data[0]
+    modelType       = loaded_data[1]
+    absFitType      = loaded_data[2]
+    varNames        = loaded_data[3]
+    varBounds       = loaded_data[4]
+    mcModels        = loaded_data[5]
 
 #%% ------------------------------------------------------------------------
 # construct plot variables
 # --------------------------------------------------------------------------
 
-X = np.log10(mcModels.eff_sc_ij / mcModels.eff_sa_ij)   # sc/sd
-Y = np.log10(mcModels.eff_Ua_ij / mcModels.eff_Uc_ij)   # Ud/Uc
-Z = mcModels.rho_ij                                     # rho
+X = np.log10(mcModels.eff_sc_ij / mcModels.eff_sa_ij)   # sc/sa
+Y = np.log10(mcModels.eff_Ua_ij / mcModels.eff_Uc_ij)   # Ua/Uc
+Z = np.log10(mcModels.rho_ij)                           # rho
 
 [x,y,z] = getScatterData(X,Y,Z)
 
-zRange = np.max(np.abs(z-1))
+zRange = np.max(np.abs(z))
 
 #%% ------------------------------------------------------------------------
 #                           Plot data
@@ -129,7 +146,7 @@ zRange = np.max(np.abs(z-1))
 fig, ax1 = plt.subplots(1,1,figsize=[9,7])
 
 # plot a 3D surface like in the example mplot3d/surface3d_demo
-map1 = ax1.scatter(x, y, c=z, s=40, cmap='bwr', vmin = 1-zRange, vmax = 1+zRange, edgecolor='none')
+map1 = ax1.scatter(x, y, c=z, s=40, cmap='bwr', vmin = -zRange, vmax = +zRange, edgecolor='none')
 
 ax1.set_xlabel(r'$log_{10}(s_c/s_b)$',fontsize=26,labelpad=8)
 ax1.set_ylabel(r'$log_{10}(U_b/U_c)$',fontsize=26,labelpad=8)
@@ -163,9 +180,9 @@ plt.grid(True)
 cbar = fig.colorbar(map1, ax=ax1)
 cbar.ax.tick_params(labelsize=18)
 
-
 plt.show()
 plt.tight_layout()
 
-fig.savefig(os.getcwd() + '/figures/MainDoc/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc.pdf',bbox_inches='tight')
+figFilePath = os.path.join(figSavePath,figFile)
+fig.savefig(figFilePath,bbox_inches='tight')
 

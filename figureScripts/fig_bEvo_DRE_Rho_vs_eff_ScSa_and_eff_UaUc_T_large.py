@@ -16,7 +16,7 @@ import pickle
 
 import os
 import sys
-sys.path.insert(0, os.getcwd() + '..\\')
+sys.path.insert(0, os.getcwd() + '\\..')
 
 from evoLibraries.MarkovChain import MC_array_class as mcArry
 # from evoLibraries.MarkovChain import MC_functions as mcFun
@@ -77,8 +77,10 @@ cp_Bnds = np.linspace(-1, 1, nArry)   # cannot exceed ~O(10^-1) for pFix estimat
 
 varBounds = [Ua_Bnds, cp_Bnds]
 
-mcArrayOutputPath = os.getcwd() + '\\outputs\\fig_bEvo_DRE_Rho_T_large'
-
+mcArrayOutputPath = os.getcwd() + '\\outputs\\fig_bEvo_DRE_Rho_T_large_Pfix02'
+if not (os.path.exists(mcArrayOutputPath)):
+    os.mkdir(mcArrayOutputPath)
+    
 #%% ------------------------------------------------------------------------
 # generate MC data
 # --------------------------------------------------------------------------
@@ -90,7 +92,7 @@ print(time.time()-tic)
 
 # save the data to a pickle file
 outputs  = [paramFilePath, modelType, absFitType, varNames, varBounds, mcModels]
-saveOutputsPath = os.getcwd()+'/outputs/fig_bEvo_DRE_Rho_T_large/fig_bEvo_Rho_T_large_evoExp_DRE_bEvo_08_parameters.pickle'
+saveOutputsPath = mcArrayOutputPath + '/fig_bEvo_Rho_T_large_evoExp_DRE_bEvo_08_parameters.pickle'
 with open(saveOutputsPath, 'wb') as file:
     # Serialize and write the variable to the file
     pickle.dump(outputs, file)

@@ -11,99 +11,18 @@ This script was generate to test the MC array class results
 #                               Libraries   
 # --------------------------------------------------------------------------
 
+# NOTE: to use this script, you need to have run one of the MC array figure scripts
+
 import matplotlib.pyplot as plt
 import numpy as np
 import time
 
 import os
 import sys
-sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
 
 from evoLibraries.MarkovChain import MC_array_class as mcArry
 # from evoLibraries.MarkovChain import MC_functions as mcFun
 from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
-
-def getScatterData(X,Y,Z,W):
-    
-    x = []
-    y = []
-    z = []
-    w = []
-    
-    for ii in range(Z.shape[0]):
-        for jj in range(Z.shape[1]):
-            
-            # removed bad data
-            xGood = not np.isnan(X[ii,jj]) and not np.isinf(X[ii,jj])
-            yGood = not np.isnan(Y[ii,jj]) and not np.isinf(Y[ii,jj])
-            zGood = not np.isnan(Z[ii,jj]) and not np.isinf(Z[ii,jj])
-            wGood = not np.isnan(W[ii,jj]) and not np.isinf(W[ii,jj])
-            
-            if xGood and yGood and zGood and wGood:
-                x = x + [ X[ii,jj] ]
-                y = y + [ Y[ii,jj] ]
-                z = z + [ Z[ii,jj] ]
-                w = w + [ W[ii,jj] ]
-    
-    x = np.asarray(x)
-    y = np.asarray(y)
-    z = np.asarray(z)
-    w = np.asarray(w)
-    
-    return [x,y,z,w]
-
-#%% ------------------------------------------------------------------------
-# Get parameters/options
-# --------------------------------------------------------------------------
-
-# The parameter file is read and a dictionary with their values is generated.
-paramFilePath = os.getcwd()+'/inputs/evoExp_DRE_bEvo_06_parameters.csv'
-modelType = 'DRE'
-absFitType = 'bEvo'
-
-# set list of variable names that will be used to specify the grid
-# and the bounds with increments needed to define the grid.
-# varNames[0] = string with dictionary name of evo model parameter
-# varNames[1] = string with dictionary name of evo model parameter
-varNames       = ['Ua','cp']
-
-# varBounds values define the min and max bounds of parameters that are used to 
-# define the square grid. First index j=0,1 (one for each evo parameter). 
-# varBounds[0]    = list of base 10 exponentials to use in forming the parameter 
-#                   grid for X1
-# varBounds[1]    = list of base 10 exponentials to use in forming the parameter 
-#                   grid for X2
-# NOTE: both list should include 0 to represent the center points of the grid.
-#       For example, [-2,-1,0,1,2] would designate [1E-2,1E-1,1E0,1E1,1e2].
-#       Also note that the entries don't have to be integers.
-nArry     = 11
-
-Ua_Bnds = np.linspace(-3, 3, nArry)
-cp_Bnds = np.linspace(-1, 1, nArry)   # cannot exceed ~O(10^-1) for pFix estimates
-
-varBounds = [Ua_Bnds, cp_Bnds]
-
-#%% ------------------------------------------------------------------------
-# generate MC data
-# --------------------------------------------------------------------------
-
-# generate grid
-tic = time.time()
-mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, absFitType, varNames, varBounds)
-print(time.time()-tic)
-
-#%% ------------------------------------------------------------------------
-# construct plot variables
-# --------------------------------------------------------------------------
-
-X = np.log10(mcModels.eff_sc_ij / mcModels.eff_sa_ij)   # sc/sd
-Y = np.log10(mcModels.eff_Ua_ij / mcModels.eff_Uc_ij)   # Ud/Uc
-Z = mcModels.rho_ij                                     # rho
-W = mcModels.eff_y_ij
-
-[x,y,z,w] = getScatterData(X,Y,Z,W)
-
-zRange = np.max(np.abs(z-1))
 
 #%% Final section to check individual entries of rho plots MC models
 
@@ -199,7 +118,7 @@ if figSelect == 2:
     ax11.set_ylabel('RoA (v)')
     ymax = max([max(mcTestModel.va_i),max(mcTestModel.vc_i)])
     params_stable_state = mcTestModel.get_stable_state_evo_parameters()
-    ax11.text(0,0.75*ymax,mcTestModel.calculate_evoRho(), fontsize = 22)
+    ax11.text(min(mcTestModel.bi),0.75*ymax,mcTestModel.calculate_evoRho(), fontsize = 22)
     ax11.legend()
     ax21.scatter(mcTestModel.bi,mcTestModel.evoRegime_a_i,label='reg_a')
     ax21.scatter(mcTestModel.bi,mcTestModel.evoRegime_c_i,label='reg_c')

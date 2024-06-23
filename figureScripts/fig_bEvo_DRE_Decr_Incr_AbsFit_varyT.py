@@ -24,7 +24,7 @@ import numpy as np
 
 import os
 import sys
-sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
+sys.path.insert(0, os.getcwd() + '\\..')
 
 from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_DRE_class as mcDRE

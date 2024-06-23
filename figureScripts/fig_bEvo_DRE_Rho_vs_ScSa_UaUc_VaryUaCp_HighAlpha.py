@@ -50,9 +50,26 @@ def getScatterData(X,Y,Z):
 # Get parameters/options
 # --------------------------------------------------------------------------
 
+# filepaths for loading and saving outputs
+inputsPath  = os.path.join(os.getcwd(),'inputs')
+outputsPath = os.path.join(os.getcwd(),'outputs')
+figSavePath = os.path.join(os.getcwd(),'figures','Supplement')
+
+# filenames for saving outputs
+figFile     = 'fig_bEvo_DRE_Rho_vs_ScSa_UaUc_VaryUaCp_HighAlpha.pdf'
+figDatDir   = 'fig_bEvo_DRE_RhoUaCpHighAlpha_pfix2'
+paramFile   = 'evoExp_DRE_bEvo_12_parameters.csv'
+paramTag    = 'param_12_DRE_bEvo'
+saveDatFile = ''.join(('_'.join((figDatDir,paramTag)),'.pickle'))
+
+# set paths to generate output files for tracking progress of loop/parloop
+mcArrayOutputPath   = os.path.join(outputsPath,figDatDir) 
+saveDatFilePath     = os.path.join(mcArrayOutputPath,saveDatFile)
+figFilePath         = os.path.join(figSavePath,figFile)
+
 # The parameter file is read and a dictionary with their values is generated.
-paramFilePath = os.getcwd()+'/inputs/evoExp_DRE_bEvo_12_parameters.csv'
-modelType = 'DRE'
+paramFilePath = os.path.join(inputsPath,paramFile)
+modelType  = 'DRE'
 absFitType = 'bEvo'
 
 # set list of variable names that will be used to specify the grid
@@ -77,39 +94,38 @@ cp_Bnds = np.linspace(-1, 1, nArry)   # cannot exceed ~O(10^-1) for pFix estimat
 
 varBounds = [Ua_Bnds, cp_Bnds]
 
-mcArrayOutputPath = os.getcwd() + '\\outputs\\fig_bEvo_DRE_Rho_higher_alpha_Pfix03'
-if not (os.path.exists(mcArrayOutputPath)):
-    os.mkdir(mcArrayOutputPath)
-    
 #%% ------------------------------------------------------------------------
 # generate MC data
 # --------------------------------------------------------------------------
 
-# generate grid
-tic = time.time()
-mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, absFitType, varNames, varBounds, mcArrayOutputPath)
-print(time.time()-tic)
-
-# save the data to a pickle file
-outputs  = [paramFilePath, modelType, absFitType, varNames, varBounds, mcModels]
-saveOutputsPath = mcArrayOutputPath + '/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc_higher_alpha_evoExp_DRE_bEvo_12_parameters.pickle'
-with open(saveOutputsPath, 'wb') as file:
-    # Serialize and write the variable to the file
-    pickle.dump(outputs, file)
-
-## To load the data, just run the imports section, followed by code below
-# saveOutputsPath = os.getcwd()+'/outputs/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc_evoExp_DRE_bEvo_06_parameters.pickle'
-
-# with open(saveOutputsPath, 'rb') as file:
-#     # Serialize and write the variable to the file
-#     loaded_data = pickle.load(file)
+# get the mcArray data
+if not (os.path.exists(mcArrayOutputPath)):
+    # if the data does not exist then generate it
+    os.mkdir(mcArrayOutputPath)
     
-# paramFilePath   = loaded_data[0]
-# modelType       = loaded_data[1]
-# absFitType      = loaded_data[2]
-# varNames        = loaded_data[3]
-# varBounds       = loaded_data[4]
-# mcModels        = loaded_data[5]
+    # generate grid
+    tic = time.time()
+    mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, absFitType, varNames, varBounds, mcArrayOutputPath)
+    print(time.time()-tic)
+    
+    # save the data to a pickle file
+    outputs  = [paramFilePath, modelType, absFitType, varNames, varBounds, mcModels]
+    with open(saveDatFilePath, 'wb') as file:
+        # Serialize and write the variable to the file
+        pickle.dump(outputs, file)
+
+else:
+    # if data exist, then just load it to generate the figure
+    with open(saveDatFilePath, 'rb') as file:
+        # Serialize and write the variable to the file
+        loaded_data = pickle.load(file)
+        
+    paramFilePath   = loaded_data[0]
+    modelType       = loaded_data[1]
+    absFitType      = loaded_data[2]
+    varNames        = loaded_data[3]
+    varBounds       = loaded_data[4]
+    mcModels        = loaded_data[5]
 
 #%% ------------------------------------------------------------------------
 # construct plot variables
@@ -169,5 +185,6 @@ cbar.ax.tick_params(labelsize=18)
 plt.show()
 plt.tight_layout()
 
-fig.savefig(os.getcwd() + '/figures/MainDoc/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc_higher_alpha.pdf',bbox_inches='tight')
+# save figure
+fig.savefig(figFilePath,bbox_inches='tight')
 

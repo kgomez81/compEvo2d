@@ -50,17 +50,22 @@ def getScatterData(X,Y,Z):
 # Get parameters/options
 # --------------------------------------------------------------------------
 
-# filenames for saving outputs
+# filepaths for loading and saving outputs
+inputsPath  = os.path.join(os.getcwd(),'inputs')
+outputsPath = os.path.join(os.getcwd(),'outputs')
+figSavePath = os.path.join(os.getcwd(),'figures','MainDoc')
+
+# filenames and paths for saving outputs
 figFile     = 'fig_bEvo_DRE_Rho_vs_ScSa_UaUc_VaryUaCp.pdf'
 figDatDir   = 'fig_bEvo_DRE_RhoUaCp_pfix1'
 paramFile   = 'evoExp_DRE_bEvo_06_parameters.csv'
 paramTag    = 'param_06_DRE_bEvo'
 saveDatFile = ''.join(('_'.join((figDatDir,paramTag)),'.pickle'))
 
-# filepaths for loading and saving outputs
-inputsPath  = os.path.join(os.getcwd(),'inputs')
-outputsPath = os.path.join(os.getcwd(),'outputs')
-figSavePath = os.path.join(os.getcwd(),'figures','MainDoc')
+# set paths to generate output files for tracking progress of loop/parloop
+mcArrayOutputPath   = os.path.join(outputsPath,figDatDir) 
+saveDatFilePath     = os.path.join(mcArrayOutputPath,saveDatFile)
+figFilePath         = os.path.join(figSavePath,figFile)
 
 # The parameter file is read, and a dictionary with their values is generated.
 paramFilePath = os.path.join(inputsPath,paramFile)
@@ -92,10 +97,6 @@ varBounds = [Ua_Bnds, cp_Bnds]
 #%% ------------------------------------------------------------------------
 # generate MC data
 # --------------------------------------------------------------------------
-
-# set paths to generate output files for tracking progress of loop/parloop
-mcArrayOutputPath   = os.path.join(outputsPath,figDatDir) 
-saveDatFilePath     = os.path.join(mcArrayOutputPath,saveDatFile)
 
 # get the mcArray data
 if not (os.path.exists(mcArrayOutputPath)):
@@ -183,6 +184,6 @@ cbar.ax.tick_params(labelsize=18)
 plt.show()
 plt.tight_layout()
 
-figFilePath = os.path.join(figSavePath,figFile)
+# save figure
 fig.savefig(figFilePath,bbox_inches='tight')
 

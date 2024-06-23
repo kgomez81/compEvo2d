@@ -50,6 +50,28 @@ def getScatterData(X,Y,Z):
 # Get parameters/options
 # --------------------------------------------------------------------------
 
+# filepaths for loading and saving outputs
+inputsPath  = os.path.join(os.getcwd(),'inputs')
+outputsPath = os.path.join(os.getcwd(),'outputs')
+figSavePath = os.path.join(os.getcwd(),'figures','Supplement')
+
+# filenames and paths for saving outputs
+figFile     = 'fig_bEvo_DRE_Rho_vs_ScSa_UaUc_VaryUaCp_LowAlpha.pdf'
+figDatDir   = 'fig_bEvo_DRE_RhoUaCpLowAlpha_pfix2'
+paramFile   = 'evoExp_DRE_bEvo_11_parameters.csv'
+paramTag    = 'param_11_DRE_bEvo'
+saveDatFile = ''.join(('_'.join((figDatDir,paramTag)),'.pickle'))
+
+# set paths to generate output files for tracking progress of loop/parloop
+mcArrayOutputPath   = os.path.join(outputsPath,figDatDir) 
+saveDatFilePath     = os.path.join(mcArrayOutputPath,saveDatFile)
+figFilePath         = os.path.join(figSavePath,figFile)
+
+# The parameter file is read, and a dictionary with their values is generated.
+paramFilePath = os.path.join(inputsPath,paramFile)
+modelType   = 'DRE'
+absFitType  = 'bEvo'
+
 # The parameter file is read and a dictionary with their values is generated.
 paramFilePath = os.getcwd()+'/inputs/evoExp_DRE_bEvo_11_parameters.csv'
 modelType = 'DRE'

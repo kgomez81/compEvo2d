@@ -19,37 +19,16 @@ import sys
 sys.path.insert(0, os.getcwd() + '\\..')
 
 from evoLibraries.MarkovChain import MC_array_class as mcArry
-# from evoLibraries.MarkovChain import MC_functions as mcFun
-
-def getScatterData(X,Y,Z):
-    
-    x = []
-    y = []
-    z = []
-    
-    for ii in range(Z.shape[0]):
-        for jj in range(Z.shape[1]):
-            
-            # removed bad data
-            xGood = not np.isnan(X[ii,jj]) and not np.isinf(X[ii,jj])
-            yGood = not np.isnan(Y[ii,jj]) and not np.isinf(Y[ii,jj])
-            zGood = not np.isnan(Z[ii,jj]) and not np.isinf(Z[ii,jj])
-            
-            if xGood and yGood and zGood:
-                x = x + [ X[ii,jj] ]
-                y = y + [ Y[ii,jj] ]
-                z = z + [ Z[ii,jj] ]
-    
-    x = np.asarray(x)
-    y = np.asarray(y)
-    z = np.asarray(z)
-    
-    return [x,y,z]
+import figFunctions as figFun
 
 #%% ------------------------------------------------------------------------
 # Get parameters/options
 # --------------------------------------------------------------------------
 
+# filepaths for loading and saving outputs
+inputsPath  = os.path.join(os.getcwd(),'inputs')
+outputsPath = os.path.join(os.getcwd(),'outputs')
+figSavePath = os.path.join(os.getcwd(),'figures','Supplement')
 
 # filenames for saving outputs
 figFile     = 'fig_bEvo_DRE_Rho_vs_ScSa_UaUc_varyUcSb0.pdf'
@@ -58,11 +37,10 @@ paramFile   = 'evoExp_DRE_bEvo_09_parameters.csv'
 paramTag    = 'param_09_DRE_bEvo'
 saveDatFile = ''.join(('_'.join((figDatDir,paramTag)),'.pickle'))
 
-# filepaths for loading and saving outputs
-inputsPath  = os.path.join(os.getcwd(),'inputs')
-outputsPath = os.path.join(os.getcwd(),'outputs')
-figSavePath = os.path.join(os.getcwd(),'figures','MainDoc')
-
+# set paths to generate output files for tracking progress of loop/parloop
+mcArrayOutputPath   = os.path.join(outputsPath,figDatDir) 
+saveDatFilePath     = os.path.join(mcArrayOutputPath,saveDatFile)
+figFilePath         = os.path.join(figSavePath,figFile)
 
 # The parameter file is read, and a dictionary with their values is generated.
 paramFilePath = os.path.join(inputsPath,paramFile)
@@ -86,7 +64,7 @@ varNames       = ['Uc','sa_0']
 #       Also note that the entries don't have to be integers.
 nArry     = 11
 
-Uc_Bnds = np.linspace(-3, 3, nArry)
+Uc_Bnds  = np.linspace(-3, 3, nArry)
 sa0_Bnds = np.linspace(-1, 1, nArry)   # cannot exceed ~O(10^-1) for pFix estimates
 
 varBounds = [Uc_Bnds, sa0_Bnds]
@@ -94,11 +72,6 @@ varBounds = [Uc_Bnds, sa0_Bnds]
 #%% ------------------------------------------------------------------------
 # generate MC data
 # --------------------------------------------------------------------------
-
-
-# set paths to generate output files for tracking progress of loop/parloop
-mcArrayOutputPath   = os.path.join(outputsPath,figDatDir) 
-saveDatFilePath     = os.path.join(mcArrayOutputPath,saveDatFile)
 
 # get the mcArray data
 if not (os.path.exists(mcArrayOutputPath)):
@@ -129,44 +102,17 @@ else:
     varBounds       = loaded_data[4]
     mcModels        = loaded_data[5]
 
-
-# generate grid
-tic = time.time()
-mcModels = mcArry.mcEvoGrid(paramFilePath, modelType, absFitType, varNames, varBounds, mcArrayOutputPath)
-print(time.time()-tic)
-
-# save the data to a pickle file
-outputs  = [paramFilePath, modelType, absFitType, varNames, varBounds, mcModels]
-saveOutputsPath = mcArrayOutputPath + '/fig_bEvo_Rho_Uc_sb0_evoExp_DRE_bEvo_09_parameters.pickle'
-with open(saveOutputsPath, 'wb') as file:
-    # Serialize and write the variable to the file
-    pickle.dump(outputs, file)
-
-## To load the data, just run the imports section, followed by code below
-# saveOutputsPath = mcArrayOutputPath + '/fig_bEvo_Rho_Uc_sb0_evoExp_DRE_bEvo_09_parameters.pickle'
-
-# with open(saveOutputsPath, 'rb') as file:
-#     # Serialize and write the variable to the file
-#     loaded_data = pickle.load(file)
-    
-# paramFilePath   = loaded_data[0]
-# modelType       = loaded_data[1]
-# absFitType      = loaded_data[2]
-# varNames        = loaded_data[3]
-# varBounds       = loaded_data[4]
-# mcModels        = loaded_data[5]
-
 #%% ------------------------------------------------------------------------
 # construct plot variables
 # --------------------------------------------------------------------------
 
 X = np.log10(mcModels.eff_sc_ij / mcModels.eff_sa_ij)   # sc/sd
 Y = np.log10(mcModels.eff_Ua_ij / mcModels.eff_Uc_ij)   # Ud/Uc
-Z = np.log2(mcModels.rho_ij)                                     # rho
+Z = 10*np.log10(mcModels.rho_ij)                        # rho
 
-[x,y,z] = getScatterData(X,Y,Z)
+[x,y,z] = figFun.getScatterData(X,Y,Z)
 
-zRange = np.max(np.abs(z-1))
+zRange = np.max(np.abs(z))
 
 #%% ------------------------------------------------------------------------
 #                           Plot data
@@ -187,18 +133,17 @@ xMax = int(np.ceil(max(x))+1)
 yMin = int(np.floor(min(y)))
 yMax = int(np.ceil(max(y))+1)
 
-# ax1.set_xticks([0.5*ii for ii in range(xMin-1,xMax+1)])
-# ax1.set_xticklabels([str(0.5*ii) for ii in range(xMin-1,xMax+1)],fontsize=22)
-
-# ax1.set_yticks([ii for ii in range(yMin,yMax)])
-# ax1.set_yticklabels([str(ii) for ii in range(yMin,yMax)],fontsize=22)
-
 xTicks      = [-1,-0.5,0,0.5,1]
 xTickLbls   = [str(0.1),'',str(1),'',str(10)]
 
 yTicks      = [-2,-1,0,1,2,3]
 yTickLbls   = [str(0.01),str(0.1),str(1),str(10),str(100),str(1000)]
-               
+
+zIncr    = 0.5
+zMaxMod5 = int(np.ceil(zRange/zIncr))
+zTicks   = [zIncr*ii for ii in range(-zMaxMod5, zMaxMod5+1)]
+zLabels  = [str(tick) for tick in zTicks]
+
 ax1.set_xticks(xTicks)
 ax1.set_xticklabels(xTickLbls,fontsize=22)
 
@@ -207,13 +152,13 @@ ax1.set_yticklabels(yTickLbls,fontsize=22)
 
 plt.grid(True)
 
-cbar = fig.colorbar(map1, ax=ax1,ticks = [-1,0,1])
-cbar.ax.set_yticklabels([r'$0.5$', r'$1$', r'$2$']) 
+cbar = fig.colorbar(map1, ax=ax1, ticks = zTicks)
+cbar.ax.set_yticklabels(zLabels) 
 cbar.ax.tick_params(labelsize=18)
-
 
 plt.show()
 plt.tight_layout()
 
-fig.savefig(os.getcwd() + '/figures/MainDoc/fig_bEvo_DRE_Rho_vs_eff_ScSa_and_eff_UaUc_Uc_sb0_vary.pdf',bbox_inches='tight')
+# save figure
+fig.savefig(figFilePath,bbox_inches='tight')
 

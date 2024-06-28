@@ -108,7 +108,7 @@ else:
 
 X = np.log10(mcModels.eff_sc_ij / mcModels.eff_sa_ij)   # sc/sd
 Y = np.log10(mcModels.eff_Ua_ij / mcModels.eff_Uc_ij)   # Ud/Uc
-Z = 10*np.log10(mcModels.rho_ij)                        # rho
+Z = np.log10(mcModels.rho_ij)                        # rho
 
 [x,y,z] = figFun.getScatterData(X,Y,Z)
 
@@ -139,9 +139,9 @@ xTickLbls   = [str(0.1),'',str(1),'',str(10)]
 yTicks      = [-2,-1,0,1,2,3]
 yTickLbls   = [str(0.01),str(0.1),str(1),str(10),str(100),str(1000)]
 
-zIncr    = 0.5
+zIncr    = 0.05
 zMaxMod5 = int(np.ceil(zRange/zIncr))
-zTicks   = [zIncr*ii for ii in range(-zMaxMod5, zMaxMod5+1)]
+zTicks   = [np.round(zIncr*ii,2) for ii in range(-zMaxMod5, zMaxMod5+1)]
 zLabels  = [str(tick) for tick in zTicks]
 
 ax1.set_xticks(xTicks)

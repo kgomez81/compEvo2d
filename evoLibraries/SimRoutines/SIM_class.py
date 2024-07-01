@@ -2,22 +2,29 @@
 """
 Created on Sun Sep 11 17:09:10 2022
 
-@author: Owner
+@author: Kevin Gomez
 
-Script to run a full simulation of 2d evolution with relative and absolute fitness
+This file defines the simualtion class, which is used to run full simulations of 
+evoluation with selection defined by the variable density lottery model
 
 """
+
+# --------------------------------------------------------------------------
+#                               Libraries   
+# --------------------------------------------------------------------------
 
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 
 import sys
-sys.path.insert(0, 'D:\\Documents\\GitHub\\compEvo2d')
+sys.path.insert(0, os.getcwd() + '\\..')
+
 from evoLibraries import evo_library as myfun            # my functions in a seperate file
 from evoLibraries import sim_library as mysim            # my functions in a seperate file
 
 from numpy.polynomial import Polynomial
+
 
 # set up parameter values
 # The parameter file is read and a dictionary with their values is generated.

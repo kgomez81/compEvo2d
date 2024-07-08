@@ -108,14 +108,31 @@ class mcEvoModel(ABC):
         "adaption for RM and DRE models.                                      "
         pass
     
-    #%%----------------------------------------------------------------------------
+    #------------------------------------------------------------------------------
     
-    def get_stateSpaceSize(self):
-        return self.di.size
+    @abstractmethod
+    def get_next_bi(self,b,d,ii):
+        "get_next_bi calculates the next bi to generate a d-sequence whose    "
+        "selection coeff chance following RM or DRE                           "
+        pass
+    
+    #------------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_next_di(self,b,d,ii):
+        "get_next_di calculates the next di to generate a d-sequence whose    "
+        "selection coeff chance following RM or DRE                           "
+        pass
     
     #%%----------------------------------------------------------------------------
     # Concrete methods (common to both RM and DR MC class implementations)
     #------------------------------------------------------------------------------
+    
+    def get_stateSpaceSize(self):
+        # returns the size of the state space
+        return self.di.size
+    
+    #----------------------------------------------------------------------------
     
     def get_stateSpacePfixValues(self):
         

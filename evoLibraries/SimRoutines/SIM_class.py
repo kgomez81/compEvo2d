@@ -22,6 +22,7 @@ from abc import ABC, abstractmethod
 from joblib import Parallel, delayed, cpu_count
 
 import evoLibraries.LotteryModel.LM_functions as lmFun
+
 import SIM_functions as simfun
 
 class simClass(ABC):
@@ -45,18 +46,27 @@ class simClass(ABC):
         self.bij        = np.zeros([1,1])       # array for genotype b-terms 
         self.dij        = np.zeros([1,1])       # array for genotype d-terms 
         self.cij        = np.zeros([1,1])       # array for genotype c-terms 
+        
+        # 1d array and other data
+        self.iAbsMutCnt = np.zeros([1,1])       # stores abs fit mutation counts along 2d arry rows
+        self.jRelMutCnt = np.zeros([1,1])       # stores rel fit mutation counts along 2d arry rows
         self.tmax       = 10                    # max iterations
         
-        # 1d array mappings to quickly calculate transitions
-        # - we use the bi or di as a reference to map states i to bi/di-terms 
-        # - fitMapEnv is a map for how to apply environmental degredation
-        self.iState     = np.zeros([1,1])       # absolute fitness state space
-        self.bi         = np.zeros([1,1])       # b-state space (bound by iMax)
-        self.di         = np.zeros([1,1])       # d-state space (bound by iMax) 
-        self.fitMapEnv  = np.zeros([1,1])       # map of fitness declines
+        # - mcModel is associated Markov Chain used to reference state space
+        # - fitMapEnv maps fitnes decline from environmental changes 
+        self.mcModel    = []
+        self.fitMapEnv  = np.zeros([1,1])       
         
     #%% ------------------------------------------------------------------------
     # Abstract methods
+    # --------------------------------------------------------------------------
+    
+    @abstractmethod
+    def init_evolutionModel(self):
+        "Method that generates the initial values of the evolution model using"
+        "the associated Markov Chain model                                    "
+        pass
+
     # --------------------------------------------------------------------------
     
     @abstractmethod
@@ -74,21 +84,20 @@ class simClass(ABC):
     # --------------------------------------------------------------------------
     
     def init_evolutionModel(self,evoInit):
-        # init_evolutionModel() is used to provide initial values for the population
+        # Version of init_evolutionModel() used to provide initial values for 
+        # the population
         
         # 2d array data
         self.nij        = evoInit.nij      # array for genotype abundances
         self.bij        = evoInit.bij      # array for genotype b-terms 
         self.dij        = evoInit.dij      # array for genotype d-terms 
-        self.cij        = evoInit.cij      # array for genotype c-terms 
+        self.cij        = evoInit.cij      # array for genotype c-terms   
         self.tmax       = evoInit.tmax     # max iterations
         
         # 1d array mappings to quickly calculate transitions
-        # - we use the bi or di as a reference to map states i to bi/di-terms 
-        # - fitMapEnv is a map for how to apply environmental degredation
-        self.iState     = evoInit.iState        # absolute fitness state space
-        self.bi         = evoInit.bi            # b-state space (bound by iMax)
-        self.di         = evoInit.di            # d-state space (bound by iMax) 
+        # - mcModel = associated Markov Chain used to reference state space
+        # - fitMapEnv maps fitnes decline from environmental changes 
+        self.mcModel    = []
         self.fitMapEnv  = evoInit.fitMapEnv     # map of fitness declines
         
         return None
@@ -104,6 +113,9 @@ class simClass(ABC):
         
         # run model tmax generations or until population is extinct
         while ( (t < self.tmax) and (not popExtinct) ):
+            
+            # get new mutations
+            self.get_populationMutations()
             
             # run competitino phase of model
             self.run_competitionPhase()
@@ -186,12 +198,24 @@ class simClass(ABC):
     #------------------------------------------------------------------------------
     
     def get_evoArraysExpand(self):
+        # get_evoArraysExpand() expands evo arrays with additional rows/cols 
+        # so that mutations can be added
+        
+        # get larger array
+        absRows = self.nij.shape[0]
+        relCols = self.nij.shape[1]
+        
+        tempEvoArry = np.zeros([absRows+2,])
+        
+        
         
         return None
     
     #------------------------------------------------------------------------------
     
     def get_evoArraysCollapse(self):
+        # get_evoArraysCollapse() collapses evo arrays to remove any rows/cols
+        # with only zero entries
         
         return None
     

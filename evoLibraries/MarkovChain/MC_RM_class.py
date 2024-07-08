@@ -55,10 +55,10 @@ class mcEvoModel_RM(mc.mcEvoModel):
     # Class constructor
     # -----------------------------------------------------------------------------
     
-    def __init__(self,params):
+    def __init__(self,mcEvoOptions):
         
         # Basic evolution parameters for Lottery Model (Bertram & Masel 2019)
-        super().__init__(params)            # dictionary with evo parameters
+        super().__init__(mcEvoOptions)            # has dictionary with evo parameters
         
         # Load absolute fitness landscape (array of di terms)
         self.get_absoluteFitnessClasses() 
@@ -86,6 +86,8 @@ class mcEvoModel_RM(mc.mcEvoModel):
         # we also solve for the equilibrium densities along with the absolute 
         # fitness parameters
         yi_option  = 1
+        getNext_di  = True      # loop flag for d-evolution case
+        getNext_bi  = True      # loop flag for b-evolution case
         
         if self.absFitType == 'dEvo':
             
@@ -103,6 +105,13 @@ class mcEvoModel_RM(mc.mcEvoModel):
                 di    = di    + [ di[-1]*(1+self.params['sa']*(di[-1]-1))         ]
                 bi    = bi    + [ self.params['b']                                ]
                 eq_yi = eq_yi + [ lmFun.get_eqPopDensity(bi[-1],di[-1],yi_option) ]
+                
+                
+                if (cond1):
+                    
+                else:
+                    getNext_di = False
+                        
             
             # Finally reverse order and remove dOpt from state space
             self.di = np.asarray(di[::-1][:-1])
@@ -114,14 +123,18 @@ class mcEvoModel_RM(mc.mcEvoModel):
             # ###################################### #
             # State space definition for b-Evolution
             # ###################################### #
+            
+            # For b-evolution, the maximum value is infty, so we select a bmax
+            # to define the optimal b of the environment. This is not all that
+            # different from dOpt < 1, since 1 is like an infinite bound for
+            # dOpt in some sense.
 
             bi    = [ (self.params['d']-1)*self.params['T'] / (self.params['T']-1) ]
             di    = [ self.params['d']                                             ]
             eq_yi = [ 1/self.params['T']                                           ]  # choose min equil pop density
             
-            while (bi[-1] < self.params['bMax']):
-                # calculate next b-increment
-                # calculate b-increment in steps
+            while ():
+                # calculate next b-increment, and b-sequence in steps
                 f0 = self.params['sa']*(di[-1]-1)
                 f1 = (1-eq_yi[-1]) * np.exp(-bi[-1]*eq_yi[-1])
                 
@@ -136,7 +149,15 @@ class mcEvoModel_RM(mc.mcEvoModel):
                 bi    = bi    + [ bi[-1] + delta_b                                ]
                 di    = di    + [ self.params['d']                                ]
                 eq_yi = eq_yi + [ lmFun.get_eqPopDensity(bi[-1],di[-1],yi_option) ]  # next equil. pop density
-            
+                
+                
+                cond1 = (bi[-1] < self.params['bMax'])
+                
+                if cond1:
+                    sd
+                else:
+                    sd
+                        
             # No need to reverse order here
             self.di    = np.asarray(di)       # b terms for absolute fitness state space
             self.bi    = np.asarray(bi)       # d terms for absolute fitness state space
@@ -245,6 +266,36 @@ class mcEvoModel_RM(mc.mcEvoModel):
             bi_last = self.bi[-1] + delta_b
         
         return bi_last
+    
+    #------------------------------------------------------------------------------
+    
+    def get_next_bi(self,b,d,ii):
+        # get_next_bi calculates the bi term to generate a b-sequence whose   
+        # selection coefficients change according to RM or DRE 
+        #
+
+        # ----------------------------------------
+        # Select RM Model (b-increment scheme)
+        # ----------------------------------------
+        
+        delta_b = d * b * self.params['sa'] 
+        
+        return delta_b  
+    
+    #------------------------------------------------------------------------------
+    
+    def get_next_di(self,b,d,ii):
+        # get_next_bi calculates the bi term to generate a b-sequence whose   
+        # selection coefficients change according to RM or DRE 
+        #
+
+        # ----------------------------------------
+        # Select RM Model (b-increment scheme)
+        # ----------------------------------------
+        
+        delta_b = d * b * self.params['sa'] 
+        
+        return delta_b  
     
     #%% ----------------------------------------------------------------------------
     #  List of conrete methods from MC class

@@ -124,6 +124,24 @@ class mcEvoModel(ABC):
         "selection coeff chance following RM or DRE                           "
         pass
     
+    #------------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_initStateSpaceArryEntries(self):
+        " get_initStateSpaceArryEntries() generates the initial values for the"
+        " bi, di, eq_yi, sa_i arrays, which together determine the absolute   "
+        " fitness state space. parameters are initialized such that equilibri-" 
+        " um density is approximately, eq_yi = 1/T                            "
+        pass
+    
+    #------------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_nextStateSpaceArryEntries(self,b,d,y,ii):
+        " get_nextStateSpaceArryEntries() computes the next entries for the   "
+        " bi, di, eq_yi, and sa_i arrays                                      "
+        pass
+    
     #%%----------------------------------------------------------------------------
     # Concrete methods (common to both RM and DR MC class implementations)
     #------------------------------------------------------------------------------

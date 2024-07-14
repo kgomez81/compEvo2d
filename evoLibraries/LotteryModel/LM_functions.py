@@ -218,14 +218,13 @@ def get_d_SelectionCoeff(dWt,dMt):
 
 #------------------------------------------------------------------------------
 
-def get_b_SelectionCoeff(bWt,bMt,y,d):
+def get_b_SelectionCoeff(bWt,bMt,d):
     # Calculate the "d" selection coefficient for the Bertram & Masel variable 
     # density lottery model
     #
     # Inputs:
     #- bWt wild type death term 
     #- bMt mutant type death term
-    #- y equilibrium density
     #
     # Outputs:
     #- sb (rate of frequency increase per generation)

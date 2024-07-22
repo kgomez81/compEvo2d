@@ -19,10 +19,8 @@ import numpy as np
 import copy as cp
 
 from evoLibraries import evoObjects as evoObj
-from evoLibraries.MarkovChain import MC_RM_class as mcRM
-from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
-from evoLibraries.MarkovChain import MC_functions as mcFun
 
+from evoLibraries.MarkovChain import MC_factory as mcFac
 from joblib import Parallel, delayed, cpu_count
 
 class mcEvoGrid():
@@ -258,13 +256,8 @@ class mcEvoGrid():
     
     def get_evoModel(self,mcEvoOptions_kk,kk,outPath):
         
-        # check the MC model type and get intersection evo params
-        if (self.mcEvoOptions.modelType == 'RM'):
-            # get the MC evo model and find the intersection
-            temp_mcModel = mcRM.mcEvoModel_RM( mcEvoOptions_kk )
-        else:
-            # get the MC evo model and find the intersection
-            temp_mcModel = mcDRE.mcEvoModel_DRE( mcEvoOptions_kk )
+        # get the MC evo model and find the intersection
+        temp_mcModel = mcFac.mcFactory().createMcModel( mcEvoOptions_kk )
             
         # calculate intersections and find the stochastically stable
         # state of absolute fitness

@@ -21,50 +21,50 @@ see Bertram & Masel 2019 for details of lottery model
 
 import matplotlib.pyplot as plt
 import numpy as np
+import time
+import pickle 
 
 import os
 import sys
 sys.path.insert(0, os.getcwd() + '\\..')
 
 from evoLibraries import evoObjects as evoObj
-from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
+from evoLibraries.MarkovChain import MC_factory as mcFac
 
 from matplotlib.lines import Line2D
 
-# --------------------------------------------------------------------------
-# Calculate Markov Chain Evolution Parameters - Panel (A)
-# --------------------------------------------------------------------------
-# load parameters from a csv file. The parameters must be provided in the 
-# following order (numeric values). All input csv files must be available in 
-# inputs or outputs directory. Below are examples of parameters that should be 
-# given in the csv file.
-#
-# T   = 1e9          # carrying capacity
-# b   = 2.0          # eq_yirth rate
-# do  = 100/98.0     # minimum death rate / death rate of optimal genotype
-# sa  = 1e-2         # selection coefficient of beneficial mutation in 
-# Ua  = 1e-5         # max beneficial mutation rate in trait "d"
-# Uad = 1e-5         # deleterious mutation rate in trait "d"
-# cr  = 0.175        # increment to "c" is (1+cr)
-# Ur  = 1e-5         # beneficial mutation rate in trait "c"
-# Urd = 1e-5         # deleterious mutation rate in trait "c"
-# R  = 1/130.0      # rate of environmental change per iteration
-#
 
-# generate axes for  plotting 
-fig1, (ax1,ax2) = plt.subplots(2,1,figsize=[7,12])
-
-# --------------------------------------------------------------------------
-#                               Figure - Panel (A)
+#%% ------------------------------------------------------------------------
+# Get parameters/options
 # --------------------------------------------------------------------------
 
-# The parameter file is read and a dictionary with their values is generated.
-paramFilePath1 = os.getcwd()+'/inputs/evoExp_DRE_bEvo_03_parameters.csv'
-modelType = 'DRE'
-absFitType = 'bEvo'
+# filepaths for loading and saving outputs
+inputsPath  = os.path.join(os.getcwd(),'inputs')
+outputsPath = os.path.join(os.getcwd(),'outputs')
+figSavePath = os.path.join(os.getcwd(),'figures','MainDoc')
 
-mcParams = evoObj.evoOptions(paramFilePath1, modelType, absFitType)
+# filenames and paths for saving outputs
+figFile     = 'fig_bEvo_DRE_Decr_Incr_AbsFit_varyT_yAxis.pdf'
+figDatDir   = 'fig_bEvo_DRE_DecrIncrAbsFit_pfix1'
+paramFile   = ['evoExp_DRE_bEvo_03_parameters.csv','evoExp_DRE_bEvo_04_parameters.csv']
+paramTag    = ['param_01_DRE_bEvo','param_02_DRE_bEvo']
+saveDatFile = [''.join(('_'.join((figDatDir,pTag)),'.pickle')) for pTag in paramTag]
 
+# set paths to generate output files for tracking progress of loop/parloop
+mcModelOutputPath   = os.path.join(outputsPath,figDatDir) 
+figFilePath         = os.path.join(figSavePath,figFile)
+
+#%% ------------------------------------------------------------------------
+# generate MC data
+# --------------------------------------------------------------------------
+
+# define model list (empty), model type and abs fitness axis.
+mcModels    = [[],[]]
+modelType   = 'DRE'
+absFitType  = 'bEvo'
+nMc         = len(paramFile)
+
+# parameters for generating sets of models
 T_vals          = [1e7,1e12]
 myColors        = ["blue","red"]
 myLineStyles    = ['-','-.']
@@ -72,12 +72,50 @@ T_vals_strVd    = [r'$v_d (T=10^7)$',r'$v_d (T=10^{12})$']
 T_vals_strVc    = [r'$v_c (T=10^7)$',r'$v_c (T=10^{12})$']
 T_vals_strLgd   = [r'$T=10^7$',r'$T=10^{12}$']
 T_select        = [0,1]
-mcModels        = []
 
-for ii in T_select:
-    mcParams.params['T'] = T_vals[ii]
-    mcModels = mcModels + [ mcDRE.mcEvoModel_DRE(mcParams) ]
+# get the mcArray data
+if not (os.path.exists(mcModelOutputPath)):
+    # if the data does not exist then generate it
+    os.mkdir(mcModelOutputPath)
     
+    # start timer
+    tic = time.time()
+    
+    # generate models
+    for ii in range(nMc):
+
+        mcParams = evoObj.evoOptions(os.path.join(inputsPath,paramFile[ii]), \
+                                                         modelType, absFitType)
+        for tVals in T_vals:
+            mcParams.params['T'] = tVals
+            mcModels[ii].append( mcFac.mcFactory().createMcModel(mcParams) )
+                            
+        # save the data to a pickle file
+        with open(os.path.join(mcModelOutputPath,saveDatFile[ii]), 'wb') as file:
+            # Serialize and write the variable to the file
+            pickle.dump(mcModels[ii], file)
+        
+    print(time.time()-tic)
+
+else:
+    # load mcModel data
+    for ii in range(nMc):
+        # if data exist, then just load it to generate the figure
+        with open(os.path.join(mcModelOutputPath,saveDatFile[ii]), 'rb') as file:
+            # Serialize and write the variable to the file
+            mcModels[ii].append(pickle.load(file))
+
+#%% ------------------------------------------------------------------------
+# generate figures
+# --------------------------------------------------------------------------
+
+# generate axes for  plotting 
+fig, (ax1,ax2) = plt.subplots(2,1,figsize=[7,12])
+
+# --------------------------------------------------------------------------
+#                               Figure - Panel (A)
+# --------------------------------------------------------------------------
+                    
 # some basic paramters for plotting and annotations
 scaleFactor     = 1e2
 arrwLngth1      = 0.006  
@@ -88,20 +126,19 @@ xhigh           = 0.8
 vMaxFact        = 1.5
 bOffset         = [0.00,0.00]
 
-for ii in range(len(mcModels)):
-    ax1.plot(mcModels[ii].eq_yi,mcModels[ii].va_i*scaleFactor,myLineStyles[ii],color=myColors[0],linewidth=2,label=T_vals_strVd[ii])
-    ax1.plot(mcModels[ii].eq_yi,mcModels[ii].vc_i*scaleFactor,myLineStyles[ii],color=myColors[1],linewidth=2,label=T_vals_strVc[ii])
+for ii in range(len(mcModels[0])):
+    ax1.plot(mcModels[0][ii].eq_yi,mcModels[0][ii].va_i*scaleFactor,myLineStyles[ii],color=myColors[0],linewidth=2,label=T_vals_strVd[ii])
+    ax1.plot(mcModels[0][ii].eq_yi,mcModels[0][ii].vc_i*scaleFactor,myLineStyles[ii],color=myColors[1],linewidth=2,label=T_vals_strVc[ii])
 
 # equilibrium states and equilibrium rates of adaptation
-idx = [mcModels[ii].get_mc_stable_state_idx()-1 for ii in range(len(mcModels))]
-bEq = np.asarray([mcModels[ii].eq_yi[idx[ii]]+bOffset[ii] for ii in range(len(mcModels))])
-vEq = np.asarray([mcModels[ii].va_i[idx[ii]] for ii in range(len(mcModels))])
+idx = [mcModels[0][ii].get_mc_stable_state_idx()-1 for ii in range(len(mcModels[0]))]
+bEq = np.asarray([mcModels[0][ii].eq_yi[idx[ii]]+bOffset[ii] for ii in range(len(mcModels[0]))])
+vEq = np.asarray([mcModels[0][ii].va_i[idx[ii]] for ii in range(len(mcModels[0]))])
 
-for ii in range(len(mcModels)):
+for ii in range(len(mcModels[0])):
     ax1.scatter(bEq[ii],vEq[ii]*scaleFactor,marker="o",s=40,c="black")
-    
         
-for ii in range(len(mcModels)):
+for ii in range(len(mcModels[0])):
     ax1.plot([bEq[ii],bEq[ii]],[0,vEq[ii]*scaleFactor],c="black",linewidth=1,linestyle=':')
 
 
@@ -126,32 +163,13 @@ ax1.annotate("", xy=(bEq[0]-arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), x
 ax1.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.95*max(vEq)*scaleFactor,r'(A)', fontsize = 22)            
 
 # custom legend
-custom_lines = [Line2D([0], [0], linestyle=myLineStyles[ii], color='black', lw=2) for ii in range(len(mcModels))]
+custom_lines = [Line2D([0], [0], linestyle=myLineStyles[ii], color='black', lw=2) for ii in range(len(mcModels[0]))]
 ax1.legend(custom_lines,[ T_vals_strLgd[ii] for ii in T_select],fontsize = 20)
 
 
 # --------------------------------------------------------------------------
 #                               Figure - Panel (B)
 # --------------------------------------------------------------------------
-
-paramFilePath1 = os.getcwd()+'/inputs/evoExp_DRE_bEvo_04_parameters.csv'
-modelType = 'DRE'
-absFitType = 'bEvo'
-
-mcParams = evoObj.evoOptions(paramFilePath1, modelType, absFitType)
-
-T_vals          = [1e7,1e12]
-myColors        = ["blue","red"]
-myLineStyles    = ['-','-.']
-T_vals_strVd    = [r'$v_d (T=10^7)$',r'$v_d (T=10^{12})$']
-T_vals_strVc    = [r'$v_c (T=10^7)$',r'$v_c (T=10^{12})$']
-T_vals_strLgd   = [r'$T=10^7$',r'$T=10^{12}$']
-T_select        = [0,1]
-mcModels        = []
-
-for ii in T_select:
-    mcParams.params['T'] = T_vals[ii]
-    mcModels = mcModels + [ mcDRE.mcEvoModel_DRE(mcParams) ]
     
 # some basic paramters for plotting and annotations
 scaleFactor     = 1e6
@@ -162,19 +180,19 @@ xlow            = 0.54
 xhigh           = 0.60
 vMaxFact        = 1.6
 
-for ii in range(len(mcModels)):
-    ax2.plot(mcModels[ii].eq_yi,mcModels[ii].va_i*scaleFactor,myLineStyles[ii],color=myColors[0],linewidth=2,label=T_vals_strVd[ii])
-    ax2.plot(mcModels[ii].eq_yi,mcModels[ii].vc_i*scaleFactor,myLineStyles[ii],color=myColors[1],linewidth=2,label=T_vals_strVc[ii])
+for ii in range(len(mcModels[1])):
+    ax2.plot(mcModels[1][ii].eq_yi,mcModels[1][ii].va_i*scaleFactor,myLineStyles[ii],color=myColors[0],linewidth=2,label=T_vals_strVd[ii])
+    ax2.plot(mcModels[1][ii].eq_yi,mcModels[1][ii].vc_i*scaleFactor,myLineStyles[ii],color=myColors[1],linewidth=2,label=T_vals_strVc[ii])
 
 # equilibrium states and equilibrium rates of adaptation
-idx = [mcModels[ii].get_mc_stable_state_idx()-1 for ii in range(len(mcModels))]
-bEq = np.asarray([mcModels[ii].eq_yi[idx[ii]] for ii in range(len(mcModels))])
-vEq = np.asarray([mcModels[ii].va_i[idx[ii]] for ii in range(len(mcModels))])
+idx = [mcModels[1][ii].get_mc_stable_state_idx()-1 for ii in range(len(mcModels[1]))]
+bEq = np.asarray([mcModels[1][ii].eq_yi[idx[ii]] for ii in range(len(mcModels[1]))])
+vEq = np.asarray([mcModels[1][ii].va_i[idx[ii]] for ii in range(len(mcModels[1]))])
 
-for ii in range(len(mcModels)):
+for ii in range(len(mcModels[1])):
     ax2.scatter(bEq[ii],vEq[ii]*scaleFactor,marker="o",s=40,c="black")
 
-for ii in range(len(mcModels)):
+for ii in range(len(mcModels[1])):
     ax2.plot([bEq[ii],bEq[ii]],[0,vEq[ii]*scaleFactor],c="black",linewidth=1,linestyle=':')
 
 xTickVals = [i/100 for i in range(int(xlow*100),int(xhigh*100+1))]
@@ -199,6 +217,8 @@ ax2.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 ax2.annotate("", xy=(bEq[0]+arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), xytext=(bEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor),arrowprops={'arrowstyle':'->','lw':4})
 ax2.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.95*max(vEq)*scaleFactor,r'(B)', fontsize = 22)            
 
-# save figure
+plt.show()
 plt.tight_layout()
-fig1.savefig('figures/MainDoc/fig_bEvo_DRE_Decr_Incr_AbsFit_varyT_yAxis.pdf')
+
+# save figure
+fig.savefig(figFilePath,bbox_inches='tight')

@@ -12,68 +12,91 @@ Created on Sat Mar 05 15:30:20 2022
 import matplotlib.pyplot as plt
 
 import time
+import pickle 
 
 import os
 import sys
-sys.path.insert(0, os.getcwd() + '..\\')
+sys.path.insert(0, os.getcwd() + '\\..')
 
-from evoLibraries import evoObjects as evoObj
-from evoLibraries.MarkovChain import MC_DRE_class as mcDRE
+from evoLibraries.MarkovChain import MC_factory as mcFac
 
-# --------------------------------------------------------------------------
-# Calculate Markov Chain Evolution Parameters - Panel (A)
-# --------------------------------------------------------------------------
-# load parameters from a csv file. The parameters must be provided in the 
-# following order (numeric values). All input csv files must be available in 
-# inputs or outputs directory. Below are examples of parameters that should be 
-# given in the csv file.
-#
-# T   = 1e9          # carrying capacity
-# b   = 2.0          # birth rate
-# do  = 100/98.0     # minimum death rate / death rate of optimal genotype
-# alpha  = 0.99      # selection coefficient of beneficial mutation in 
-# Ua  = 1e-5         # beneficial mutation rate in trait "d"
-# Uad = 1e-5         # deleterious mutation rate in trait "d"
-# cr  = 0.175        # increment to "c" is (1+cr)
-# Ur  = 1e-5         # beneficial mutation rate in trait "c"
-# Urd = 1e-5         # deleterious mutation rate in trait "c"
-# R  = 1/130.0       # rate of environmental change per iteration
-#
-tic = time.time()
-
-# The parameter file is read and a dictionary with their values is generated.
-paramFilePath1 = os.getcwd()+'/inputs/evoExp_DRE_bEvo_01_parameters.csv'
-modelType = 'DRE'
-absFitType = 'bEvo'
-
-mcParams1 = evoObj.evoOptions(paramFilePath1, modelType, absFitType)
-mcModel1 = mcDRE.mcEvoModel_DRE(mcParams1)
-
-# --------------------------------------------------------------------------
-# Recalculate Markov Chain Evolution Parameters - Panel (B)
+#%% ------------------------------------------------------------------------
+# Get parameters/options
 # --------------------------------------------------------------------------
 
-paramFilePath2 = os.getcwd()+'/inputs/evoExp_DRE_bEvo_02_parameters.csv'
-modelType = 'DRE'
-absFitType = 'bEvo'
+# filepaths for loading and saving outputs
+inputsPath  = os.path.join(os.getcwd(),'inputs')
+outputsPath = os.path.join(os.getcwd(),'outputs')
+figSavePath = os.path.join(os.getcwd(),'figures','MainDoc')
 
-mcParams2 = evoObj.evoOptions(paramFilePath2, modelType, absFitType)
-mcModel2 = mcDRE.mcEvoModel_DRE(mcParams2)
+# filenames and paths for saving outputs
+figFile     = 'fig_bEvo_DRE_MC_vIntersections.pdf'
+figDatDir   = 'fig_bEvo_DRE_MC_vInt_pfix1'
+paramFile   = ['evoExp_DRE_bEvo_01_parameters.csv','evoExp_DRE_bEvo_02_parameters.csv']
+paramTag    = ['param_01_DRE_bEvo','param_02_DRE_bEvo']
+saveDatFile = [''.join(('_'.join((figDatDir,pTag)),'.pickle')) for pTag in paramTag]
+
+# set paths to generate output files for tracking progress of loop/parloop
+mcModelOutputPath   = os.path.join(outputsPath,figDatDir) 
+figFilePath         = os.path.join(figSavePath,figFile)
+
+#%% ------------------------------------------------------------------------
+# generate MC data
+# --------------------------------------------------------------------------
+
+# define model list (empty), model type and abs fitness axis.
+mcModels    = []
+modelType   = 'DRE'
+absFitType  = 'bEvo'
+nMc         = len(paramFile)
+
+# get the mcArray data
+if not (os.path.exists(mcModelOutputPath)):
+    # if the data does not exist then generate it
+    os.mkdir(mcModelOutputPath)
+    
+    # start timer
+    tic = time.time()
+    
+    # generate models
+    for ii in range(nMc):
+        # generate mcModels
+        mcModels.append(mcFac.mcFactory().newMcModel( os.path.join(inputsPath,paramFile[ii]), \
+                                                   modelType,absFitType))
+        # save the data to a pickle file
+        with open(os.path.join(mcModelOutputPath,saveDatFile[ii]), 'wb') as file:
+            # Serialize and write the variable to the file
+            pickle.dump(mcModels[-1], file)
+        
+    print(time.time()-tic)
+
+else:
+    # load mcModel data
+    for ii in range(nMc):
+        # if data exist, then just load it to generate the figure
+        with open(os.path.join(mcModelOutputPath,saveDatFile[ii]), 'rb') as file:
+            # Serialize and write the variable to the file
+            mcModels.append(pickle.load(file))
+            
+#%% ------------------------------------------------------------------------
+# generate figures
+# --------------------------------------------------------------------------
+
+fig, (ax1,ax2) = plt.subplots(2,1,figsize=[7,12])
 
 # --------------------------------------------------------------------------
 #                               Figure - Panel (A)
 # --------------------------------------------------------------------------
-fig1, (ax1,ax2) = plt.subplots(2,1,figsize=[7,12])
 
-ax1.plot(   mcModel1.state_i, \
-            mcModel1.ve_i,color="black",linewidth=3,label=r'$v_E$')
-ax1.scatter(mcModel1.state_i, \
-            mcModel1.va_i,color="blue",s=8,label=r'$v_b$')
-ax1.scatter(mcModel1.state_i, \
-            mcModel1.vc_i,color="red",s=8,label=r'$v_c$')
+ax1.plot(   mcModels[0].state_i, \
+            mcModels[0].ve_i,color="black",linewidth=3,label=r'$v_E$')
+ax1.scatter(mcModels[0].state_i, \
+            mcModels[0].va_i,color="blue",s=8,label=r'$v_b$')
+ax1.scatter(mcModels[0].state_i, \
+            mcModels[0].vc_i,color="red",s=8,label=r'$v_c$')
 
 # axes and label adjustements
-iMax = mcModel1.get_iMax()
+iMax = mcModels[0].get_iMax()
 ax1.set_xlim(2,iMax)
 ax1.set_ylim(0,0.31e-4)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
 
@@ -104,15 +127,15 @@ ax1.legend(fontsize = 20,ncol=1,loc='upper right')
 # --------------------------------------------------------------------------
 #                               Figure - Panel (B)
 # --------------------------------------------------------------------------
-ax2.plot(   mcModel2.state_i, \
-            mcModel2.ve_i,color="black",linewidth=3,label=r'$v_E$')
-ax2.scatter(mcModel2.state_i, \
-            mcModel2.va_i,color="blue",s=8,label=r'$v_b$')
-ax2.scatter(mcModel2.state_i, \
-            mcModel2.vc_i,color="red",s=8,label=r'$v_c$')
+ax2.plot(   mcModels[1].state_i, \
+            mcModels[1].ve_i,color="black",linewidth=3,label=r'$v_E$')
+ax2.scatter(mcModels[1].state_i, \
+            mcModels[1].va_i,color="blue",s=8,label=r'$v_b$')
+ax2.scatter(mcModels[1].state_i, \
+            mcModels[1].vc_i,color="red",s=8,label=r'$v_c$')
 
 # axes and label adjustements
-iMax = mcModel2.get_iMax()
+iMax = mcModels[1].get_iMax()
 ax2.set_xlim(2,iMax)
 ax2.set_ylim(0,0.31e-4)       # 1.5*max([max(va_i),max(vr_i)])
 
@@ -138,12 +161,13 @@ ax2.annotate("", xy=(iEq2,0.5*vEq2), xytext=(iEq2-arrwLngth2,0.5*vEq2),arrowprop
 #plt.text(-190,2.58e-4,r'$\times 10^{-4}$', fontsize = 20)
 ax2.text(15,0.29e-4,r'(B)', fontsize = 22)
 
-# diEqStr1 = "%.3f" % (mcModel1.di[iEq1])
+# diEqStr1 = "%.3f" % (mcModels[0].di[iEq1])
 # plt.text(120,1.2e-4,'d1*='+diEqStr1,fontsize = 11)
-# diEqStr2 = "%.3f" % (mcModel2.di[iEq1])
+# diEqStr2 = "%.3f" % (mcModels[1].di[iEq1])
 # plt.text(120,1.0e-4,'d2*='+diEqStr2,fontsize = 11)
 
-# save figure
+plt.show()
 plt.tight_layout()
-fig1.savefig(os.getcwd() + '/figures/MainDoc/fig_bEvo_DRE_MC_vIntersections.pdf')
-print(time.time()-tic)
+
+# save figure
+fig.savefig(figFilePath,bbox_inches='tight')

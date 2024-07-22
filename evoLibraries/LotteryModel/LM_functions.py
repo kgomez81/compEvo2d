@@ -194,6 +194,29 @@ def get_eqPopDensity(b,d,option):
 
 #------------------------------------------------------------------------------
 
+def get_eqPopDensity_bEvoAnalytic(b,d):
+    # variable density lottery model analytic approximation that relates 
+    # equilibrium density and b-values with a fixed d-value. The aproximation
+    # 
+    # Inputs:
+    # b - juvenile birth term
+    # b0 - max 
+    # d - death term of abs-fitness class i
+    #
+    # Output: 
+    # eq_density - equilibrium population density
+    #
+    
+    # define minimum b value
+    b0 = d-1
+    
+    # calculate equilibrium density
+    eq_density = ( 1-np.exp(-(b-b0)/d) ) / ( d-np.exp(-(b-b0)/d) )
+    
+    return eq_density
+    
+#------------------------------------------------------------------------------
+
 def get_d_SelectionCoeff(dWt,dMt):
     # Calculate the "d" selection coefficient for the Bertram & Masel variable 
     # density lottery model

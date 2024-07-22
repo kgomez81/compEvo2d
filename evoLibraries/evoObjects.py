@@ -67,7 +67,7 @@ class evoOptions:
             
         elif (self.modelType == 'DRE') and (self.absFitType == 'dEvo'):
             
-            self.paramList = ['T','b','dOpt','alpha','Ua','UaDel','cp','Uc','UcDel','R','se','jStart','cdfOption','pfixSolver','parallelSelect']
+            self.paramList = ['T','b','dOpt','alpha','Ua','UaDel','cp','Uc','UcDel','R','se','iMax','jStart','cdfOption','pfixSolver','parallelSelect']
         
         elif (self.modelType == 'DRE') and (self.absFitType == 'bEvo'):
             

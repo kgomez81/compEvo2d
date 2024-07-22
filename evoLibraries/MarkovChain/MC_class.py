@@ -44,7 +44,10 @@ class mcEvoModel(ABC):
         # Basic evolution parameters for Lottery Model (Bertram & Masel 2019)
         self.params     = mcEvoOptions.params         # dictionary with evo parameters
         self.absFitType = mcEvoOptions.absFitType     # absolute fitness evolution term
-    
+        self.yi_option  = 3         # option 1, analytic approx of eq. density (calc near opt)
+                                    # option 2, analytic approx of eq. density (calc near ext)
+                                    # option 3, numerical soltuion (default)
+                                    
         # absolute fitness landscape (array of di terms or bi terms). For b 
         # evolution, di is constant arry, while bi varies. For d evolution, bi
         # is constant arry, while di varies. bi and di have same size/shape

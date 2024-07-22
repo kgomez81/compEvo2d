@@ -29,6 +29,13 @@ class mcEvoModel_DRE(mc.mcEvoModel):
     # class used to encaptulate all of evolution parameters for an Markov Chain (MC)
     # representing a diminishing returns epistasis evolution model.
     
+    # Basic evolution parameters for Lottery Model (Bertram & Masel 2019)
+    # self.params     = mcEvoOptions.params         # dictionary with evo parameters
+    # self.absFitType = mcEvoOptions.absFitType     # absolute fitness evolution term
+    # self.yi_option  = 3         # option 1, analytic approx of eq. density (calc near opt)
+    #                             # option 2, analytic approx of eq. density (calc near ext)
+    #                             # option 3, numerical soltuion (default)
+    #
     # MC_class for list of class attribures
     #
     # Fitness landscape
@@ -87,26 +94,53 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # Note: the state space order for DRE is reversed from RM
         
         # Recursively calculate set of absolute fitness classes 
-        ii              = 1         
-        yi_option       = 3         # option 1, analytic approx of eq. density near opt
+        ii              = 0      
         getNextStates   = True   # loop flag for d-evolution case
+        
+        # get the intial values of bi, di, eq_yi, sa_i sequences
+        [bInit,dInit,yInit,saInit]  = self.get_initStateSpaceArryEntries()
+        
+        bi    = [bInit ]
+        di    = [dInit ]
+        eq_yi = [yInit ]
+        sa_i  = [saInit]
         
         # define lowerbound for selection coefficients and how small the 
         # selection coeffients should be w.r.t ci selection coefficient
-        [minSelCoeff_b, minSelCoeff_d, minSelCoeff_c] = self.get_minSelCoeffValues(yi_option)
-        
-        [bi,di,eq_yi,sa_i]  = self.get_initStateSpaceArryEntries()
+        [minSelCoeff_b, minSelCoeff_d, minSelCoeff_c] = self.get_minSelCoeffValues()
         
         while (getNextStates):
             
-            [bNext,dNext,yNext,saNext] = self.get_initStateSpaceArryEntries(bi[-1],di[-1],eq_yi[-1],ii)
+            [bNext,dNext,yNext,saNext,ii] = self.get_nextStateSpaceArryEntries(bi[-1],di[-1],eq_yi[-1],ii)
             
-            bi    = bi    + [bNext ]
-            di    = di    + [dNext ]
-            eq_yi = eq_yi + [yNext ]
-            sa_i  = sa_i  + [saNext]
-        
-        
+            # ###################################### #
+            # check conditions to continue loop
+            # ###################################### #
+            if self.absFitType == 'dEvo':
+
+                # check conditions to continue in loop for d-evo
+                cond1 = (saNext    > minSelCoeff_d      )      # sa_d above threshold size 
+                cond2 = (ii        < self.params['iMax'])      # max state space size not exceeded
+                
+                getNextStates = cond1 and cond2    
+                
+            elif self.absFitType == 'bEvo':
+                    
+                # check conditions to continue in loop for b-evo
+                cond1 = (bi[-1]    < self.params['bMax']                  ) # b-terms upper bound
+                cond2 = (sa_i[-1]  > minSelCoeff_b                        ) # sa-terms lower bound
+                cond3 = (eq_yi[-1] < 1/self.params['d']-1/self.params['T']) # density upper bound
+                cond4 = (ii        < self.params['iMax']                  ) # max number of states
+                
+                getNextStates = cond1 and cond2 and cond3 and cond4
+            
+            # if conditions met, then add new terms to bi, di, eq_yi, sa_i list
+            if getNextStates:
+                bi    = bi    + [bNext ]
+                di    = di    + [dNext ]
+                eq_yi = eq_yi + [yNext ]
+                sa_i  = sa_i  + [saNext]
+                
         # set the di, bi, and eq_yi arrays. Note that there is no need to 
         # trim the arrays here as with running out of mutations.
         self.di     = np.asarray(di)
@@ -197,7 +231,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             
         elif self.absFitType == 'bEvo':
             # compute the fixed increment associated with the model
-            delta_b = self.params['d']*(self.params['d']-1)*self.params['sa_0']
+            delta_b = self.di[-1] * self.bi[-1] * self.params['sa_0']**self.bi.size
             
             bi_last = self.bi[-1] + delta_b
         
@@ -249,7 +283,8 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         
         return next_di
     
-    #------------------------------------------------------------------------------
+    
+    #----------------------------------------------------------------------------
     
     def get_initStateSpaceArryEntries(self):
         # get_initStateSpaceArryEntries() generates the initial values for the
@@ -258,6 +293,10 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         #
         # parameters are initialized such that equilibrium density is 
         # approximately, eq_yi = 1/T
+        #
+        # RM and DRE both get initialized at the same points with respect to 
+        # their d- and b- sequences. The remainder of the sequences differs
+        # due to definitions for get_next_bi and get_next_di
         
         if (self.absFitType == 'dEvo'):
             # set start values of bi, di, & eq_yi arrays
@@ -265,11 +304,10 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             bInit  = self.params['b']
             dInit  = bInit*(1-yInit)+1
             
-            # Calculate next d-value to get selection coeff 
-            dNext = dInit*(self.params['dOpt']/dInit)**self.mcDRE_CDF(1)
-            
-            # Calculate selection coefficient for 1st abs fit ben. mutation
-            saInit = lmFun.get_d_SelectionCoeff(dInit,dNext)
+            # To calculate the correct selection coefficient, we need to check
+            # the next d-term after dInit
+            saInit = lmFun.get_d_SelectionCoeff(dInit, \
+                                                self.get_next_di(bInit,dInit,0))
             
         elif (self.absFitType == 'bEvo'):
             # set start values of bi, di, & eq_yi arrays
@@ -277,15 +315,15 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             dInit  = self.params['d']
             bInit  = (dInit-1)/(1-yInit)
             
-            # Calculate next b-value to get selection coeff 
-            bNext  = bInit + dInit*(dInit-1)*self.params['sa_0']
-            
-            # Calculate selection coefficient for 1st abs fit ben. mutation            
-            saInit = lmFun.get_b_SelectionCoeff(bInit,bNext,yInit,dInit)
+            # To calculate the correct selection coefficient, we need to check
+            # the next b-term after dInit
+            saInit = lmFun.get_b_SelectionCoeff(bInit, \
+                                                self.get_next_bi(bInit, dInit, 0), \
+                                                dInit)
             
         return [bInit,dInit,saInit,yInit]
     
-    #------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------
     
     def get_nextStateSpaceArryEntries(self, bCrnt, dCrnt, yCrnt, ii):
         # get_nextStateSpaceArryEntries() computes the next entries for the bi, di
@@ -298,79 +336,27 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             # ###################################### #
             dNext  = self.get_next_di(bCrnt, dCrnt, ii)                         # next di-term
             bNext  = self.params['b']                                           # next bi-term
-            yNext  = lmFun.get_eqPopDensity(self.params['b'],dCrnt,yi_option)   # next eq_yi-term
+            yNext  = lmFun.get_eqPopDensity(self.params['b'],dCrnt,self.yi_option)   # next eq_yi-term
             iiNext = ii + 1                                                     # next ii term
             
             # To calculate the correct selection coefficient, we need to check
             # the next d-term after dNext
             saNext = lmFun.get_d_SelectionCoeff(dNext,self.get_next_di(bNext,dNext,iiNext))
             
-            # check conditions to continue in loop
-            cond1 = (selCoeff_d_ii > minSelCoeff_d)     # sa_d above threshold size 
-            cond2 = (self.params['iMax'] > ii)          # max state space count not exceeded
-            
         elif self.absFitType == 'bEvo':
             
             # ###################################### #
             # State space definition for b-Evolution
             # ###################################### #
-            dNext  = self.params['d']
-            bNext  = self.get_next_bi(bCrnt,dCrnt,ii)
-            yNext  = lmFun.get_eqPopDensity(bNext,dNext,yi_option)
-            iiNext = ii + 1
+            dNext  = self.params['d']                                           # next di-term
+            bNext  = self.get_next_bi(bCrnt,dCrnt,ii)                           # next bi-term
+            yNext  = lmFun.get_eqPopDensity(bNext,dNext,self.yi_option)         # next eq_yi term
+            iiNext = ii + 1                                                     # next ii term
             
             # To calculate the correct selection coefficient, we need to check
             # the next b-term after bNext 
             saNext = lmFun.get_b_SelectionCoeff(bNext, \
                                                 self.get_next_bi(bNext,dNext,iiNext),dNext)
-            
-                
-            # check if we should add the current b and y to the list
-            # - is the next b-term larger than the max b value? Stop if so.
-            cond1 = (bi[-1] < self.params['bMax'])
-            # - is the selection coefficient smaller than the min sb? Stop if so.
-            cond2 = (selCoeff_bNext > minSelCoeff_b)
-            # - is the has the density achieved maximum size? stop if so
-            cond3 = (yCrnt < 1/self.params['d']-1/self.params['T'])
-            # - is the state count larger than the max number of states allowed? stop if so
-            cond4 = (self.params['iMax'] > ii)
-                
-            
-            
-            # add first terms to the set of arrays
-            bi    = [ bCrnt                 ]
-            di    = [ self.params['d']      ]
-            eq_yi = [ yCrnt                 ]  # choose min equil pop density
-            sa_i  = [ self.params['sa_0']   ]
-            
-            while (getNext_bi):
-                # loop to generate following arrays: di, bi, eq_yi, sa_i
-                
-                # update bCrnt, yCrnt
-                bCrnt           = bNext
-                yCrnt           = yNext
-                
-                # get next b and y term
-                delta_b = self.get_next_delta_b(bCrnt, self.params['d'],ii)
-                
-                bNext           = bNext + delta_b
-                yNext           = lmFun.get_eqPopDensity(bCrnt,di[-1],yi_option)
-                
-                selCoeff_bNext  = lmFun.get_b_SelectionCoeff(bCrnt,bNext,yCrnt,self.params['d'])
-                
-
-                
-                if cond1 and cond2 and cond3 and cond4:
-                    # set next elements of state space
-                    bi    = bi    + [ bCrnt             ]
-                    di    = di    + [ self.params['d']  ]
-                    eq_yi = eq_yi + [ yCrnt             ]  # next equil. pop density
-                    sa_i  = sa_i  + [ selCoeff_bNext    ]
-                    ii    = ii    + 1
-                    
-                else:
-                    # else break loop
-                    getNext_bi = False
                     
         return [bNext,dNext,yNext,saNext,iiNext]
     
@@ -391,7 +377,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # calculate population parameters for each of the states in the markov chain model
         # the evolution parameters are calculated along the absolute fitness state space
         # beginning with state 1 (1 mutation behind optimal) to iExt (extinction state)
-    
+        
     # ------------------------------------------------------------------------------
     
     def get_pfixValuesWrapperFunction(self):
@@ -504,7 +490,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         #
         # cdfOption: 1 = logCDF, 2 = geomCDF
         
-        alpha = self.params['alpha']
+        alpha   = self.params['alpha']
         jjStart = self.params['jStart']
         
         if (self.params['cdfOption'] == 1):
@@ -519,7 +505,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
     
     #------------------------------------------------------------------------------
     
-    def get_minSelCoeffValues(self,yi_option):
+    def get_minSelCoeffValues(self):
         # get_minSelCoeffValues() returns lower bounds on selection coefficient
         # for b, d, and c muations.
         
@@ -530,7 +516,8 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         if (self.absFitType == 'dEvo'):
             # 1/10 of the max c-selection coefficient at dOpt
             minSelCoeff_c = 0.1*lmFun.get_c_SelectionCoeff(self.params['b'], \
-                                       lmFun.get_eqPopDensity(self.params['b'],self.params['dOpt'],yi_option), \
+                                       lmFun.get_eqPopDensity(self.params['b'],self.params['dOpt'], \
+                                       self.yi_option), \
                                        self.params['cp'], \
                                        self.params['dOpt'])
         elif (self.absFitType == 'bEvo'):
@@ -540,13 +527,5 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             minSelCoeff_c = 0.01*self.params['cp']/self.params['d']
         
         return [minSelCoeff_b,minSelCoeff_d,minSelCoeff_c]
-    
-    #------------------------------------------------------------------------------
-    
-    def check_getNextStates(self):
-        
-        getNextStates = False
-        
-        return 
     
     #------------------------------------------------------------------------------

@@ -321,7 +321,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
                                                 self.get_next_bi(bInit, dInit, 0), \
                                                 dInit)
             
-        return [bInit,dInit,saInit,yInit]
+        return [bInit,dInit,yInit,saInit]
     
     #----------------------------------------------------------------------------
     

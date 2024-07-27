@@ -10,6 +10,7 @@ Created on Sat Mar 05 15:30:20 2022
 # --------------------------------------------------------------------------
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 
 import time
 import pickle 
@@ -111,18 +112,34 @@ ax1.set_yticklabels([str(1*i/10.0) for i in range(0,4)],fontsize=16)
 ax1.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 # ax1.legend(fontsize = 20,ncol=1,loc='lower right')
 
-# annotations
-iEq1 = 59
-vEq1 = 0.14e-4
-arrwLngth1 = 25
+# Annotations Parameters
+iEq1        = 59
+vEq1        = 0.14e-4
+vEq1_hgt    = 0.35
+arrwLngth1  = 49
+arrw_hgt    = 4
+arrw_hlngth = 15
+
+xAbs    = iEq1-arrwLngth1-1
+yAbs    = vEq1_hgt*vEq1
+dxAbs   = arrwLngth1  
+dyAbs   = 0
+wdthAbs = 0.05* vEq1
+
+xEnv    = iEq1+arrwLngth1+1
+yEnv    = vEq1_hgt*vEq1
+dxEnv   = -arrwLngth1  
+dyEnv   = 0
+wdthEnv = 0.05*vEq1
+
+# Annotations
 ax1.plot([iEq1,iEq1],[0,vEq1],c="black",linewidth=2,linestyle='--')
-ax1.annotate("", xy=(iEq1,0.5*vEq1), xytext=(iEq1-arrwLngth1,0.5*vEq1),arrowprops={'arrowstyle':'-|>','lw':4,'color':'blue'})
-ax1.annotate("", xy=(iEq1,0.5*vEq1), xytext=(iEq1+arrwLngth1,0.5*vEq1),arrowprops={'arrowstyle':'-|>','lw':4})
-#plt.text(iEq1,3.29e-4,r'$x^*=71$',fontsize = 18)
-#plt.text(-84,3.10e-4,r'$i_{ext}=180$',fontsize = 18)
-#plt.text(-190,5.50e-4,r'$\times 10^{-4}$', fontsize = 20)
+ax1.arrow(xAbs, yAbs, dxAbs, dyAbs, length_includes_head=True, \
+          width = wdthAbs ,head_width= arrw_hgt*wdthAbs, head_length=arrw_hlngth, color='blue')
+ax1.arrow(xEnv, yEnv, dxEnv, dyEnv, length_includes_head=True, \
+          width = wdthEnv ,head_width= arrw_hgt*wdthEnv, head_length=arrw_hlngth, color='black')
 ax1.text(15,0.29e-4,r'(A)', fontsize = 22) 
-ax1.legend(fontsize = 20,ncol=1,loc='upper right')           
+ax1.legend(fontsize = 20,ncol=1,loc='upper right')    
 
 # --------------------------------------------------------------------------
 #                               Figure - Panel (B)
@@ -149,22 +166,37 @@ ax2.set_yticklabels([str(1*i/10.0) for i in range(0,4)],fontsize=16)
 ax2.set_xlabel(r'Absolute fitness class',fontsize=20,labelpad=8)
 ax2.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 
-## annotations
-iEq2 = 106
-vEq2 = 0.63e-5
-arrwLngth2 = 25
-ax2.plot([iEq2,iEq2],[0,vEq2],c="black",linewidth=2,linestyle='--')
-ax2.annotate("", xy=(iEq2,0.75*vEq2), xytext=(iEq2-0.6*arrwLngth2,0.75*vEq2),arrowprops={'arrowstyle':'-|>','lw':3,'color':'blue'})
-ax2.annotate("", xy=(iEq2,0.5*vEq2), xytext=(iEq2-arrwLngth2,0.5*vEq2),arrowprops={'arrowstyle':'-|>','lw':4,'color':'red'})
-#plt.text(-78,0.29e-4,r'$i^*=84$',fontsize = 18)
-#plt.text(-78,0.10e-4,r'$i_{ext}=180$',fontsize = 18)
-#plt.text(-190,2.58e-4,r'$\times 10^{-4}$', fontsize = 20)
-ax2.text(15,0.29e-4,r'(B)', fontsize = 22)
+# Annotations Parameters
+iEq2        = 106
+vEq2        = 0.63e-5
+vEq2_hgt_1  = 0.55
+vEq2_hgt_2  = 0.20
+arrwLngth21 = 0.6*40
+arrwLngth22 = 40
+arrw_hgt_1  = 4
+arrw_hgt_2  = 5
+arrw_hlngt1 = 10
+arrw_hlngt2 = 15
 
-# diEqStr1 = "%.3f" % (mcModels[0].di[iEq1])
-# plt.text(120,1.2e-4,'d1*='+diEqStr1,fontsize = 11)
-# diEqStr2 = "%.3f" % (mcModels[1].di[iEq1])
-# plt.text(120,1.0e-4,'d2*='+diEqStr2,fontsize = 11)
+xAbs    = iEq2-arrwLngth21
+yAbs    = vEq2_hgt_1*vEq2
+dxAbs   = arrwLngth21 
+dyAbs   = 0
+wdthAbs = 0.05*vEq2
+
+xRel    = iEq2-arrwLngth22
+yRel    = vEq2_hgt_2*vEq2
+dxRel   = arrwLngth22  
+dyRel   = 0
+wdthRel = 0.05*vEq2
+
+# Annotations
+ax2.plot([iEq2,iEq2],[0,vEq2],c="black",linewidth=2,linestyle='--')
+ax2.arrow(xAbs, yAbs, dxAbs, dyAbs, length_includes_head=True, \
+          width = wdthAbs ,head_width= arrw_hgt_1*wdthAbs, head_length=arrw_hlngt1, color='blue')
+ax2.arrow(xRel, yRel, dxRel, dyRel, length_includes_head=True, \
+          width = wdthRel ,head_width= arrw_hgt_2*wdthRel, head_length=arrw_hlngt2, color='red')
+ax2.text(15,0.29e-4,r'(B)', fontsize = 22)
 
 plt.show()
 plt.tight_layout()

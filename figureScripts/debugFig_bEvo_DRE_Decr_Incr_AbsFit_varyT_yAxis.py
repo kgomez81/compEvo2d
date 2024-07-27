@@ -157,9 +157,31 @@ ax1.set_xlim(xlow,xhigh)
 ax1.set_yticks(yTickVals)
 ax1.set_yticklabels(yTickLbls,fontsize=16)
 ax1.set_ylim(0,vMaxFact*max(vEq)*scaleFactor)    # 2,5e04 ~ 1.5*max([max(va_i),max(vr_i)])
-
 ax1.set_ylabel(r'Rate of adaptation',fontsize=20,labelpad=8)
 
+# Annotation Parameters
+bEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor), 
+(bEq[0]-arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor)
+
+                                     
+iEq1        = 59
+vEq1        = 0.14e-4
+vEq1_hgt    = 0.35
+arrwLngth1  = 49
+arrw_hgt    = 4
+arrw_hlngth = 15
+
+xAbs    = iEq1-arrwLngth1-1
+yAbs    = vEq1_hgt*vEq1
+dxAbs   = arrwLngth1  
+dyAbs   = 0
+wdthAbs = 0.05* vEq1
+
+ax1.arrow(x, y, dx, dy, length_includes_head=True, \
+          width = wdthEnv, head_width = hdWidth, head_length = hdLngth, color='black')
+
+
+# Annotations
 arrow_shf = mpatches.FancyArrowPatch((bEq[0]-arrwOffset,vScale*vEq[ii]*scaleFactor), \
                                      (bEq[0]-arrwLngth1-arrwOffset,vScale*vEq[ii]*scaleFactor), \
                                      mutation_scale=50,color='black')

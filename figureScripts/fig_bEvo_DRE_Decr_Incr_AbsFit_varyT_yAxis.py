@@ -103,7 +103,7 @@ else:
         # if data exist, then just load it to generate the figure
         with open(os.path.join(mcModelOutputPath,saveDatFile[ii]), 'rb') as file:
             # Serialize and write the variable to the file
-            mcModels[ii].append(pickle.load(file))
+            mcModels[ii].extend(pickle.load(file))
 
 #%% ------------------------------------------------------------------------
 # generate figures

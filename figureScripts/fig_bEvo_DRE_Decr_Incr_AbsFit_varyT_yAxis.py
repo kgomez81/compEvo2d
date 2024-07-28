@@ -121,6 +121,7 @@ scaleFactor     = 1.0e2
 xlow            = 0.76      # x-axis min (pop density)
 xhigh           = 0.80      # x-axis max (pop density)  
 vMaxFact        = 1.50      # factor determining y-axis max value (multiple of v)
+yEqOffset       = 0.002
                     
 for ii in range(len(mcModels[0])):
     ax1.plot(mcModels[0][ii].eq_yi,mcModels[0][ii].va_i*scaleFactor,myLineStyles[ii],color=myColors[0],linewidth=2,label=T_vals_strVd[ii])
@@ -128,7 +129,7 @@ for ii in range(len(mcModels[0])):
 
 # equilibrium states and equilibrium rates of adaptation
 idx = [mcModels[0][ii].get_mc_stable_state_idx()-1 for ii in range(len(mcModels[0]))]
-yEq = np.asarray([mcModels[0][ii].eq_yi[idx[ii]] for ii in range(len(mcModels[0]))])
+yEq = np.asarray([mcModels[0][ii].eq_yi[idx[ii]]+yEqOffset for ii in range(len(mcModels[0]))])
 vEq = np.asarray([mcModels[0][ii].va_i[idx[ii]] for ii in range(len(mcModels[0]))])
 
 for ii in range(len(mcModels[0])):

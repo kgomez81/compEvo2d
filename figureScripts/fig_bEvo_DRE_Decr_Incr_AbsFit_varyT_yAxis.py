@@ -165,7 +165,7 @@ hdWidth = 25.0 * (yEq[0]-yEq[1])
 hdLngth = - 0.5 * dx
 
 # Annotations
-ax1.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.95*max(vEq)*scaleFactor,r'(A)', fontsize = 22)            
+ax1.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.94*max(vEq)*scaleFactor,r'(A)', fontsize = 22)            
 ax1.arrow(x, y, dx, dy, length_includes_head=True, \
           width = arwWdth, head_width = hdWidth, head_length = hdLngth, color='black')
 
@@ -228,7 +228,7 @@ hdWidth = 4.0 * (yEq[0]-yEq[1])
 hdLngth = 0.35 * dx
 
 # Annotations
-ax2.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.95*max(vEq)*scaleFactor,r'(B)', fontsize = 22)            
+ax2.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.94*max(vEq)*scaleFactor,r'(B)', fontsize = 22)            
 ax2.arrow(x, y, dx, dy, length_includes_head=True, \
           width = arwWdth, head_width = hdWidth, head_length = hdLngth, color='black')
 

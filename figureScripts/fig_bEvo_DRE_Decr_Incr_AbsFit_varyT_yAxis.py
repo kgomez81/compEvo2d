@@ -121,7 +121,8 @@ scaleFactor     = 1.0e2
 xlow            = 0.76      # x-axis min (pop density)
 xhigh           = 0.80      # x-axis max (pop density)  
 vMaxFact        = 1.50      # factor determining y-axis max value (multiple of v)
-yEqOffset       = 0.002
+yEqOffset       = 0.00265
+vEqOffset       = [0,-0.00002]
                     
 for ii in range(len(mcModels[0])):
     ax1.plot(mcModels[0][ii].eq_yi,mcModels[0][ii].va_i*scaleFactor,myLineStyles[ii],color=myColors[0],linewidth=2,label=T_vals_strVd[ii])
@@ -130,7 +131,7 @@ for ii in range(len(mcModels[0])):
 # equilibrium states and equilibrium rates of adaptation
 idx = [mcModels[0][ii].get_mc_stable_state_idx()-1 for ii in range(len(mcModels[0]))]
 yEq = np.asarray([mcModels[0][ii].eq_yi[idx[ii]]+yEqOffset for ii in range(len(mcModels[0]))])
-vEq = np.asarray([mcModels[0][ii].va_i[idx[ii]] for ii in range(len(mcModels[0]))])
+vEq = np.asarray([mcModels[0][ii].va_i[idx[ii]]+vEqOffset[ii] for ii in range(len(mcModels[0]))])
 
 for ii in range(len(mcModels[0])):
     ax1.scatter(yEq[ii],vEq[ii]*scaleFactor,marker="o",s=40,c="black")
@@ -167,7 +168,7 @@ hdLngth = - 0.5 * dx
 # Annotations
 ax1.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.94*max(vEq)*scaleFactor,r'(A)', fontsize = 22)            
 ax1.arrow(x, y, dx, dy, length_includes_head=True, \
-          width = arwWdth, head_width = hdWidth, head_length = hdLngth, color='black')
+          width = arwWdth, head_width = hdWidth, head_length = hdLngth, color='magenta')
 
 # custom legend
 custom_lines = [Line2D([0], [0], linestyle=myLineStyles[ii], color='black', lw=2) for ii in range(len(mcModels[0]))]
@@ -230,7 +231,7 @@ hdLngth = 0.35 * dx
 # Annotations
 ax2.text(xhigh-0.1*(xhigh-xlow),vMaxFact*.94*max(vEq)*scaleFactor,r'(B)', fontsize = 22)            
 ax2.arrow(x, y, dx, dy, length_includes_head=True, \
-          width = arwWdth, head_width = hdWidth, head_length = hdLngth, color='black')
+          width = arwWdth, head_width = hdWidth, head_length = hdLngth, color='cyan')
 
 # custom legend
 myLineStyles    = ['-','-']

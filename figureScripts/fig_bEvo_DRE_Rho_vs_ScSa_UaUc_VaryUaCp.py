@@ -114,6 +114,13 @@ Z = np.log10(mcModels.rho_ij)                        # rho
 
 zRange = np.max(np.abs(z))
 
+# plot points representing figure 2 examples
+ij1 = [  0,  0] 
+ij2 = [  8, 10]
+
+xy1 = [ X[ij1[0],ij1[1]] , Y[ij1[0],ij1[1]] ]
+xy2 = [ X[ij2[0],ij2[1]] , Y[ij2[0],ij2[1]] ]
+
 #%% ------------------------------------------------------------------------
 #                           Plot data
 # --------------------------------------------------------------------------
@@ -123,6 +130,8 @@ fig, ax1 = plt.subplots(1,1,figsize=[9,7])
 
 # plot a 3D surface like in the example mplot3d/surface3d_demo
 map1 = ax1.scatter(x, y, c=z, s=40, cmap='bwr', vmin = -zRange, vmax = +zRange, edgecolor='none')
+ax1.scatter(xy1[0],xy1[1],marker='s',s=100,color='cyan',facecolors='none',linewidths=2)
+ax1.scatter(xy2[0],xy2[1],marker='s',s=100,color='magenta',facecolors='none',linewidths=2)
 
 ax1.set_xlabel(r'$log_{10}(s_c/s_b)$',fontsize=26,labelpad=8)
 ax1.set_ylabel(r'$log_{10}(U_b/U_c)$',fontsize=26,labelpad=8)

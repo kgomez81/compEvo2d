@@ -22,7 +22,6 @@ from abc import ABC, abstractmethod
 from joblib import Parallel, delayed, cpu_count
 
 import evoLibraries.LotteryModel.LM_functions as lmFun
-
 import SIM_functions as simfun
 
 class simClass(ABC):
@@ -35,27 +34,33 @@ class simClass(ABC):
     #%% ------------------------------------------------------------------------
     # Constructor
     # --------------------------------------------------------------------------
-    def __init__(self,mcEvoOptions):
+    def __init__(self,mcEvoOptions,evoInit):
+        # evoInit is dictionary with initial values for evor arrays below.
         
         # Basic evolution parameters for Lottery Model (Bertram & Masel 2019)
         self.params     = mcEvoOptions.params         # dictionary with evo parameters
         self.absFitType = mcEvoOptions.absFitType     # absolute fitness evolution term
+        self.tmax       = 10                    # max iterations (default is 10)
         
-        # 2d array data
-        self.nij        = np.zeros([1,1])       # array for genotype abundances
-        self.bij        = np.zeros([1,1])       # array for genotype b-terms 
-        self.dij        = np.zeros([1,1])       # array for genotype d-terms 
-        self.cij        = np.zeros([1,1])       # array for genotype c-terms 
+        # 2d array with adult abundances
+        self.nij        = np.zeros([1,1])       # array for genotype abundances (adults only)
         
-        # 1d array and other data
-        self.iAbsMutCnt = np.zeros([1,1])       # stores abs fit mutation counts along 2d arry rows
-        self.jRelMutCnt = np.zeros([1,1])       # stores rel fit mutation counts along 2d arry rows
-        self.tmax       = 10                    # max iterations
+        # 2d arrays which store mutation counts
+        self.bij_mutCnt     = np.zeros([1,1])   # array for genotype b-terms mutation counts
+        self.dij_mutCnt     = np.zeros([1,1])   # array for genotype d-terms mutation counts
+        self.cij_mutCnt     = np.zeros([1,1])   # array for genotype c-terms mutation counts
+        
+        self.mut_ij     = np.zeros([1,1])       # array for genotype mutant juventiles
+        self.stoch_ij   = []                    # list of stochastic classes     
+        self.stochThrsh = 100                   # threshold to assign with stochastic behavior
         
         # - mcModel is associated Markov Chain used to reference state space
         # - fitMapEnv maps fitnes decline from environmental changes 
         self.mcModel    = []
-        self.fitMapEnv  = np.zeros([1,1])       
+        self.fitMapEnv  = np.zeros([1,1])   
+        
+        # initialize arrays
+        self.init_evolutionModel(evoInit)
         
     #%% ------------------------------------------------------------------------
     # Abstract methods
@@ -78,31 +83,42 @@ class simClass(ABC):
         "Absolute fitness mutations add/modify rows of the 2d evolution arrays"
         "while relative fitness mutations add columns to 2d evo arrays        "
         pass
+
+    # --------------------------------------------------------------------------
+    
+    @abstractmethod
+    def run_environmentalDegredation(self):
+        "Method that defines how environmental degredation runs. This will    "
+        "depend on the model and type of evolution.                           "
+        pass
+    
+    # --------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_bij(self):
+        "Method to calculate array of bij actual values from mutation counts. "
+        "The calculation is model specific, i.e. b vs d evo, RM vs DRE.       "
+        pass
+    
+    # --------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_dij(self):
+        "Method to calculate array of dij actual values from mutation counts. "
+        "The calculation is model specific, i.e. b vs d evo, RM vs DRE.       "
+        pass
+    
+    # --------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_cij(self):
+        "Method to calculate array of cij actual values from mutation counts. "
+        "The calculation is model specific, i.e. b vs d evo, RM vs DRE.       "
+        pass
     
     #%% ------------------------------------------------------------------------
     # Class methods
     # --------------------------------------------------------------------------
-    
-    def init_evolutionModel(self,evoInit):
-        # Version of init_evolutionModel() used to provide initial values for 
-        # the population
-        
-        # 2d array data
-        self.nij        = evoInit.nij      # array for genotype abundances
-        self.bij        = evoInit.bij      # array for genotype b-terms 
-        self.dij        = evoInit.dij      # array for genotype d-terms 
-        self.cij        = evoInit.cij      # array for genotype c-terms   
-        self.tmax       = evoInit.tmax     # max iterations
-        
-        # 1d array mappings to quickly calculate transitions
-        # - mcModel = associated Markov Chain used to reference state space
-        # - fitMapEnv maps fitnes decline from environmental changes 
-        self.mcModel    = []
-        self.fitMapEnv  = evoInit.fitMapEnv     # map of fitness declines
-        
-        return None
-    
-    #------------------------------------------------------------------------------    
     
     def run_evolutionModel(self):
         # main function to run evolutionary model
@@ -112,9 +128,9 @@ class simClass(ABC):
         popExtinct  = False 
         
         # run model tmax generations or until population is extinct
-        while ( (t < self.tmax) and (not popExtinct) ):
+        while ( (t < self.tmax) and not (self.popSize() < 10) ):
             
-            # get new mutations
+            # get new juveniles and modify arrays for potentially new classes
             self.get_populationMutations()
             
             # run competitino phase of model
@@ -125,13 +141,9 @@ class simClass(ABC):
             
             # update time increment
             t = t + 1
-            
-            # check if population has become extinct
-            if (self.popSize() < 10):
-                popExtinct = True
         
         return None
-    
+        
     #------------------------------------------------------------------------------
     
     def run_competitionPhase(self):
@@ -139,14 +151,19 @@ class simClass(ABC):
         # simulates competition to determine the number of adults prior
         # to the death phase.
         
-
+        # NOTE: get_populationMutations() should expand the arrays to capture 
+        # the appearance of juvenile mutants. How this occurs is unique to the 
+        # type of model (d vs b evo, RM vs DRE)
+        # 
         
-        # get the poisson parameters for juveniles produced lij = mij/U
+        
+        # COMPETITION for DETERMINISTIC CLASSES
+        # first we calculate everything as deterministic, then we recalculate
+        # outcomes from stochastic competitions 
         
         
-        # get U array for competitions
+        # COMPETITION for STOCHASTIC CLASSES
         
-        # run compeitions 
     
         return None
     #------------------------------------------------------------------------------
@@ -155,22 +172,15 @@ class simClass(ABC):
         # run_deathPhase() gernates the set of new and remaining adults 
         # following death.
         
+        # DEATH for STOCHASTIC CLASSES
+        
+        # DEATH for DETERMINISTIC CLASSES
+        
         # apply death phase to stochastically modeled classes
-        for ii in range(self.dij.shape[0]):
-            for jj in range(self.dij.shape[1]):
+        for ii in range(self.nij.shape[0]):
+            for jj in range(self.nij.shape[1]):
                 # sample deaths using binomial distribution
-                self.dij[ii,jj] = 0
-        
-        return None
-    
-    #------------------------------------------------------------------------------
-    
-    def run_environmentalDegredation():
-        # run_environmentalDegredation() simulations a change in the environment that
-        # reduces absolute fitness of all genotypes. Environmental degredation reduces
-        # fitness by the same amount for all types.
-        
-        # for now, we will implement the simplest strategy of shifting back one state
+                self.nij[ii,jj] = np.random.binomial(self.nij[ii,jj],1/self.dij[ii,jj],1)
         
         return None
 
@@ -181,10 +191,16 @@ class simClass(ABC):
         # below the stochastic threshold, whose abundances will not be modeled 
         # deterministically.
         
+        # clear current list
+        self.stoch_ij = []
+        
         # calculate the stochastic threshold
+        for ii in range(self.nij.shape[0]):
+            for jj in range(self.nij.shape[1]):
+                if (self.nij[ii,jj] < self.stochThrsh) and (self.nij[ii,jj] > 0):
+                    self.stoch_ij.append([ii,jj])
         
-        
-        return ijStoch
+        return None
     
     #------------------------------------------------------------------------------
     
@@ -193,21 +209,35 @@ class simClass(ABC):
         # the map allows calculated values from functions to be placed back 
         # to a 2d array
         
+        ijMap = []
+        
+        for ii in range(self.nij.shape[0]):
+            for jj in range(self.nij.shape[1]):
+                if (self.nij[ii,jj] > 0):
+                    ijMap.append([ii,jj])
+        
         return ijMap
     
     #------------------------------------------------------------------------------
     
     def get_evoArraysExpand(self):
         # get_evoArraysExpand() expands evo arrays with additional rows/cols 
-        # so that mutations can be added
+        # so that mutations can be added. Two key steps are:
+        #   1. pads the set of array storing the evolutioanry state of the population
+        #   2. fills in the padded the bij, dij and cij 
+        #
         
-        # get larger array
-        absRows = self.nij.shape[0]
-        relCols = self.nij.shape[1]
+        # expand adult abundances
+        self.nij = np.pad(self.nij,1)
         
-        tempEvoArry = np.zeros([absRows+2,])
+        # expand bij arrays
+        self.bij = np.pad(self.bij,1)
         
+        # expand dij arrays
+        self.dij = np.pad(self.dij,1)
         
+        # expand cij array
+        self.cij = np.pad(self.cij,1)
         
         return None
     
@@ -285,3 +315,16 @@ class simClass(ABC):
         return L
     
     #------------------------------------------------------------------------------
+    
+    def store_evoSnapshot():
+        
+        # function to store evolutionary state
+        # - time
+        # - nij, bij, cij, dij
+        
+        # snapshot of population
+        
+        # snapshot of parameters (as csv file)
+        
+    
+        return None

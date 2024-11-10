@@ -124,7 +124,7 @@ fig, ax1 = plt.subplots(1,1,figsize=[9,7])
 # plot a 3D surface like in the example mplot3d/surface3d_demo
 map1 = ax1.scatter(x, y, c=z, s=40, cmap='bwr', vmin = -zRange, vmax = +zRange, edgecolor='none')
 
-ax1.set_xlabel(r'$log_{10}(s_c/s_b)$',fontsize=26,labelpad=8)
+# ax1.set_xlabel(r'$log_{10}(s_c/s_b)$',fontsize=26,labelpad=8)
 ax1.set_ylabel(r'$log_{10}(U_b/U_c)$',fontsize=26,labelpad=8)
 
 xMin = int(np.floor(min(x)))
@@ -134,27 +134,31 @@ yMin = int(np.floor(min(y)))
 yMax = int(np.ceil(max(y))+1)
 
 xTicks      = [-1,-0.5,0,0.5,1]
-xTickLbls   = [str(0.1),'',str(1),'',str(10)]
+# xTickLbls   = [str(0.1),'',str(1),'',str(10)]
+xTickLbls   = ['','','','','']
 
-yTicks      = [-3,-2,-1,0,1,2]
-yTickLbls   = [str(0.001),str(0.01),str(0.1),str(1),str(10),str(100)]
+yTicks      = [-3,-2,-1,0,1,2,3]
+yTickLbls   = [str(0.001),str(0.01),str(0.1),str(1),str(10),str(100),str(1000)]
 
 zIncr    = 0.05
 zMaxMod5 = int(np.ceil(zRange/zIncr))
 zTicks   = [np.round(zIncr*ii,2) for ii in range(-zMaxMod5, zMaxMod5+1)]
-zLabels  = [str(tick) for tick in zTicks]
+zLabels  = [("%.2f" % tick) for tick in zTicks]
 
 ax1.set_xticks(xTicks)
 ax1.set_xticklabels(xTickLbls,fontsize=22)
 
 ax1.set_yticks(yTicks)
 ax1.set_yticklabels(yTickLbls,fontsize=22)
+ax1.set_ylim([-3.1,3.1])
 
 plt.grid(True)
 
 cbar = fig.colorbar(map1, ax=ax1, ticks = zTicks)
 cbar.ax.set_yticklabels(zLabels) 
 cbar.ax.tick_params(labelsize=18)
+
+ax1.text(-0.97,2.7,r'(A)', fontsize = 22)
 
 plt.show()
 plt.tight_layout()

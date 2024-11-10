@@ -10,7 +10,6 @@ Created on Sat Mar 05 15:30:20 2022
 # --------------------------------------------------------------------------
 
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 
 import time
 import pickle 

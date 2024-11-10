@@ -39,6 +39,7 @@ def deltnplussim(m,c,U,pop,params,d):
     # Inputs:
     # m - array with number of new propogules (unoccupied territories) per class
     # c - array with set of relative fitness class values
+    # d - array with set of absolute fitness class values
     # U - Number of unoccupied territories
     #
     # Outputs:    
@@ -46,7 +47,7 @@ def deltnplussim(m,c,U,pop,params,d):
     
     # get array with the set of juvenile densities. 
     # 1st index is the wild type and the 2nd index is the mutant class
-    l = m/float(U)
+    l = [m[ii]/float(U) for ii in range(len(m))]
     
     # Calculate the probability of at least one mutant propagules in 
     # a territory. sf = 1-cdf is the survival function
@@ -78,7 +79,7 @@ def deltnplussim(m,c,U,pop,params,d):
     
     # draw a sample of wild type for comp_U territories, theser are just poisson
     # samples for each of the comp_U territories.
-    comp_wld =np.random.poisson(lam=l[0],size=[comp_U,1])
+    comp_wld = np.random.poisson(lam=l[0],size=[comp_U,1])
     
     # stack the draws of juveniles (mut & wild type) side by side
     scatter = np.hstack([comp_wld,comp_mut])
@@ -128,13 +129,14 @@ def calculate_Ri_term(m,c,U):
     
     # get array with the set of juvenile densities. 
     # 1st index is the wild type and the 2nd index is the mutant class
-    l = m/float(U)      
+    l = [m[ii]/float(U) for ii in range(len(m))]
     
     # get total juvenile density 
     L = sum(l)
     
     # calculate the average value of the competitive trait
-    cbar = sum(m*c)/sum(m)
+    # NOTE: the m[ii] is proportional to pop[ii] so okay to use
+    cbar = sum([m[ii]*c[ii] for ii in range(len(m))])/sum(m)
     
     # generate array to store the Ri term the 
     out = l
@@ -160,13 +162,13 @@ def calculate_Ai_term(m,c,U):
     
     # get array with the set of juvenile densities. 
     # 1st index is the wild type and the 2nd index is the mutant class
-    l = m/float(U)
+    l = [m[ii]/float(U) for ii in range(len(m))]
     
     # get total juvenile density 
     L = sum(l)
     
     # calculate the average value of the competitive trait
-    cbar=sum(m*c)/sum(m)    
+    cbar = sum([m[ii]*c[ii] for ii in range(len(m))])/sum(m)
     
     # generate array to store the Ri term the 
     out = l
@@ -206,14 +208,18 @@ def deltnplus(m,c,U):
         L = sum(m)/float(U)
         
         # calculate mean relative fitness (average c value)
-        cbar = sum(m*c)/sum(m)
+        cbar = sum([m[ii]*c[ii] for ii in range(len(m))])/sum(m)
         
         # return the expected number of new adults
-        return m * ( np.exp(-L) + ( calculate_Ri_term(m,c,U) + calculate_Ai_term(m,c,U) ) * (c/cbar) )
+        factor = ( np.exp(-L) + ( calculate_Ri_term(m,c,U) + calculate_Ai_term(m,c,U) ) )
+                  
+        newAdults = [m[ii] * factor * c[ii] for ii in range(len(m))]
     
     else:
         # if the population has gone extinct
-        return np.zeros(len(m))
+        newAdults = [0 for ii in range(len(m))]
+    
+    return newAdults
     
 #------------------------------------------------------------------------------
         
@@ -245,7 +251,7 @@ def popdeath(pop,di):
 
 #------------------------------------------------------------------------------
     
-def simulate_popEvoSelection(params,pop,d,c): 
+def simulate_popEvoSelection(params,pop,b,d,c): 
     # This function simulates the evolution of a population given the parameters
     # and starting population provided in the inputs.
 	#
@@ -263,7 +269,7 @@ def simulate_popEvoSelection(params,pop,d,c):
     U = max([0,int(params['T'] - sum(pop))])
     
     # calculate the number of juveniles
-    m = pop * ((params['b'] * U) / params['T'])
+    m = [pop[ii] * ((b[ii] * U) / params['T']) for ii in range(len(b))]
 
     # create array to store new pop values
     newpop = [pop[i] for i in range(len(pop))]
@@ -277,6 +283,8 @@ def simulate_popEvoSelection(params,pop,d,c):
         stoch_newAdults = deltnplussim(m,c,U,pop,params,d)
         
         # calculate the total number of adults per class.
+        print(pop[0])
+        print(deter_newAdults[0])
         newpop[0] = int(pop[0] + deter_newAdults[0])
         newpop[1] = int(pop[1] + stoch_newAdults[1])
         
@@ -288,7 +296,7 @@ def simulate_popEvoSelection(params,pop,d,c):
 
 #------------------------------------------------------------------------------
 
-def simulate_mutantPopEvo2Extinction(params,pop,d,c,fixThrshld):
+def simulate_mutantPopEvo2Extinction(params,pop,b,d,c,fixThrshld):
     # This function simulates the evolution of a population, with  parameters
     # given, until the mutant population becomes extinct.
 	#
@@ -306,7 +314,7 @@ def simulate_mutantPopEvo2Extinction(params,pop,d,c,fixThrshld):
     mutFixCheck = 0
     
     while ((pop[1] > 0) & (pop[1] < fixThrshld)): 
-        pop = simulate_popEvoSelection(params,pop,d,c)
+        pop = simulate_popEvoSelection(params,pop,b,d,c)
     
     mutFixCheck = int(pop[1] > 1)
         
@@ -314,7 +322,7 @@ def simulate_mutantPopEvo2Extinction(params,pop,d,c,fixThrshld):
 
 #------------------------------------------------------------------------------
 
-def estimate_popEvo_pFix(params,init_pop,d,c,nPfix,fixThrshld):
+def estimate_popEvo_pFix(params,init_pop,b,d,c,nPfix,fixThrshld):
     # This function simulates the evolution of a population (selection only) 
     # of a popluation with a wild type dominant genotype, and a newly appearing 
     # mutant lineage. 
@@ -338,7 +346,8 @@ def estimate_popEvo_pFix(params,init_pop,d,c,nPfix,fixThrshld):
     
     
     # run parallel loops through nPfix instances to estimate pFix
-    mutFixCheck = Parallel(n_jobs=6)(delayed(simulate_mutantPopEvo2Extinction)(params,init_pop,d,c,fixThrshld) for ii in range(nPfix))
+    # mutFixCheck = Parallel(n_jobs=6)(delayed(simulate_mutantPopEvo2Extinction)(params,init_pop,b,d,c,fixThrshld) for ii in range(nPfix))
+    mutFixCheck = [simulate_mutantPopEvo2Extinction(params,init_pop,b,d,c,fixThrshld) for ii in range(nPfix)]
             
     
     # estimate pFix by summing the number of times the mutant lineage grew 

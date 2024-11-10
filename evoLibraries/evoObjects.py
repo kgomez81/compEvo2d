@@ -20,6 +20,10 @@ import csv
 #                       my classes and structures
 # *****************************************************************************
 
+
+#%% *****************************************************************************
+#                       Basic Evo Options Class
+# *****************************************************************************
 class evoOptions:
     # evoOptions encapsulates all evolution parameters needed to build a 
     # Markov Chain model.
@@ -91,3 +95,4 @@ class evoOptions:
         return None
 
     # --------------------------------------------------------------------------
+        

@@ -164,6 +164,7 @@ plt.grid(True)
 cbar = fig.colorbar(map1, ax=ax1, ticks = zTicks)
 cbar.ax.set_yticklabels(zLabels) 
 cbar.ax.tick_params(labelsize=18)
+cbar.set_label(r'$\log_{10}(\rho)$',size=26)
 
 plt.show()
 plt.tight_layout()

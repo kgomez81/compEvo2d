@@ -121,7 +121,7 @@ zRange = np.max(np.abs(z))
 # --------------------------------------------------------------------------
 
 # set up a figure 
-fig, ax1 = plt.subplots(1,1,figsize=[9,7])
+fig, ax1 = plt.subplots(1,1,figsize=[9,6.5])
 
 # plot a 3D surface like in the example mplot3d/surface3d_demo
 map1 = ax1.scatter(x, y, c=z, s=40, cmap='bwr', vmin = -zRange, vmax = +zRange, edgecolor='none')
@@ -159,6 +159,7 @@ plt.grid(True)
 cbar = fig.colorbar(map1, ax=ax1, ticks = zTicks)
 cbar.ax.set_yticklabels(zLabels) 
 cbar.ax.tick_params(labelsize=18)
+cbar.set_label(r'$\log_{10}(\rho)$',size=26)
 
 ax1.text(-0.97,2.7,r'(A)', fontsize = 22)
 

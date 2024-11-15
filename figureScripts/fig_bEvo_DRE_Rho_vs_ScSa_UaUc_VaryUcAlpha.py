@@ -142,7 +142,7 @@ yTickLbls   = [str(0.001),str(0.01),str(0.1),str(1),str(10),str(100),str(1000)]
 zIncr    = 0.05
 zMaxMod5 = int(np.ceil(zRange/zIncr))
 zTicks   = [np.round(zIncr*ii,2) for ii in range(-zMaxMod5, zMaxMod5+1)]
-zLabels  = [("%.2f" % tick) for tick in zTicks]
+zLabels  = [("%.2f" % 10**tick) for tick in zTicks]
 
 ax1.set_xticks(xTicks)
 ax1.set_xticklabels(xTickLbls,fontsize=22)
@@ -156,6 +156,7 @@ plt.grid(True)
 cbar = fig.colorbar(map1, ax=ax1, ticks = zTicks)
 cbar.ax.set_yticklabels(zLabels) 
 cbar.ax.tick_params(labelsize=18)
+cbar.set_label(r'$\log_{10}(\rho)$',size=26)
 
 ax1.text(-0.97,2.7,r'(B)', fontsize = 22)
 

@@ -38,3 +38,39 @@ def getScatterData(X,Y,Z):
     
     return [x,y,z]
 
+# --------------------------------------------------------------------------
+
+def getScatterData_special(X,Y,Z):
+    
+    x = []
+    y = []
+    z = []
+    
+    for ii in range(Z.shape[0]):
+        for jj in range(Z.shape[1]):
+            
+            # removed bad data
+            xGood = not np.isnan(X[ii,jj]) and not np.isinf(X[ii,jj])
+            yGood = not np.isnan(Y[ii,jj]) and not np.isinf(Y[ii,jj])
+            zGood = not np.isnan(Z[ii,jj]) and not np.isinf(Z[ii,jj])
+            yMlim = (np.abs(Y[ii,jj])<=2)
+            
+            if xGood and yGood and zGood and yMlim:
+                x = x + [ X[ii,jj] ]
+                y = y + [ Y[ii,jj] ]
+                z = z + [ Z[ii,jj] ]
+    
+    x = np.asarray(x)
+    y = np.asarray(y)
+    z = np.asarray(z)
+    
+    return [x,y,z]
+
+# --------------------------------------------------------------------------
+
+def get_emptyPlotAxisLaels(lbls):
+    # simple function to get empty labels for plots
+    
+    emptyLbls = ['' for ii in range(len(lbls))]
+    
+    return emptyLbls

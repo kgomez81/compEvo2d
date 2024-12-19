@@ -2,7 +2,9 @@
 """
 Created on Sun May 08 11:22:43 2022
 
-@author: dirge
+@author: Kevin Gomez
+
+Script to generate figure 3 of manuscript.
 """
 
 # --------------------------------------------------------------------------
@@ -75,7 +77,7 @@ ax1.scatter(figData['log10_ss'][8,10], figData['log10_UU'][8,10] ,
 # set x-axis attributes
 ax1.set_xlabel(r'$log_{10}(s_c/s_b)$',fontsize=26,labelpad=8)
 ax1.set_xticks(figData['xTick']) 
-ax1.set_xticklabels(ff.get_emptyPlotAxisLaels(figData['xLbls']),fontsize=22)
+ax1.set_xticklabels(figData['xLbls'],fontsize=22)
 
 # set y-axis attributes
 ax1.set_ylabel(r'$log_{10}(U_b/U_c)$',fontsize=26,labelpad=0)

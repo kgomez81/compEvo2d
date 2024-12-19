@@ -231,7 +231,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
             
         elif self.absFitType == 'bEvo':
             # compute the fixed increment associated with the model
-            delta_b = self.di[-1] * self.bi[-1] * self.params['sa_0']**self.bi.size
+            delta_b = self.get_next_bi(self.bi[-1] , self.di[-1], len(self.bi) )
             
             bi_last = self.bi[-1] + delta_b
         
@@ -249,11 +249,11 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # ----------------------------------------
         
         if (self.params['DreMod'] == 1):
-            # ignore geom. decay model, and just use sb0
-            delta_b = d * b * self.params['sa_0'] 
+            # DRE model with unbounded b
+            delta_b = d * b * self.params['sa_0'] / ((1+ii)**(1-self.params['alpha']))
         else:
             # DRE model with alpha
-            delta_b = d * b * (self.params['sa_0'] * self.params['alpha']**ii)
+            delta_b = d * b * (self.params['sa_0'] *self.params['alpha']**ii)
         
         next_bi = b + delta_b
         

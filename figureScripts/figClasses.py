@@ -99,6 +99,7 @@ class figRhoPlot():
                 pickle.dump(outputs, file)
         
         else:
+            print('Warning: Data for Markov Chain Models was found in the output directory. Data will be loaded from the existing output files.')
             # if data exist, then just load it to generate the figure
             with open(self.saveDatFilePath, 'rb') as file:
                 # Serialize and write the variable to the file

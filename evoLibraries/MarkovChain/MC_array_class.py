@@ -265,9 +265,10 @@ class mcEvoGrid():
         rho                 = temp_mcModel.calculate_evoRho()
         
         # output to a file completion of mcModel calculation
-        outFile = outPath + "\mcmodel_" + str(kk) + "_complete.txt"
-        f = open(outFile, "x")
-        f.write("Done!")
-        f.close()
+        if (outPath != None) and (outPath != []):
+            outFile = outPath + "\mcmodel_" + str(kk) + "_complete.txt"
+            f = open(outFile, "x")
+            f.write("Done!")
+            f.close()
         
         return [kk,params_stable_state,rho]

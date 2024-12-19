@@ -4,7 +4,7 @@ Created on Sun May 08 11:22:43 2022
 
 @author: Kevin Gomez
 
-Script to generate supplementary figure 2
+Script to generate version of figure 3, but with unbounded b-values.
 """
 
 #%% --------------------------------------------------------------------------
@@ -28,10 +28,10 @@ import figFunctions as ff
 # filepaths for loading and saving outputs
 figPathsIO  = dict()
 figPathsIO['saveFigSubdir'] = 'Supplement'
-figPathsIO['figFile']       = 'fig_bEvo_DRE_Rho_vs_ScSa_UaUc_VaryUaCp_HighAlpha.pdf'
-figPathsIO['figDatDir']     = 'fig_bEvo_DRE_RhoUaCpHighAlpha_pfix2'
-figPathsIO['paramFile']     = 'evoExp_DRE_bEvo_12_parameters.csv'
-figPathsIO['paramTag']      = 'param_12_DRE_bEvo'
+figPathsIO['figFile']       = 'fig_bEvo_DRE_Rho_vs_ScSa_UaUc_VaryUaCp_UnbndBVals.pdf'
+figPathsIO['figDatDir']     = 'fig_bEvo_DRE_RhoUaCpUnbndB_pfix2'
+figPathsIO['paramFile']     = 'evoExp_DRE_bEvo_05_parameters.csv'
+figPathsIO['paramTag']      = 'param_05_DRE_bEvo'
 
 # specify parameters for the MC models
 figModelIO = dict()

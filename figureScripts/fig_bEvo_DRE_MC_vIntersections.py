@@ -19,6 +19,7 @@ import sys
 sys.path.insert(0, os.getcwd() + '\\..')
 
 from evoLibraries.MarkovChain import MC_factory as mcFac
+from matplotlib.lines import Line2D
 
 #%% ------------------------------------------------------------------------
 # Get parameters/options
@@ -138,7 +139,16 @@ ax1.arrow(xAbs, yAbs, dxAbs, dyAbs, length_includes_head=True, \
 ax1.arrow(xEnv, yEnv, dxEnv, dyEnv, length_includes_head=True, \
           width = wdthEnv ,head_width= arrw_hgt*wdthEnv, head_length=arrw_hlngth, color='black')
 ax1.text(15,0.29e-4,r'(A)', fontsize = 22) 
-ax1.legend(fontsize = 20,ncol=1,loc='upper right')    
+
+# ax1.legend(fontsize = 20,ncol=1,loc='upper right')    
+
+# custom legend
+
+myColors        = ["black","blue","red"]
+myLineStyles    = ['-','-','-']
+T_vals_strLgd   = [r'$v_E$',r'$v_b$',r'$v_c$']
+custom_lines = [Line2D([0], [0], linestyle=myLineStyles[ii], color=myColors[ii], lw=2) for ii in range(len( T_vals_strLgd ))]
+ax1.legend(custom_lines,T_vals_strLgd,fontsize = 20)
 
 # --------------------------------------------------------------------------
 #                               Figure - Panel (B)

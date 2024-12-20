@@ -85,7 +85,7 @@ cbar.ax.tick_params(labelsize=18)
 cbar.set_label(r'$\rho$',size=26,rotation=0,labelpad=20,y=0.52)
 
 # annotations
-# ax1.text(-0.97,1.7,r'(B)', fontsize = 22)
+ax1.text(-0.97,1.7,r'(B)', fontsize = 22)
 
 plt.grid(True)
 plt.show()

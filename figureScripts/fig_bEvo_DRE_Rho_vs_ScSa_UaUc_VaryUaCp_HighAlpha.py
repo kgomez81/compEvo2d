@@ -68,9 +68,9 @@ map1 = ax1.scatter(figData['xData'],
                    edgecolor='none')
 
 # set x-axis attributes
-ax1.set_xlabel(r'$log_{10}(s_c/s_b)$',fontsize=26,labelpad=8)
+# ax1.set_xlabel(r'$log_{10}(s_c/s_b)$',fontsize=26,labelpad=8)
 ax1.set_xticks(figData['xTick']) 
-ax1.set_xticklabels(figData['xLbls'],fontsize=22)
+ax1.set_xticklabels(ff.get_emptyPlotAxisLaels(figData['xLbls']),fontsize=22)
 
 # set y-axis attributes
 ax1.set_ylabel(r'$log_{10}(U_b/U_c)$',fontsize=26,labelpad=0)
@@ -85,7 +85,7 @@ cbar.ax.tick_params(labelsize=18)
 cbar.set_label(r'$\rho$',size=26,rotation=0,labelpad=20,y=0.52)
 
 # annotations
-# ax1.text(-0.97,1.7,r'(B)', fontsize = 22)
+ax1.text(-0.97,1.7,r'(A)', fontsize = 22)
 
 plt.grid(True)
 plt.show()

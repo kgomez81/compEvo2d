@@ -391,7 +391,7 @@ class mcEvoModel_DRE(mc.mcEvoModel):
         # get_vd_i_perUnitTime()  returns the set of vd_i but with respect to the 
         # time scale of the model (i.e., time per iteration).
         #
-        # NOTE: vd saved in time-scale of wild type generations
+        # Note: vd saved in time-scale of wild type generations
     
     # ------------------------------------------------------------------------------
     

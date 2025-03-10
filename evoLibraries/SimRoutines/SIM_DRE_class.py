@@ -16,29 +16,36 @@ import scipy as sp
 import numpy as np
 
 import evoLibraries.SimRoutines.SIM_class as sim
+import evoLibraries.MarkovChain.MC_factory as mcFac
 
 class simDREClass(sim.simClass):
     # Class for simulating evolution with DRE type absolute fitness state space 
     #
-    # Members of simClass 
+    # # Members of simClass 
     # self.params     = mcEvoOptions.params         # dictionary with evo parameters
     # self.absFitType = mcEvoOptions.absFitType     # absolute fitness evolution term
+    # self.tmax       = 10                          # max iterations (default is 10)
     
     # # 2d array data
     # self.nij        = np.zeros([1,1])       # array for genotype abundances
-    # self.bij        = np.zeros([1,1])       # array for genotype b-terms 
-    # self.dij        = np.zeros([1,1])       # array for genotype d-terms 
-    # self.cij        = np.zeros([1,1])       # array for genotype c-terms 
-    
-    # # 1d array and other data
-    # self.iAbsMutCnt = np.zeros([1,1])       # stores abs fit mutation counts along 2d arry rows
-    # self.jRelMutCnt = np.zeros([1,1])       # stores rel fit mutation counts along 2d arry rows
-    # self.tmax       = 10                    # max iterations
+    # self.mij        = np.zeros([1,1])       # array for genotype abundances
+    # self.bij_mutCnt     = np.zeros([1,1])   # array for genotype b-terms mutation counts
+    # self.dij_mutCnt     = np.zeros([1,1])   # array for genotype d-terms mutation counts
+    # self.cij_mutCnt     = np.zeros([1,1])   # array for genotype c-terms mutation counts
     
     # # - mcModel is associated Markov Chain used to reference state space
-    # # - fitMapEnv maps fitnes decline from environmental changes 
     # self.mcModel    = []
-    # self.fitMapEnv  = np.zeros([1,1])    
+    # # - fitMapEnv maps fitness declines from environmental change across the state space
+    # #   to try and achieve homogenous fitness declines across the state space. 
+    # self.fitMapEnv  = np.zeros([1,1])   
+    
+    # # Simulation flag - 
+    # #   true: stochastic birth/comp/death simulated, 
+    # #   false: poisson sampling with expectation given dens-dep lottery model Eqtns
+    # self.fullStochModelFlag = False         
+    
+    # # initialize arrays
+    # self.init_evolutionModel(evoInit)  
     
     #%% ------------------------------------------------------------------------
     # Constructor
@@ -57,20 +64,25 @@ class simDREClass(sim.simClass):
         "the associated Markov Chain model                                    "
         
         # 2d array data from evolution model initial population attributes
-        self.nij        = evoInit.nij      # array for genotype abundances
-        self.bij        = evoInit.bij      # array for genotype b-terms 
-        self.dij        = evoInit.dij      # array for genotype d-terms 
-        self.cij        = evoInit.cij      # array for genotype c-terms   
-        self.tmax       = evoInit.tmax     # max iterations
+        self.nij        = evoInit.nij           # array for genotype abundances
+        self.mij        = np.zeros(self.nij.shape)
+
+        # Note: mutation counts need to be initialized at 0 or greater for abs
+        # fitness and 1 or greater for rel fitness
+        self.bij_mutCnt = evoInit.bij_mutCnt    # b-terms mutation counts
+        self.dij_mutCnt = evoInit.dij_mutCnt    # d-terms mutation counts
+        self.cij_mutCnt = evoInit.cij_mutCnt    # c-terms mutation counts
+
+        # set max sim time
+        self.tmax       = evoInit.tmax          # max iterations
         
-        self.mut_ij     = np.zeros(self.nij.shape)
-        self.stoch_ij   = []
-        
-        # 1d array mappings to quickly calculate transitions
-        # - mcModel = associated Markov Chain used to reference state space
-        # - fitMapEnv maps fitnes decline from environmental changes 
-        self.mcModel    = []
-        self.fitMapEnv  = evoInit.fitMapEnv     # map of fitness declines
+        # set the pfix solver method to 3 (use selection coeff) since pfix is not
+        # needed to determine state space. Then generate the MC DRE model
+        self.params['pfixSolver'] = 3
+        self.mcModel = mcFac.mcFactory().createMcModel(self.params)
+
+        # generate the fitness map for environmental changes
+        self.fitMapEnv  = self.get_fitMapEnv()
         
         return None
     
@@ -85,17 +97,45 @@ class simDREClass(sim.simClass):
         "Absolute fitness mutations add/modify rows of the 2d evolution arrays"
         "while relative fitness mutations add columns to 2d evo arrays        "      
         
-        # generate new juveniles
-        lij = self.get_lij()
-         
-        
+        # expand evo arrays to include new slots for mutations
+        self.get_evoArraysExpand()
+
+        # calculate the array with new juveniles, mij
+        Ub = self.mcModel.params['Ua']
+        Uc = self.mcModel.params['Uc']
+        temp_mij    = self.get_mij() 
+        final_mij   = np.zeros(temp_mij.shape)
+
+        # Add beneficial absolute fitness trait mutation fluxes
+        final_mij = (1-Ub-Uc) * temp_mij  # no mutations
+        temp_mij[1:-1,:] = self.mcModel.params['Ua']*temp_
+
         # Add beneficial absolute fitness trait mutation fluxes
         
-        # Add beneficial absolute fitness trait mutation fluxes
+        return None
+
+    
+    #------------------------------------------------------------------------------
+    
+    def get_evoArraysExpand(self):
+        # get_evoArraysExpand() expands evo arrays with additional rows/cols 
+        # so that mutations can be added. Two key steps are:
+        #   1. pads the set of array storing the evolutioanry state of the population
+        #   2. fills in the padded the bij, dij and cij 
+        #
         
-        # Add beneficial absolute fitness trait mutation fluxes
-        
-        # Add beneficial absolute fitness trait mutation fluxes
+        # expand arrays for abundances, birth, death and competition terms 
+        self.nij = np.pad(self.nij,1)
+        self.mij = np.pad(self.mij,1)
+
+        # expand mutation count arrays, but these need more than padding to keep
+        # mutation counts correct
+        self.bij_mutCnt = self.get_mutationCountArrays(self.bij_mutCnt,'abs')
+        self.dij_mutCnt = self.get_mutationCountArrays(self.dij_mutCnt,'')
+        self.cij_mutCnt = self.get_mutationCountArrays(self.cij_mutCnt,'rel')
+
+        # expand array for stochastic 
+        self.stochThrsh = np.pad(self.stochThrsh,1)
         
         return None
 
@@ -132,17 +172,24 @@ class simDREClass(sim.simClass):
     
     
     #%% ------------------------------------------------------------------------
-    # List of concrete methods from MC class
+    # Specific class methods
     # --------------------------------------------------------------------------
     
-    
-    #%% ----------------------------------------------------------------------------
-    #  Specific methods for the DRE MC class
-    # ------------------------------------------------------------------------------
-    
+    def get_fitMapEnv(self):
+        # The method get_fitMapEnv checks each index and finds a prio index such 
+        # that sum of sa[ii]+...+sa[ii-iBack] ~ fitness decline / iteration
+        fitMap = []
+        sa_i = self.mcModel.sa_i
 
-    # --------------------------------------------------------------------------
-    
-    # --------------------------------------------------------------------------
-    
-    # --------------------------------------------------------------------------
+        # environmental fitness decline per iteration
+        se_per_iter = self.mcModel.params['se'] * self.mcModel.params['R']
+
+        # loop through
+        for ii in range(len(self.mcModel.sa_i)):
+            # current state is ii, and we want to map back to iibk
+            iBack = 0
+            while ((ii-iBack >= 0) and (np.sum(sa_i[ii-iBack::ii+1]) < se_per_iter)):
+                iBack = iBack+1
+            fitMap.append(ii-iBack)
+
+        return fitMap

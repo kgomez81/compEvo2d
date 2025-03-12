@@ -101,17 +101,21 @@ class simDREClass(sim.simClass):
         self.get_evoArraysExpand()
 
         # calculate the array with new juveniles, mij
-        Ub = self.mcModel.params['Ua']
-        Uc = self.mcModel.params['Uc']
-        temp_mij    = self.get_mij() 
+        temp_mij    = self.get_mij_noMutants() 
         final_mij   = np.zeros(temp_mij.shape)
 
-        # Add beneficial absolute fitness trait mutation fluxes
-        final_mij = (1-Ub-Uc) * temp_mij  # no mutations
-        temp_mij[1:-1,:] = self.mcModel.params['Ua']*temp_
+        # calculate the mutation fluxes
+        # 1) no mutations
+        final_mij = (1-Ub-Uc) * temp_mij  
 
-        # Add beneficial absolute fitness trait mutation fluxes
+        # 2) b mutations 
+        final_mij[1:-1,:] = final_mij[1:-1,:] + self.mcModel.params['Ua'] * temp_mij[0:-2,:]
+
+        # 3) c mutation
+        final_mij[:,1:-1] = final_mij[:,1:-1] + self.mcModel.params['Uc'] * temp_mij[:,0:-2]
         
+        self.mij = final_mij
+
         return None
 
     
@@ -134,8 +138,11 @@ class simDREClass(sim.simClass):
         self.dij_mutCnt = self.get_mutationCountArrays(self.dij_mutCnt,'')
         self.cij_mutCnt = self.get_mutationCountArrays(self.cij_mutCnt,'rel')
 
-        # expand array for stochastic 
-        self.stochThrsh = np.pad(self.stochThrsh,1)
+        # expand array for stochastic
+        #   Note: we use same value for all classes for now unless the full 
+        #         simulation with individual thresholds until a method is 
+        #         developed based of selection coeff.
+        self.stochThrsh = np.ones(self.nij.shape) * self.get_stochasticDynamicsCutoff()
         
         # lastly, we check if any of the bij_mutCnt are negative, in which case
         # we need to trim off the associated row
@@ -165,8 +172,7 @@ class simDREClass(sim.simClass):
         
         # map the mutation counts to bij values from the MC state space
         bij = [self.mcModel.bij[ii] for ii in bmc]
-        bij = np.list(bij)        
-        # 
+        bij = np.list(bij,(self.bij_mutCnt.shape[1],1)).T
         
         return bij
     
@@ -177,9 +183,10 @@ class simDREClass(sim.simClass):
         "Method to calculate array of dij actual values from mutation counts. "
         "The calculation is model specific, i.e. b vs d evo, RM vs DRE.       "
 
-        self.dij_mutCnt
+        # no mutations in dij values, so we use an array with a constant value
+        dij = np.ones(self.dij_mutCnt.shape) * self.params['d']
         
-        return None
+        return dij
     
     # --------------------------------------------------------------------------
     
@@ -187,7 +194,15 @@ class simDREClass(sim.simClass):
         "Method to calculate array of cij actual values from mutation counts. "
         "The calculation is model specific, i.e. b vs d evo, RM vs DRE.       "
         
-        return None
+        # get the list of c mutation counts
+        cmc = self.cij_mutCnt[0,:]
+
+        # map the mutation counts to cij values from the competition coefficient
+        # definition: cj = (1+c+)**mutCnt
+        cij = [(1+self.params['cp'])**ii for ii in cmc]
+        cij = np.list(cij,(self.cij_mutCnt.shape[0],1))
+
+        return cij
     
     
     #%% ------------------------------------------------------------------------

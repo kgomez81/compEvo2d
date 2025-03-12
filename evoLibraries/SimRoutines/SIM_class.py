@@ -159,6 +159,9 @@ class simClass(ABC):
                 # run selection with Lotter model 
                 self.run_determinsticEvolution()
 
+                # run poisson samling of each class
+                self.run_poissonSamplingOfAbundances()
+
             else:
                 
                 # get new juveniles and modify arrays for potentially new classes
@@ -336,7 +339,7 @@ class simClass(ABC):
     
     #------------------------------------------------------------------------------
     
-    def calc_stochasticDynamicsCutoff(self,ii,jj):
+    def get_stochasticDynamicsCutoff(self):
         # calc_StochThreshold determines abundance for establishment of class
         # to be used in full and approximate simulation.
         
@@ -379,6 +382,15 @@ class simClass(ABC):
 
         return None
     
+    #------------------------------------------------------------------------------
+
+    def run_poissonSamplingOfAbundances(self):
+        # we run a simple poisson sampling for abundances with mean equal to 
+        # values calculated from the density-dependent lottery model computations
+        self.nij = np.random.poisson(self.nij,self.nij.shape)
+
+        return None
+
     # General Methods
     #------------------------------------------------------------------------------
     
@@ -421,7 +433,7 @@ class simClass(ABC):
     
     #------------------------------------------------------------------------------
     
-    def get_mij(self):
+    def get_mij_noMutants(self):
         # get_mij() returns the expected juveniles, but does not include mutations
         
         mij = self.nij*self.get_bij()*(self.get_U()/self.params['T'])

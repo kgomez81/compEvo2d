@@ -137,6 +137,20 @@ class simDREClass(sim.simClass):
         # expand array for stochastic 
         self.stochThrsh = np.pad(self.stochThrsh,1)
         
+        # lastly, we check if any of the bij_mutCnt are negative, in which case
+        # we need to trim off the associated row
+        bij_min = np.min(self.bij_mutCnt[0,:])
+        
+        if (bij_min < 0):
+            self.nij = self.nij[1:-1,:]
+            self.mij = self.mij[1:-1,:]
+            
+            self.bij_mutCnt = self.bij_mutCnt[1:-1,:]
+            self.dij_mutCnt = self.dij_mutCnt[1:-1,:]
+            self.cij_mutCnt = self.cij_mutCnt[1:-1,:]
+            
+            self.stochThrsh = self.stochThrsh[1:-1,:]
+            
         return None
 
     # --------------------------------------------------------------------------
@@ -146,12 +160,15 @@ class simDREClass(sim.simClass):
         "Method to calculate array of bij actual values from mutation counts. "
         "The calculation is model specific, i.e. b vs d evo, RM vs DRE.       "
         
-        # formula for bi is given by:
-        #       b[x] = b[x-1] * ( 1 + d * s[x] )
-        # which is not simple, so we store the bi landscape and map to that array
+        # get the list of b mutation counts
+        bmc = self.bij_mutCnt[:,0]
         
-        bij =         
-        return None
+        # map the mutation counts to bij values from the MC state space
+        bij = [self.mcModel.bij[ii] for ii in bmc]
+        bij = np.list(bij)        
+        # 
+        
+        return bij
     
     # --------------------------------------------------------------------------
     

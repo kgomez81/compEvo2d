@@ -159,6 +159,8 @@ class simDREClass(sim.simClass):
         # IMPLEMENTATION OF ABSTRACT METHOD
         "Method to calculate array of dij actual values from mutation counts. "
         "The calculation is model specific, i.e. b vs d evo, RM vs DRE.       "
+
+        self.dij_mutCnt
         
         return None
     

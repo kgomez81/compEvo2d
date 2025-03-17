@@ -23,6 +23,8 @@ from joblib import Parallel, delayed, cpu_count
 
 import evoLibraries.LotteryModel.LM_functions as lmFun
 import SIM_functions as simfun
+import pickle
+import time
 
 class simClass(ABC):
     # ABSTRACT class used to carry out evolution simulations
@@ -34,17 +36,19 @@ class simClass(ABC):
     #%% ------------------------------------------------------------------------
     # Constructor
     # --------------------------------------------------------------------------
-    def __init__(self,mcEvoOptions,evoInit):
-        # evoInit is dictionary with initial values for evor arrays below.
+    def __init__(self,simInit):
+        # simInit is class with initial values for evo arrays below.
         
         # Basic evolution parameters for Lottery Model (Bertram & Masel 2019)
-        self.params     = mcEvoOptions.params         # dictionary with evo parameters
-        self.absFitType = mcEvoOptions.absFitType     # absolute fitness evolution term
-        self.tmax       = 10                          # max iterations (default is 10)
+        # - mcModel is associated Markov Chain used to reference state space
+        self.mcModel = simInit.mcModel
+
+        self.tmax       = simInit.tmax           # max iterations
+        self.tcap       = simInit.tcap           # number of iterations between each snapshot
         
         # 2d array with adult abundances
-        self.nij        = np.zeros([1,1])       # array for genotype abundances (adults only)
-        self.mij        = np.zeros([1,1])       # array for genotype mutant juventiles
+        self.nij        = simInit.nij               # array for genotype abundances (adults only)
+        self.mij        = np.zeros(self.nij.shape)  # array for genotype mutant juventiles 
 
         # Note: These are 2d arrays to store mutation counts, not actual bij, dij, cij values
         #       For actual values of bij, dij and cij, the mutation counts need to be mapped
@@ -54,37 +58,45 @@ class simClass(ABC):
         #       absolute fitness increases along the row dimension
         #       relative fitness increases along the column dimension
         #
-        self.bij_mutCnt     = np.zeros([1,1])   # array for genotype b-terms mutation counts
-        self.dij_mutCnt     = np.zeros([1,1])   # array for genotype d-terms mutation counts
-        self.cij_mutCnt     = np.zeros([1,1])   # array for genotype c-terms mutation counts
+        self.bij_mutCnt = simInit.bij_mutCnt    # b-terms mutation counts
+        self.dij_mutCnt = simInit.dij_mutCnt    # d-terms mutation counts
+        self.cij_mutCnt = simInit.cij_mutCnt    # c-terms mutation counts
         
-        # - mcModel is associated Markov Chain used to reference state space
-        self.mcModel    = []
         # - fitMapEnv maps fitness declines from environmental change across the state space
         #   to try and achieve homogenous fitness declines across the state space. 
-        self.fitMapEnv  = np.zeros([1,1])   
+        self.fitMapEnv  = self.get_fitMapEnv() 
         
         # Simulation flag - 
         #   true: stochastic birth/comp/death simulated, 
         #   false: poisson sampling with expectation given dens-dep lottery model Eqtns
-        self.fullStochModelFlag = False         
+        self.fullStochModelFlag = False
         
-        # initialize arrays
-        self.init_evolutionModel(evoInit)
-        
+        # stochastic dynamics cutoff
+        # use single cutoff for entire set for now.
+        self.stochThrsh = np.ones(self.nij.shape) * self.get_stochasticDynamicsCutoff()
+
+        # file output paramters
+        self.outpath                = simInit.outpath
+        # filenames for two types of outputs
+        # eg. outputStatsFile = ''
+        self.outputStatsFileBase    = simInit.outputStatsFile
+        self.outputSnapshotFileBase = simInit.outputSnapshotFile
+
+        # we need alternates for file outputs of particular runs, this will ensure
+        # runs don't overwrite prior data
+        tempT = time.localtime()
+        datetimeStamp = "%d%02d%02d_%02d%02d" % (tempT.tm_year,tempT.tm_mon,tempT.tm_mday,tempT.tm_hour,tempT.tm_min)
+
+        self.outputStatsFile    = self.outputStatsFileBase.replace('.csv',datetimeStamp+'.csv')
+        self.outputSnapshotFile = self.outputSnapshotFileBase.replace('.pickle',datetimeStamp+'.pickle')
+
+        # lastly, we keep a copy of simInit to use for the final snapshot
+        self.simInit = simInit
         
     #%% ------------------------------------------------------------------------
     # Abstract methods
     # --------------------------------------------------------------------------
-    
-    @abstractmethod
-    def init_evolutionModel(self):
-        "Method that generates the initial values of the evolution model using"
-        "the associated Markov Chain model                                    "
-        pass
-
-    # --------------------------------------------------------------------------
-    
+        
     @abstractmethod
     def get_populationMutations(self):
         "Method that defines mutations of genotypes. Mutations depend on the  "
@@ -135,6 +147,14 @@ class simClass(ABC):
         "The calculation is model specific, i.e. b vs d evo, RM vs DRE.       "
         pass
     
+    # --------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_fitMapEnv(self):
+        "Method generates map that helps apply appropriate absolute fitness   "
+        "close to the provided value and rate in paramters                    "
+        pass
+
     #%% ------------------------------------------------------------------------
     # Class methods
     # --------------------------------------------------------------------------
@@ -177,31 +197,44 @@ class simClass(ABC):
             # collapse 2d array boundaries
             self.get_evoArraysCollapse()
 
+            # check to see if a snapshot of the mean needs to be taken
+            if (self.tcap>0) and (np.mod(t,self.tcap)==0):
+                self.output_evoStats(t)
+
             # update time increment
             t = t + 1
             
             popExtinct = (self.popSize() < 10)
         
+        # store final results for end of simulation
+        self.store_evoSnapshot()
+
         return None
 
+    # --------------------------------------------------------------------------
     # Methods for Full Stochastic Model 
     #------------------------------------------------------------------------------
-    # INCOMPLETE
+    
     def run_competitionPhase(self):
         # run_competitionPhase() generates the set of juvenilees and 
         # simulates competition to determine the number of adults prior
         # to the death phase.
-        
-        # Note: get_populationMutations() should expand the arrays to capture 
-        #       the appearance of juvenile mutants. How this occurs is unique to the 
-        #       type of model (d vs b evo, RM vs DRE)
         # 
-        
-        # COMPETITION for STOCHASTIC CLASSES
-        # 
-        
-        # COMPETITION for DETERMINISTIC CLASSES
-        #
+        # temporarily not implemented 
+        idxMap  = self.get_arrayMap(self.mij)
+        idxkk   = [ii[2] for ii in idxMap]
+
+        mij_f = self.mij.flatten()[idxkk]
+        cij_f = self.mij.flatten()[idxkk]
+
+        # calculate the expected number of new adults
+        delta_nij_plus = lmFun.deltnplus(mij_f,cij_f,U)
+
+        # now add the expected new adults to the nij array (nij + delta_nij_plus)
+        for idx in range(len(idxkk)):
+            crnt_ii = idxMap[idx][0]
+            crnt_jj = idxMap[idx][1]
+            self.nij[crnt_ii,crnt_jj] = self.nij[crnt_ii,crnt_jj] + delta_nij_plus[idx]
     
         return None
     
@@ -245,7 +278,7 @@ class simClass(ABC):
         for ii in range(self.nij.shape[0]):
             for jj in range(self.nij.shape[1]):
                 # only pick small nonzero classes
-                if (self.nij[ii,jj] < self.stochThrsh) and (self.nij[ii,jj] > 0):
+                if (self.nij[ii,jj] < self.stochThrsh[ii,jj]) and (self.nij[ii,jj] > 0):
                     stoch_ij.append([ii,jj])
         
         return stoch_ij
@@ -378,7 +411,7 @@ class simClass(ABC):
         #
         #    n_ij(t+1) = (1/dij) * (nij + delta_nij+)
         # 
-        self.nij = (1/self.dij) * self.nij
+        self.nij = (1/self.get_dij()) * self.nij
 
         return None
     
@@ -391,6 +424,7 @@ class simClass(ABC):
 
         return None
 
+    # --------------------------------------------------------------------------
     # General Methods
     #------------------------------------------------------------------------------
     
@@ -427,7 +461,7 @@ class simClass(ABC):
     def get_U(self):    
         # get_U() returns the number of unoccupied territories
         
-        U = self.params['T']-self.popSize()    
+        U = self.mcModel.params['T']-self.popSize()    
         
         return U
     
@@ -436,7 +470,7 @@ class simClass(ABC):
     def get_mij_noMutants(self):
         # get_mij() returns the expected juveniles, but does not include mutations
         
-        mij = self.nij*self.get_bij()*(self.get_U()/self.params['T'])
+        mij = self.nij*self.get_bij()*(self.get_U()/self.mcModel.params['T'])
         
         return mij
     
@@ -470,20 +504,47 @@ class simClass(ABC):
         return None
 
     #------------------------------------------------------------------------------
-    # INCOMPLETE
-    def output_evoStats(self):
-
-        # calculate averages
-
-        return None
-    #------------------------------------------------------------------------------
-    # INCOMPLETE
-    def store_evoSnapshot():
-        
-        # function to store evolutionary state, and continue simulations
-        # - time
-        # - nij, bij, cij, dij        
-        # - snapshot of parameters (as csv file)
-        
     
+    def output_evoStats(self,ti):
+        # The method output_evoStats will collect all of the mean values of bij, cij,
+        # dij, and popsize
+
+        # collect outputs
+        outputs = []
+        outputs.append(ti)                      # time        
+        outputs.append(np.mean(self.get_bij())) # mean b
+        outputs.append(np.mean(self.get_dij())) # mean d
+        outputs.append(np.mean(self.get_cij())) # mean c
+        outputs.append(np.sum(self.nij))        # popsize
+        outputs.appedn(np.mean(self.bij_mutCnt[:,0]))
+
+        # open the file and append new data
+        with open(self.outputStatsFile, "a") as file:
+            if (ti==0):
+                # output column if at initial time
+                file.write("time,avg_b,avg_d,avg_c,popsize,avg_abs_i\n")
+            # output data collected
+            file.write("%f,%f,%f,%f,%f\n" % tuple(outputs))
+        
+        return None
+    
+    #------------------------------------------------------------------------------
+    
+    def store_evoSnapshot(self):
+        
+        # To capture the final snapshot, we use the simInit class features and save
+        # a new simInit drived from the prior one
+        simInitSave = self.simInit
+
+        # replace the init arrays with last copies of nij, bij_mutCnt, etc.
+        simInitSave.nij = self.nij
+        simInitSave.nij = self.bij_mutCnt
+        simInitSave.nij = self.dij_mutCnt
+        simInitSave.nij = self.cij_mutCnt
+
+        # save the data to a pickle file
+        with open(self.outputSnapshotFile, 'wb') as file:
+            # Serialize and write the variable to the file
+            pickle.dump(simInitSave, file)
+
         return None

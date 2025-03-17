@@ -32,10 +32,10 @@ class figRhoPlot():
         self.outputsPath = os.path.join(os.getcwd(),'outputs')
         self.figSavePath = os.path.join(os.getcwd(),'figures',figPathsIO['saveFigSubdir'])
         
-        self.figFile     = figPathsIO['figFile']
-        self.figDatDir   = figPathsIO['figDatDir']
-        self.paramFile   = figPathsIO['paramFile']
-        self.paramTag    = figPathsIO['paramTag']
+        self.figFile     = figPathsIO['figFile']    # name of pdf figure file
+        self.figDatDir   = figPathsIO['figDatDir']  # name of folder where fig data saved
+        self.paramFile   = figPathsIO['paramFile']  # parameter file for MC model
+        self.paramTag    = figPathsIO['paramTag']   # partial name of data file for figure
         self.saveDatFile = ''.join(('_'.join((self.figDatDir,self.paramTag)),'.pickle'))
 
         # set paths to generate output files for tracking progress of loop/parloop

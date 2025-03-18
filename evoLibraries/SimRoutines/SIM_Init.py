@@ -5,13 +5,7 @@ Created on Sat Nov 16 12:09:32 2024
 @author: Owner
 """
 
-import matplotlib.pyplot as plt
-import numpy as np
-import time
-import pickle 
-
 import os
-import sys
 
 from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_factory as mcFac
@@ -49,9 +43,9 @@ class SimEvoInit():
 
         # joins below build the paths + file names for saving stats and snapshot of sim runs
         self.outputStatsFileBase    = \
-            ''.join(('/'.join((self.simDatDir,'_'.join((self.simDatFile1,self.paramTag)))),'.csv'))
+            ''.join(('/'.join((self.outputsPath,self.simDatDir,'_'.join((self.simDatFile1,self.paramTag)))),'.csv'))
         self.outputSnapshotFileBase = \
-            ''.join(('/'.join((self.simDatDir,'_'.join((self.simDatFile2,self.paramTag)))),'.pickle'))
+            ''.join(('/'.join((self.outputsPath,self.simDatDir,'_'.join((self.simDatFile2,self.paramTag)))),'.pickle'))
         
         # --------------------------------------------------------------------------
         # Setup of parameters and MC model
@@ -65,9 +59,9 @@ class SimEvoInit():
         #   note: parameters are capture as a member of this class
         #   note: set pfixSolver type to 3 (use selection coeff) for faster calculations
         #         since we don't actually need pfix for the simulations
-        tempParams =  evoObj.evoOptions(self.paramFilePath,self.modelType,self.absFitType).params
-        tempParams['pfixSolver'] = 3
-        self.mcModels   = mcFac.mcFactory().createMcModel( tempParams )
+        tempEvoOptions =  evoObj.evoOptions(self.paramFilePath,self.modelType,self.absFitType)
+        tempEvoOptions.params['pfixSolver'] = 3
+        self.mcModel   = mcFac.mcFactory().createMcModel( tempEvoOptions )
 
         # --------------------------------------------------------------------------
         # initialize empty arrays to track evolution
@@ -78,7 +72,7 @@ class SimEvoInit():
         self.nij        = simArryData['nij']            # 2d array for abundances
         self.bij_mutCnt = simArryData['bij_mutCnt']     # 2d array for b mutation counts    
         self.dij_mutCnt = simArryData['dij_mutCnt']     # 2d array for d mutation counts
-        self.dij_mutCnt = simArryData['cij_mutCnt']     # 2d array for c mutation counts
+        self.cij_mutCnt = simArryData['cij_mutCnt']     # 2d array for c mutation counts
         
     def get_simPathsIO_dict(self):
         # get_simPathsIO_dict is used to retrieve IO dictionary that was provided to 
@@ -107,11 +101,11 @@ class SimEvoInit():
 
         simDataDict_out['tmax'] = self.tmax # max number of iterations to simulate
         simDataDict_out['tcap'] = self.tcap # num of iterations between each stats check
-        simDataDict_out['nij'] = self.nij  # 2d array for abundances
+        simDataDict_out['nij']  = self.nij  # 2d array for abundances
 
         simDataDict_out['bij_mutCnt'] = self.bij_mutCnt # 2d array for b mutation counts    
         simDataDict_out['dij_mutCnt'] = self.dij_mutCnt # 2d array for d mutation counts
-        simDataDict_out['cij_mutCnt'] = self.dij_mutCnt # 2d array for c mutation counts
+        simDataDict_out['cij_mutCnt'] = self.cij_mutCnt # 2d array for c mutation counts
 
         return simDataDict_out
    

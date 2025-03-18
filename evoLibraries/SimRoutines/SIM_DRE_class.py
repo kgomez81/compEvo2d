@@ -12,7 +12,6 @@ see Bertram & Masel 2019 for details of lottery model
 #                               Libraries   
 # --------------------------------------------------------------------------
 
-import scipy as sp
 import numpy as np
 
 import evoLibraries.SimRoutines.SIM_class as sim
@@ -69,17 +68,16 @@ class simDREClass(sim.simClass):
 
         # calculate the array with new juveniles, mij
         temp_mij    = self.get_mij_noMutants() 
-        final_mij   = np.zeros(temp_mij.shape)
 
         # calculate the mutation fluxes
         # 1) no mutations
-        final_mij = (1-Ub-Uc) * temp_mij  
+        final_mij   = (1-self.params['Ua']-self.params['Uc']) * temp_mij
 
         # 2) b mutations 
-        final_mij[1:-1,:] = final_mij[1:-1,:] + self.mcModel.params['Ua'] * temp_mij[0:-2,:]
+        final_mij[1:,:] = final_mij[1:,:] + self.mcModel.params['Ua'] * temp_mij[0:-1,:]
 
         # 3) c mutation
-        final_mij[:,1:-1] = final_mij[:,1:-1] + self.mcModel.params['Uc'] * temp_mij[:,0:-2]
+        final_mij[:,1:] = final_mij[:,1:] + self.mcModel.params['Uc'] * temp_mij[:,0:-1]
         
         self.mij = final_mij
 
@@ -123,7 +121,7 @@ class simDREClass(sim.simClass):
             self.cij_mutCnt = self.cij_mutCnt[1:-1,:]
             
             self.stochThrsh = self.stochThrsh[1:-1,:]
-            
+        
         return None
 
     # --------------------------------------------------------------------------
@@ -178,11 +176,11 @@ class simDREClass(sim.simClass):
         "The calculation is model specific, i.e. b vs d evo, RM vs DRE.       "
         
         # get the list of b mutation counts
-        bmc = self.bij_mutCnt[:,0]
+        bmc = [int(self.bij_mutCnt[int(ii),0]) for ii in range(self.bij_mutCnt.shape[0])]
         
         # map the mutation counts to bij values from the MC state space
-        bij = [self.mcModel.bij[ii] for ii in bmc]
-        bij = np.list(bij,(self.bij_mutCnt.shape[1],1)).T
+        bij = [self.mcModel.bi[ii] for ii in bmc]
+        bij = np.tile(bij,(self.bij_mutCnt.shape[1],1)).T
         
         return bij
     
@@ -205,12 +203,12 @@ class simDREClass(sim.simClass):
         "The calculation is model specific, i.e. b vs d evo, RM vs DRE.       "
         
         # get the list of c mutation counts
-        cmc = self.cij_mutCnt[0,:]
-
+        cmc = [int(self.cij_mutCnt[0,int(ii)]) for ii in range(self.cij_mutCnt.shape[1])]
+        
         # map the mutation counts to cij values from the competition coefficient
         # definition: cj = (1+c+)**mutCnt
         cij = [(1+self.params['cp'])**ii for ii in cmc]
-        cij = np.list(cij,(self.cij_mutCnt.shape[0],1))
+        cij = np.tile(cij,(self.cij_mutCnt.shape[0],1))
 
         return cij
 
@@ -231,7 +229,7 @@ class simDREClass(sim.simClass):
             iBack = 0
             while ((ii-iBack >= 0) and (np.sum(sa_i[ii-iBack::ii+1]) < se_per_iter)):
                 iBack = iBack+1
-            fitMap.append(ii-iBack)
+            fitMap.append(int(ii-iBack))
 
         return fitMap
     
@@ -355,6 +353,11 @@ class simDREClass(sim.simClass):
     #     # get_L() returns the lottery model L parameter (sum of the poisson birth 
     #     # parameters over non-occupied territories)
     
+    # #------------------------------------------------------------------------------
+    
+    # def get_popsize(self):
+    #     # get_popsize() returns the total population size 
+        
     # #------------------------------------------------------------------------------
     
     # def clear_juvenilePop_mij(self):

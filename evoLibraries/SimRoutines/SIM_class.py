@@ -15,14 +15,13 @@ Note: This class requires two libraries: LM_functions and SIM_Functions
 #                               Libraries   
 # --------------------------------------------------------------------------
 
-import scipy as sp
 import numpy as np
+import os
 
 from abc import ABC, abstractmethod
-from joblib import Parallel, delayed, cpu_count
+# from joblib import Parallel, delayed, cpu_count
 
 import evoLibraries.LotteryModel.LM_functions as lmFun
-import SIM_functions as simfun
 import pickle
 import time
 
@@ -42,6 +41,7 @@ class simClass(ABC):
         # Basic evolution parameters for Lottery Model (Bertram & Masel 2019)
         # - mcModel is associated Markov Chain used to reference state space
         self.mcModel = simInit.mcModel
+        self.params  = self.mcModel.params
 
         self.tmax       = simInit.tmax           # max iterations
         self.tcap       = simInit.tcap           # number of iterations between each snapshot
@@ -69,26 +69,32 @@ class simClass(ABC):
         # Simulation flag - 
         #   true: stochastic birth/comp/death simulated, 
         #   false: poisson sampling with expectation given dens-dep lottery model Eqtns
-        self.fullStochModelFlag = False
+        self.fullStochModelFlag = simInit.fullStochModelFlag
+        self.simpleEnvShift     = simInit.simpleEnvShift
         
         # stochastic dynamics cutoff
         # use single cutoff for entire set for now.
         self.stochThrsh = np.ones(self.nij.shape) * self.get_stochasticDynamicsCutoff()
 
         # file output paramters
-        self.outpath                = simInit.outpath
+        self.simDatDir            = simInit.simDatDir
         # filenames for two types of outputs
         # eg. outputStatsFile = ''
-        self.outputStatsFileBase    = simInit.outputStatsFile
-        self.outputSnapshotFileBase = simInit.outputSnapshotFile
+        self.outputStatsFileBase    = simInit.outputStatsFileBase
+        self.outputSnapshotFileBase = simInit.outputSnapshotFileBase
 
         # we need alternates for file outputs of particular runs, this will ensure
         # runs don't overwrite prior data
         tempT = time.localtime()
         datetimeStamp = "%d%02d%02d_%02d%02d" % (tempT.tm_year,tempT.tm_mon,tempT.tm_mday,tempT.tm_hour,tempT.tm_min)
 
-        self.outputStatsFile    = self.outputStatsFileBase.replace('.csv',datetimeStamp+'.csv')
-        self.outputSnapshotFile = self.outputSnapshotFileBase.replace('.pickle',datetimeStamp+'.pickle')
+        self.outputStatsFile    = self.outputStatsFileBase.replace('.csv','_'+datetimeStamp+'.csv')
+        self.outputSnapshotFile = self.outputSnapshotFileBase.replace('.pickle','_'+datetimeStamp+'.pickle')
+        
+        # make the output dir
+        if not (os.path.exists(self.simDatDir)):
+            # if the directory does not exist then generate it
+            os.mkdir(self.simDatDir)
 
         # lastly, we keep a copy of simInit to use for the final snapshot
         self.simInit = simInit
@@ -178,10 +184,10 @@ class simClass(ABC):
                 
                 # run selection with Lotter model 
                 self.run_determinsticEvolution()
-
+                
                 # run poisson samling of each class
                 self.run_poissonSamplingOfAbundances()
-
+                
             else:
                 
                 # get new juveniles and modify arrays for potentially new classes
@@ -228,7 +234,7 @@ class simClass(ABC):
         cij_f = self.mij.flatten()[idxkk]
 
         # calculate the expected number of new adults
-        delta_nij_plus = lmFun.deltnplus(mij_f,cij_f,U)
+        delta_nij_plus = lmFun.deltnplus(mij_f,cij_f,self.get_U())
 
         # now add the expected new adults to the nij array (nij + delta_nij_plus)
         for idx in range(len(idxkk)):
@@ -309,19 +315,20 @@ class simClass(ABC):
         # The method get_mutationCountArrays pads mutation count arrays and 
         # increments the mutations counts for the new entries, depending on
         # whether the array is for abs or rel fitness mutations.
-
-        mutCntSeq = [ii for ii in range(np.min(A)-1,np.max(A)+2)]
+        i1 = int(np.min(A))-1
+        i2 = int(np.max(A))+2
+        mutCntSeq = [ii for ii in range(i1,i2)]
         
         if (fitType == 'abs'):
             # mutations increment along the row dimension
-            temp_A = np.tile(mutCntSeq,1,A.shape[1]).T
+            temp_A = np.tile(mutCntSeq,(A.shape[1]+2,1)).T
 
-        if (fitType == 'rel'):
+        elif (fitType == 'rel'):
             # mutations increment along the column dimension
-            temp_A = np.tile(mutCntSeq,1,A.shape[0])
+            temp_A = np.tile(mutCntSeq,(A.shape[0]+2,1))
 
         else:
-            temp_A = np.ones(np.pad(A,1).shape)
+            temp_A = self.dij_mutCnt[0,0]*np.ones((self.dij_mutCnt.shape[0]+2,self.dij_mutCnt.shape[1]+2))
 
         return temp_A
     
@@ -333,23 +340,23 @@ class simClass(ABC):
         
         # get indices for rows and columns with only zero entries, excluding 
         # those within the bulk
-        [idxR1,idxR2] = self.get_trimIndicesForZeroRows(self.nij)
-        [idxC1,idxC2] = self.get_trimIndicesForZeroRows(self.nij.T)
+        idxR = self.get_trimIndicesForZeroRows(self.nij)
+        idxC = self.get_trimIndicesForZeroRows(self.nij.T)
         
         # trim arrays rows and columns with only zero entries, excluding those
         # within the bulk
-        self.nij        = self.nij[idxR1:idxR2,idxC1:idxC2]
-        self.mij        = self.mij[idxR1:idxR2,idxC1:idxC2]
+        self.nij        = self.nij[idxR[0]:idxR[1],idxC[0]:idxC[1]]
+        self.mij        = self.mij[idxR[0]:idxR[1],idxC[0]:idxC[1]]
 
         # Note: these array are trimmed here but their values must be maintined
         #       in the implementation of get_populationMutations()
-        self.bij_mutCnt = self.bij_mutCnt[idxR1:idxR2,idxC1:idxC2]
-        self.dij_mutCnt = self.dij_mutCnt[idxR1:idxR2,idxC1:idxC2]
-        self.cij_mutCnt = self.cij_mutCnt[idxR1:idxR2,idxC1:idxC2]
+        self.bij_mutCnt = self.bij_mutCnt[idxR[0]:idxR[1],idxC[0]:idxC[1]]
+        self.dij_mutCnt = self.dij_mutCnt[idxR[0]:idxR[1],idxC[0]:idxC[1]]
+        self.cij_mutCnt = self.cij_mutCnt[idxR[0]:idxR[1],idxC[0]:idxC[1]]
 
         # Note: these array are trimmed here but their values must be maintined
         #       the implementation of get_populationMutations()
-        self.stochThrsh = self.stochThrsh[idxR1:idxR2,idxC1:idxC2]
+        self.stochThrsh = self.stochThrsh[idxR[0]:idxR[1],idxC[0]:idxC[1]]
         
         return None
     
@@ -399,7 +406,7 @@ class simClass(ABC):
         cij_f = self.mij.flatten()[idxkk]
 
         # calculate the expected number of new adults
-        delta_nij_plus = lmFun.deltnplus(mij_f,cij_f,U)
+        delta_nij_plus = lmFun.deltnplus(mij_f,cij_f,self.get_U())
 
         # now add the expected new adults to the nij array (nij + delta_nij_plus)
         for idx in range(len(idxkk)):
@@ -412,7 +419,7 @@ class simClass(ABC):
         #    n_ij(t+1) = (1/dij) * (nij + delta_nij+)
         # 
         self.nij = (1/self.get_dij()) * self.nij
-
+        
         return None
     
     #------------------------------------------------------------------------------
@@ -496,6 +503,15 @@ class simClass(ABC):
     
     #------------------------------------------------------------------------------
     
+    def popSize(self):
+        # get_popsize() returns the total population size 
+        
+        popsize = np.sum(self.nij)
+        
+        return popsize
+    
+    #------------------------------------------------------------------------------
+    
     def clear_juvenilePop_mij(self):
 
         # reset all juvenile counts to zero
@@ -516,15 +532,18 @@ class simClass(ABC):
         outputs.append(np.mean(self.get_dij())) # mean d
         outputs.append(np.mean(self.get_cij())) # mean c
         outputs.append(np.sum(self.nij))        # popsize
-        outputs.appedn(np.mean(self.bij_mutCnt[:,0]))
+        outputs.append(np.min(self.bij_mutCnt[:,0]))  # min bi
+        outputs.append(np.max(self.bij_mutCnt[:,0]))  # max bi
+        outputs.append(np.min(self.cij_mutCnt[0,:]))  # min cj
+        outputs.append(np.max(self.cij_mutCnt[0,:]))  # max cj
 
         # open the file and append new data
         with open(self.outputStatsFile, "a") as file:
             if (ti==0):
                 # output column if at initial time
-                file.write("time,avg_b,avg_d,avg_c,popsize,avg_abs_i\n")
+                file.write("time,avg_b,avg_d,avg_c,popsize,min_b,max_b,min_c,max_c\n")
             # output data collected
-            file.write("%f,%f,%f,%f,%f\n" % tuple(outputs))
+            file.write("%f,%f,%f,%f,%f,%f,%f,%f,%f\n" % tuple(outputs))
         
         return None
     

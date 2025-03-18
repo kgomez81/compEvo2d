@@ -213,7 +213,7 @@ def deltnplus(m,c,U):
         # return the expected number of new adults
         factor = ( np.exp(-L) + ( calculate_Ri_term(m,c,U) + calculate_Ai_term(m,c,U) ) )
                   
-        newAdults = [m[ii] * factor * c[ii] for ii in range(len(m))]
+        newAdults = [m[ii] * factor * c[ii] / cbar for ii in range(len(m))]
     
     else:
         # if the population has gone extinct

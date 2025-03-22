@@ -186,7 +186,7 @@ def get_regimeID(N,s,U,pFix):
         return regID
     
     # Calculate mean time between establishments
-    Test = 1/N*U*pFix
+    Test = 1/(N*U*pFix)
     
     # Calculate mean time of sweep
     Tswp = (1/s)*np.log(N*pFix)

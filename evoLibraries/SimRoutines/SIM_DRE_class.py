@@ -220,8 +220,8 @@ class simDREClass(sim.simClass):
         fitMap = []
         sa_i = self.mcModel.sa_i
 
-        # environmental fitness decline per iteration
-        se_per_iter = self.mcModel.params['se'] * self.mcModel.params['R']
+        # environmental fitness decline per event
+        se_per_iter = self.mcModel.params['se']
 
         # loop through
         for ii in range(len(self.mcModel.sa_i)):
@@ -232,6 +232,39 @@ class simDREClass(sim.simClass):
             fitMap.append(int(ii-iBack))
 
         return fitMap
+    
+    #%% ------------------------------------------------------------------------
+    # SIM DRE class specific methods
+    # --------------------------------------------------------------------------
+    
+    def get_covAbsRel(self):
+        # The method returns the absolute & relative fitness covariance 
+        
+        
+        
+        
+
+        return covAbsRel
+    
+    # --------------------------------------------------------------------------
+    
+    def get_varAbs(self):
+        # The method returns the absolute fitness variance 
+        
+        
+        
+        
+
+        return varAbs
+    
+    # --------------------------------------------------------------------------
+    
+    def get_varRel(self):
+        # The method returns the relative fitness variance 
+        
+        
+
+        return varRel
     
     # #%% ------------------------------------------------------------------------
     # # SIM class inherited methods

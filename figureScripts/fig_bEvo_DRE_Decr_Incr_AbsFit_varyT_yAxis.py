@@ -47,7 +47,7 @@ figSavePath = os.path.join(os.getcwd(),'figures','MainDoc')
 figFile     = 'fig_bEvo_DRE_Decr_Incr_AbsFit_varyT_yAxis.pdf'
 figDatDir   = 'fig_bEvo_DRE_DecrIncrAbsFit_pfix1'
 paramFile   = ['evoExp_DRE_bEvo_03_parameters.csv','evoExp_DRE_bEvo_04_parameters.csv']
-paramTag    = ['param_01_DRE_bEvo','param_02_DRE_bEvo']
+paramTag    = ['param_03_DRE_bEvo','param_04_DRE_bEvo']
 saveDatFile = [''.join(('_'.join((figDatDir,pTag)),'.pickle')) for pTag in paramTag]
 
 # set paths to generate output files for tracking progress of loop/parloop

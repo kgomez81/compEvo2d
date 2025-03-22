@@ -175,7 +175,10 @@ class simClass(ABC):
         
         # run model tmax generations or until population is extinct
         while ( (t < self.tmax) and not popExtinct ):
-
+            # print('---------------')
+            # print("time=%d" % (t))
+            # print('---------------')
+            
             if not (self.fullStochModelFlag):
 
                 # get new juveniles and modify arrays for potentially new classes
@@ -185,9 +188,13 @@ class simClass(ABC):
                 # run selection with Lotter model 
                 self.run_determinsticEvolution()
                 
+                # print('pre-poiss pop array')
+                # print(self.nij)
                 # run poisson samling of each class
                 self.run_poissonSamplingOfAbundances()
                 
+                # print('post-poiss pop array')
+                # print(self.nij)
             else:
                 
                 # get new juveniles and modify arrays for potentially new classes
@@ -202,13 +209,33 @@ class simClass(ABC):
             
             # collapse 2d array boundaries
             self.get_evoArraysCollapse()
-
+            
+            # print('post-collapse pop array')
+            # print(self.nij)
+            
+            # print('cij mut array')
+            # print(self.get_cij())
+            # print('average c')
+            # print(self.get_cbar())
+            
+            # check if we should if environment has changed
+            sampleEnvDegrCnt = np.random.poisson(self.mcModel.params['R'])
+            if (sampleEnvDegrCnt>0):
+                while(sampleEnvDegrCnt > 0):
+                    self.run_environmentalDegredation()
+                    sampleEnvDegrCnt=sampleEnvDegrCnt-1
+            
             # check to see if a snapshot of the mean needs to be taken
             if (self.tcap>0) and (np.mod(t,self.tcap)==0):
                 self.output_evoStats(t)
 
             # update time increment
             t = t + 1
+            
+            # print('sizes')
+            # print(self.nij.shape)
+            # print(self.bij_mutCnt.shape)
+            # print(self.cij_mutCnt.shape)
             
             popExtinct = (self.popSize() < 10)
         
@@ -305,7 +332,7 @@ class simClass(ABC):
             for jj in range(A.shape[1]):
                 if (A[ii,jj] > 0):
                     ijMap.append([ii,jj,kk])
-                    kk = kk + 1
+                kk = kk + 1
         
         return ijMap
     
@@ -353,6 +380,10 @@ class simClass(ABC):
         self.bij_mutCnt = self.bij_mutCnt[idxR[0]:idxR[1],idxC[0]:idxC[1]]
         self.dij_mutCnt = self.dij_mutCnt[idxR[0]:idxR[1],idxC[0]:idxC[1]]
         self.cij_mutCnt = self.cij_mutCnt[idxR[0]:idxR[1],idxC[0]:idxC[1]]
+        
+        # need to renormalize the cij mutation counts to prevent cij values 
+        # from growing too large
+        self.cij_mutCnt = self.cij_mutCnt-np.min(self.cij_mutCnt)+1
 
         # Note: these array are trimmed here but their values must be maintined
         #       the implementation of get_populationMutations()
@@ -366,14 +397,17 @@ class simClass(ABC):
         # generic function to trim rows with zeros from top and bottom of A
 
         # sum across column dimension of A to get list of rows w/ nonzero entries
-        nzR_l2f = np.sign(np.sum(A,1))
-        nzR_f2l = nzR_l2f[::]
-
+        As = np.sign(np.sum(A,1))
+        
+        # array for non-zero entries
+        nzR= np.array([ii for ii in range(len(As))])  
+        nzR = nzR[As>0]
+                
         # find first nonzero row beginning from 0 index
-        idx1 = np.argmax(nzR_l2f)
+        idx1 = np.min(nzR)
         
         # find first nonzero row beginning from last index downward
-        idx2 = len(nzR_f2l) - np.argmax(nzR_f2l)
+        idx2 = np.max(nzR)+1
         
         return [idx1,idx2]
     
@@ -403,22 +437,48 @@ class simClass(ABC):
         idxkk   = [ii[2] for ii in idxMap]
 
         mij_f = self.mij.flatten()[idxkk]
-        cij_f = self.mij.flatten()[idxkk]
+        
+        cij_f = self.get_cij()
+        cij_f = cij_f.flatten()[idxkk]
 
         # calculate the expected number of new adults
         delta_nij_plus = lmFun.deltnplus(mij_f,cij_f,self.get_U())
-
+        
+        # print('-- pre add n+ --')
+        # print('2. pop array')
+        # print(self.nij)
+        # print('3. juveniles')
+        # print(self.mij)
+        # print('4. mij array')
+        # print(mij_f)
+        # # print('5. cij mutations')
+        # # print(cij_f)
+        # print('5. bij array')
+        # print(self.get_bij())
+        # print('6. calculated new adults')
+        # print(idxMap)
+        # print(delta_nij_plus)
+        
         # now add the expected new adults to the nij array (nij + delta_nij_plus)
         for idx in range(len(idxkk)):
             crnt_ii = idxMap[idx][0]
             crnt_jj = idxMap[idx][1]
             self.nij[crnt_ii,crnt_jj] = self.nij[crnt_ii,crnt_jj] + delta_nij_plus[idx]
-
+            
+        # print('-- post add delta_n+ --')
+        # print(self.nij)
+        
         # apply death phase to complete calculation of lottery model selection
         #
         #    n_ij(t+1) = (1/dij) * (nij + delta_nij+)
         # 
         self.nij = (1/self.get_dij()) * self.nij
+        
+        # print('-- post add n+ and 1/d --')
+        # print('1. pop array')
+        # print(self.nij)
+        # print('2. 1/dij array')
+        # print(1/self.get_dij())
         
         return None
     
@@ -427,7 +487,17 @@ class simClass(ABC):
     def run_poissonSamplingOfAbundances(self):
         # we run a simple poisson sampling for abundances with mean equal to 
         # values calculated from the density-dependent lottery model computations
-        self.nij = np.random.poisson(self.nij,self.nij.shape)
+        
+        temp_nij = self.nij
+        
+        for ii in range(temp_nij.shape[0]):
+            for jj in range(temp_nij.shape[1]):
+                if (temp_nij[ii,jj]>0) and (temp_nij[ii,jj] < 1e5):
+                    temp_nij[ii,jj] = np.random.poisson(temp_nij[ii,jj],1)
+                else:
+                    temp_nij[ii,jj] = round(temp_nij[ii,jj])
+        
+        self.nij = temp_nij
 
         return None
 
@@ -527,23 +597,25 @@ class simClass(ABC):
 
         # collect outputs
         outputs = []
-        outputs.append(ti)                      # time        
-        outputs.append(np.mean(self.get_bij())) # mean b
-        outputs.append(np.mean(self.get_dij())) # mean d
-        outputs.append(np.mean(self.get_cij())) # mean c
-        outputs.append(np.sum(self.nij))        # popsize
-        outputs.append(np.min(self.bij_mutCnt[:,0]))  # min bi
-        outputs.append(np.max(self.bij_mutCnt[:,0]))  # max bi
-        outputs.append(np.min(self.cij_mutCnt[0,:]))  # min cj
-        outputs.append(np.max(self.cij_mutCnt[0,:]))  # max cj
+        outputs.append(ti)                              # time        
+        outputs.append(self.get_bbar())                 # mean b
+        outputs.append(self.get_dbar())                 # mean d
+        outputs.append(self.get_cbar())                 # mean c
+        outputs.append(np.sum(self.nij))                # popsize
+        outputs.append(np.min(self.bij_mutCnt[:,0]))    # min bi
+        outputs.append(np.max(self.bij_mutCnt[:,0]))    # max bi
+        outputs.append(np.min(self.cij_mutCnt[0,:]))    # min cj
+        outputs.append(np.max(self.cij_mutCnt[0,:]))    # max cj
+        outputs.append(np.sum(np.sign(np.sum(self.nij,1))))    # b_width
+        outputs.append(np.sum(np.sign(np.sum(self.nij,0))))    # c_width
 
         # open the file and append new data
         with open(self.outputStatsFile, "a") as file:
             if (ti==0):
                 # output column if at initial time
-                file.write("time,avg_b,avg_d,avg_c,popsize,min_b,max_b,min_c,max_c\n")
+                file.write("time,avg_b,avg_d,avg_c,popsize,min_b,max_b,min_c,max_c,b_width,c_width\n")
             # output data collected
-            file.write("%f,%f,%f,%f,%f,%f,%f,%f,%f\n" % tuple(outputs))
+            file.write("%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n" % tuple(outputs))
         
         return None
     
@@ -557,9 +629,9 @@ class simClass(ABC):
 
         # replace the init arrays with last copies of nij, bij_mutCnt, etc.
         simInitSave.nij = self.nij
-        simInitSave.nij = self.bij_mutCnt
-        simInitSave.nij = self.dij_mutCnt
-        simInitSave.nij = self.cij_mutCnt
+        simInitSave.bij_mutCnt = self.bij_mutCnt
+        simInitSave.dij_mutCnt = self.dij_mutCnt
+        simInitSave.cij_mutCnt = self.cij_mutCnt
 
         # save the data to a pickle file
         with open(self.outputSnapshotFile, 'wb') as file:

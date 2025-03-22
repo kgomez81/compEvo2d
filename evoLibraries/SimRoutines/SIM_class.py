@@ -597,25 +597,32 @@ class simClass(ABC):
 
         # collect outputs
         outputs = []
-        outputs.append(ti)                              # time        
-        outputs.append(self.get_bbar())                 # mean b
-        outputs.append(self.get_dbar())                 # mean d
-        outputs.append(self.get_cbar())                 # mean c
-        outputs.append(np.sum(self.nij))                # popsize
-        outputs.append(np.min(self.bij_mutCnt[:,0]))    # min bi
-        outputs.append(np.max(self.bij_mutCnt[:,0]))    # max bi
-        outputs.append(np.min(self.cij_mutCnt[0,:]))    # min cj
-        outputs.append(np.max(self.cij_mutCnt[0,:]))    # max cj
-        outputs.append(np.sum(np.sign(np.sum(self.nij,1))))    # b_width
-        outputs.append(np.sum(np.sign(np.sum(self.nij,0))))    # c_width
+        outputs.append(ti)                                          # 00. time  
+        outputs.append(np.sum(self.nij))                            # 01. popsize
+        outputs.append(np.sum(self.nij)/self.mcModel.params['T'])   # 02. gamma
+        outputs.append(self.get_ibar())                             # 03. ibar
+        
+        outputs.append(np.min(self.bij_mutCnt[:,0]))                # 04. min bi
+        outputs.append(self.get_bbar())                             # 05. mean b
+        outputs.append(np.max(self.bij_mutCnt[:,0]))                # 06. max bi
+        outputs.append(np.sum(np.sign(np.sum(self.nij,1))))         # 07. b_width
+        outputs.append(self.get_varAbs())                           # 08. var_abs
+        
+        outputs.append(np.min(self.cij_mutCnt[0,:]))                # 09. min cj
+        outputs.append(self.get_cbar())                             # 10. mean c
+        outputs.append(np.max(self.cij_mutCnt[0,:]))                # 11. max cj
+        outputs.append(np.sum(np.sign(np.sum(self.nij,0))))         # 12. c_width
+        outputs.append(self.get_varRel())                           # 13. var_rel
+        
+        outputs.append(self.get_covAbsRel())                        # 14. covAbsRel
 
         # open the file and append new data
         with open(self.outputStatsFile, "a") as file:
             if (ti==0):
                 # output column if at initial time
-                file.write("time,avg_b,avg_d,avg_c,popsize,min_b,max_b,min_c,max_c,b_width,c_width\n")
+                file.write("time,popsize,gamma,ibar_abs,min_b,avg_b,max_b,width_b,var_abs,min_c,avg_c,max_c,width_c,var_rel,covAbsRel\n")
             # output data collected
-            file.write("%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n" % tuple(outputs))
+            file.write("%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n" % tuple(outputs))
         
         return None
     

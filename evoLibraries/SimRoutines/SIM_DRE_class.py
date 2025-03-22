@@ -239,21 +239,15 @@ class simDREClass(sim.simClass):
     
     def get_covAbsRel(self):
         # The method returns the absolute & relative fitness covariance 
+        covAbsRel = np.sum(self.nij*(self.get_sbij()-self.get_sbbar())*(self.get_scij()-self.get_scbar()))/np.sum(self.nij)
         
-        
-        
-        
-
         return covAbsRel
     
     # --------------------------------------------------------------------------
     
     def get_varAbs(self):
         # The method returns the absolute fitness variance 
-        
-        
-        
-        
+        varAbs = np.sum(self.nij*(self.get_sbij()-self.get_sbbar())*(self.get_sbij()-self.get_sbbar()))/np.sum(self.nij)
 
         return varAbs
     
@@ -261,10 +255,66 @@ class simDREClass(sim.simClass):
     
     def get_varRel(self):
         # The method returns the relative fitness variance 
-        
-        
+        varRel = np.sum(self.nij*(self.get_scij()-self.get_scbar())*(self.get_scij()-self.get_scbar()))/np.sum(self.nij)
 
         return varRel
+    
+    # --------------------------------------------------------------------------
+    
+    def get_sbij(self):
+        # The method returns the absolute fitness selection coefficents
+        
+        # get the list of b mutation counts
+        bmc = [int(self.bij_mutCnt[int(ii),0]) for ii in range(self.bij_mutCnt.shape[0])]
+        
+        # map the mutation counts to bij values from the MC state space
+        sbij = [self.mcModel.sa_i[ii] for ii in bmc]
+        sbij = np.tile(sbij,(self.bij_mutCnt.shape[1],1)).T
+
+        return sbij
+    
+    # --------------------------------------------------------------------------
+    
+    def get_scij(self):
+        # The method returns the relative fitness selection coefficients
+        
+        cmc = [int(self.cij_mutCnt[0,int(ii)]) for ii in range(self.cij_mutCnt.shape[1])]
+        
+        # map the mutation counts to cij values from the competition coefficient
+        # definition: cj = (1+c+)**mutCnt
+        scij = [self.mcModel.sc_i[ii] for ii in cmc]
+        scij = np.tile(scij,(self.cij_mutCnt.shape[0],1))
+
+
+        return scij
+    
+    # --------------------------------------------------------------------------
+    
+    def get_sbbar(self):
+        # The method returns the mean absolute fitness selection coefficents
+        
+        sbbar = np.sum(self.nij*self.get_sbij())/np.sum(self.nij)
+
+        return sbbar
+    
+    # --------------------------------------------------------------------------
+    
+    def get_scbar(self):
+        # The method returns the mean relative fitness selection coefficients
+
+        scbar = np.sum(self.nij*self.get_scij())/np.sum(self.nij)
+
+        return scbar
+    
+    # --------------------------------------------------------------------------
+    
+    def get_ibar(self):
+        # The method returns the mean state over the absolute fitness space 
+        bmc = [int(self.bij_mutCnt[int(ii),0]) for ii in range(self.bij_mutCnt.shape[0])]
+        
+        scbar = np.sum(self.nij*self.bij_mutCnt)/np.sum(self.nij)
+
+        return scbar
     
     # #%% ------------------------------------------------------------------------
     # # SIM class inherited methods

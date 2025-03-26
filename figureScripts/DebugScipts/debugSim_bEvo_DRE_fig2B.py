@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 
 # new class for debugging based on final
 
-evoSnapshotFile = 'D:\\Documents\\GitHub\\compEvo2d\\figureScripts\\outputs\\sim_bEvo_DRE_Fig2B\\sim_Fig2B_T1E9_snpsht_param_03A_DRE_bEvo_20250321_1516.pickle'
+# evoSnapshotFile = 'D:\\Documents\\GitHub\\compEvo2d\\figureScripts\\outputs\\sim_bEvo_DRE_Fig2B\\sim_Fig2B_T1E9_snpsht_param_03A_DRE_bEvo_20250321_1516.pickle'
+evoSnapshotFile = 'C:\\Users\\dirge\\Documents\\GitHub\\compEvo2d\\figureScripts\\outputs\\sim_bEvo_DRE_Fig2B\\sim_Fig2B_T1E9_snpsht_param_03A_DRE_bEvo_20250325_1913.pickle'
 with open(evoSnapshotFile, 'rb') as file:
     # Serialize and write the variable to the file
     loaded_data = pickle.load(file)
@@ -35,10 +36,19 @@ idxEq = evoSimTest1.mcModel.get_mc_stable_state_idx()
 # qa = 2*np.log(Ni*sai)/np.log(sai/Uai)
 # qc = 2*np.log(Ni*sci)/np.log(sci/Uci)
 
+
+plt.imshow(np.log10(evoSimTest1.nij))
+plt.colorbar()
+plt.show()
+
+
+
 fig,ax = plt.subplots(1,1)
 ax.plot(evoSimTest1.mcModel.state_i,evoSimTest1.mcModel.va_i,c='blue')
 ax.plot(evoSimTest1.mcModel.state_i,evoSimTest1.mcModel.vc_i,c='red')
 ax.plot(evoSimTest1.mcModel.state_i,evoSimTest1.mcModel.ve_i,c='black')
+
+
 
 
 #%% 

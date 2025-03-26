@@ -606,15 +606,18 @@ class simClass(ABC):
         outputs.append(self.get_bbar())                             # 05. mean b
         outputs.append(np.max(self.bij_mutCnt[:,0]))                # 06. max bi
         outputs.append(np.sum(np.sign(np.sum(self.nij,1))))         # 07. b_width
-        outputs.append(self.get_varAbs())                           # 08. var_abs
         
         outputs.append(np.min(self.cij_mutCnt[0,:]))                # 09. min cj
         outputs.append(self.get_cbar())                             # 10. mean c
         outputs.append(np.max(self.cij_mutCnt[0,:]))                # 11. max cj
         outputs.append(np.sum(np.sign(np.sum(self.nij,0))))         # 12. c_width
-        outputs.append(self.get_varRel())                           # 13. var_rel
         
+        outputs.append(self.get_varAbs())                           # 08. var_abs
+        outputs.append(self.get_varRel())                           # 13. var_rel
         outputs.append(self.get_covAbsRel())                        # 14. covAbsRel
+        
+        outputs.append(self.mcModel.va_i[])                                            #
+        outputs.append(self.mcModel.vc_i[])
 
         # open the file and append new data
         with open(self.outputStatsFile, "a") as file:

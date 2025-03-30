@@ -15,6 +15,7 @@ see Bertram & Masel 2019 for details of lottery model
 import numpy as np
 
 import evoLibraries.SimRoutines.SIM_class as sim
+import evoLibraries.evoExceptions as evoExc
 
 class simDREClass(sim.simClass):
     # Class for simulating evolution with DRE type absolute fitness state space 
@@ -199,6 +200,7 @@ class simDREClass(sim.simClass):
     # --------------------------------------------------------------------------
     
     def get_cij(self):
+        # IMPLEMENTATION OF ABSTACT METHOD
         "Method to calculate array of cij actual values from mutation counts. "
         "The calculation is model specific, i.e. b vs d evo, RM vs DRE.       "
         
@@ -215,8 +217,9 @@ class simDREClass(sim.simClass):
     # --------------------------------------------------------------------------
 
     def get_fitMapEnv(self):
-        # The method get_fitMapEnv checks each index and finds a prio index such 
-        # that sum of sa[ii]+...+sa[ii-iBack] ~ fitness decline / iteration
+        # IMPLEMENTATION OF ABSTACT METHOD
+        " The method get_fitMapEnv checks each index and finds a prio index such "
+        " that sum of sa[ii]+...+sa[ii-iBack] ~ fitness decline / iteration      "
         fitMap = []
         sa_i = self.mcModel.sa_i
 
@@ -233,36 +236,11 @@ class simDREClass(sim.simClass):
 
         return fitMap
     
-    #%% ------------------------------------------------------------------------
-    # SIM DRE class specific methods
     # --------------------------------------------------------------------------
     
-    def get_covAbsRel(self):
-        # The method returns the absolute & relative fitness covariance 
-        covAbsRel = np.sum(self.nij*(self.get_sbij()-self.get_sbbar())*(self.get_scij()-self.get_scbar()))/np.sum(self.nij)
-        
-        return covAbsRel
-    
-    # --------------------------------------------------------------------------
-    
-    def get_varAbs(self):
-        # The method returns the absolute fitness variance 
-        varAbs = np.sum(self.nij*(self.get_sbij()-self.get_sbbar())*(self.get_sbij()-self.get_sbbar()))/np.sum(self.nij)
-
-        return varAbs
-    
-    # --------------------------------------------------------------------------
-    
-    def get_varRel(self):
-        # The method returns the relative fitness variance 
-        varRel = np.sum(self.nij*(self.get_scij()-self.get_scbar())*(self.get_scij()-self.get_scbar()))/np.sum(self.nij)
-
-        return varRel
-    
-    # --------------------------------------------------------------------------
-    
-    def get_sbij(self):
-        # The method returns the absolute fitness selection coefficents
+    def get_saij(self):
+        # IMPLEMENTATION OF ABSTACT METHOD
+        " The method returns the absolute fitness selection coefficents       "
         
         # get the list of b mutation counts
         bmc = [int(self.bij_mutCnt[int(ii),0]) for ii in range(self.bij_mutCnt.shape[0])]
@@ -275,46 +253,50 @@ class simDREClass(sim.simClass):
     
     # --------------------------------------------------------------------------
     
-    def get_scij(self):
-        # The method returns the relative fitness selection coefficients
+    def get_sabar(self):
+        # IMPLEMENTATION OF ABSTACT METHOD
+        " The method returns the mean absolute fitness selection coefficents  "
         
-        cmc = [int(self.cij_mutCnt[0,int(ii)]) for ii in range(self.cij_mutCnt.shape[1])]
-        
-        # map the mutation counts to cij values from the competition coefficient
-        # definition: cj = (1+c+)**mutCnt
-        scij = [self.mcModel.sc_i[ii] for ii in cmc]
-        scij = np.tile(scij,(self.cij_mutCnt.shape[0],1))
-
-
-        return scij
-    
-    # --------------------------------------------------------------------------
-    
-    def get_sbbar(self):
-        # The method returns the mean absolute fitness selection coefficents
-        
-        sbbar = np.sum(self.nij*self.get_sbij())/np.sum(self.nij)
+        sbbar = np.sum(self.nij*self.get_saij())/np.sum(self.nij)
 
         return sbbar
     
     # --------------------------------------------------------------------------
     
-    def get_scbar(self):
-        # The method returns the mean relative fitness selection coefficients
+    def get_ibarAbs(self):
+        # IMPLEMENTATION OF ABSTACT METHOD
+        " The method returns the mean state over the absolute fitness space   "
+        bmc = [int(self.bij_mutCnt[int(ii),0]) for ii in range(self.bij_mutCnt.shape[0])]
+        
+        ibarAbs = np.sum(self.nij*self.bij_mutCnt)/np.sum(self.nij)
 
-        scbar = np.sum(self.nij*self.get_scij())/np.sum(self.nij)
-
-        return scbar
+        return ibarAbs
     
     # --------------------------------------------------------------------------
     
-    def get_ibar(self):
-        # The method returns the mean state over the absolute fitness space 
-        bmc = [int(self.bij_mutCnt[int(ii),0]) for ii in range(self.bij_mutCnt.shape[0])]
+    def get_projected_nijDistrition(self,fitType):
+        # IMPLEMENTATION OF ABSTACT METHOD
+        " get_projected_nijDistrition returns the distribiton of abundances   "
+        " along the desired fitness dimension                                 "
         
-        scbar = np.sum(self.nij*self.bij_mutCnt)/np.sum(self.nij)
-
-        return scbar
+        try: 
+            if (fitType == 'abs'):
+                # sum abundances along the rel fit dimension (sum along cols = 1)
+                proj_nij = np.sum(self.nij,1)  
+                # get idx for abs fitness dim 
+                idxs_mut = self.bij_mutCnt[:,0]
+            elif (fitType == 'rel'):
+                # sum abundances along the abs fit dimention (sum along rows = 0)
+                proj_nij = np.sum(self.nij,0)
+                # get idx for rel fitness dim 
+                idxs_mut = self.cij_mutCnt[0,:]
+            else:
+                raise evoExc.EvoInvalidInput('Invalide Fitness Type Provided', custom_kwarg=fitType)
+                
+        except evoExc.EvoInvalidInput as exc:
+            print(f'Fitness type must be string: abs or rel, but method was provided {exc.custom_kwarg}')
+        
+        return [proj_nij,idxs_mut]
     
     # #%% ------------------------------------------------------------------------
     # # SIM class inherited methods
@@ -438,7 +420,7 @@ class simDREClass(sim.simClass):
     
     # #------------------------------------------------------------------------------
     
-    # def get_popsize(self):
+    # def popsize(self):
     #     # get_popsize() returns the total population size 
         
     # #------------------------------------------------------------------------------
@@ -448,6 +430,38 @@ class simDREClass(sim.simClass):
 
     # #------------------------------------------------------------------------------
     
+    # def get_covAbsRel(self):
+    #     # The method returns the absolute & relative fitness covariance 
+
+    # # --------------------------------------------------------------------------
+    
+    # def get_varAbs(self):
+    #     # The method returns the absolute fitness variance 
+    
+    # # --------------------------------------------------------------------------
+    
+    # def get_varRel(self):
+    #     # The method returns the relative fitness variance 
+        
+    # # --------------------------------------------------------------------------
+    
+    # def get_scij(self):
+    #     # The method returns the relative fitness selection coefficients
+    
+    # # --------------------------------------------------------------------------
+    
+    # def get_scbar(self):
+    #     # The method returns the mean relative fitness selection coefficients
+
+    # # --------------------------------------------------------------------------
+    
+    # def get_idx_nijMode(self,fitType):
+    #     # get_idx_nijMode returns the b/c mutation index for mode of abundances
+    #     # along fitType dimension (abs or rel). If there are two classes that 
+    #     # have identical abundances, then first index is regarded as the mode.
+
+    # #------------------------------------------------------------------------------
+
     # def output_evoStats(self,ti):
     #     # The method output_evoStats will collect all of the mean values of bij, cij,
     #     # dij, and popsize

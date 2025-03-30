@@ -86,3 +86,7 @@ ax.plot(evoSimTest2.mcModel.state_i,evoSimTest2.mcModel.vc_i,c='magenta')
 
 evoSimTest1.mcModel.get_mc_stable_state_idx()
 evoSimTest2.mcModel.get_mc_stable_state_idx()
+
+#%% Inestigation of covariance, and selection coefficients
+
+

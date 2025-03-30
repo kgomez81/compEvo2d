@@ -161,6 +161,36 @@ class simClass(ABC):
         "close to the provided value and rate in paramters                    "
         pass
 
+    # --------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_saij(self):
+        " The method returns the absolute fitness selection coefficents       "
+        pass
+    
+    # --------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_sabar(self):
+        " The method returns the mean absolute fitness selection coefficents  "
+        pass
+    
+    
+    # --------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_ibarAbs(self):
+        " The method returns the mean state over the absolute fitness space   "
+        pass
+    
+    # --------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_projected_nijDistrition(self,fitType):
+        " get_projected_nijDistrition returns the distribiton of abundances   "
+        " along the desired fitness dimension                                 "
+        pass
+    
     #%% ------------------------------------------------------------------------
     # Class methods
     # --------------------------------------------------------------------------
@@ -589,43 +619,212 @@ class simClass(ABC):
 
         return None
 
+    # --------------------------------------------------------------------------
+    
+    def get_covAbsRel(self):
+        # The method returns the absolute & relative fitness covariance 
+        # 
+        # Note: due to size of values, the calculations are scaled by sbbar
+        #       and scbar, so that they can be printed reasonably in outputs 
+        #       i.e. we calculate
+        #
+        #       cov_scaled = 1/(sbbar*scbar)*cov(sb,sc)
+        
+        delta_sa = (self.get_saij()/self.get_sabar() - 1) # Equals (sa - sabar)/sabar
+        delta_sc = (self.get_scij()/self.get_scbar() - 1) # Equals (sc - scbar)/scbar
+        
+        covAbsRel = np.sum(self.nij * delta_sa * delta_sc)/np.sum(self.nij)
+        
+        return covAbsRel
+    
+    # --------------------------------------------------------------------------
+    
+    def get_varAbs(self):
+        # The method returns the absolute fitness variance 
+        # 
+        # Note: due to size of values, the calculations are scaled by sbbar
+        #       and scbar, so that they can be printed reasonably in outputs 
+        #       i.e. we calculate
+        #
+        #       var_scaled = 1/(sbbar**2)*var(sb)
+        
+        delta_sa = (self.get_saij()/self.get_sabar() - 1) # Equals (sb - sbbar)/sbbar
+        
+        varAbs = np.sum(self.nij * delta_sa * delta_sa)/np.sum(self.nij)
+
+        return varAbs
+    
+    # --------------------------------------------------------------------------
+    
+    def get_varRel(self):
+        # The method returns the relative fitness variance 
+        # 
+        # Note: due to size of values, the calculations are scaled by sbbar
+        #       and scbar, so that they can be printed reasonably in outputs 
+        #       i.e. we calculate
+        #
+        #       var_scaled = 1/(sbbar**2)*var(sb)
+        
+        delta_sc = (self.get_scij()/self.get_scbar() - 1) # Equals (sc - scbar)/scbar
+        
+        varRel = np.sum(self.nij * delta_sc * delta_sc)/np.sum(self.nij)
+
+        return varRel
+    
+    
+    # --------------------------------------------------------------------------
+    
+    def get_scij(self):
+        # The method returns the relative fitness selection coefficients
+        
+        cmc = [int(self.cij_mutCnt[0,int(ii)]) for ii in range(self.cij_mutCnt.shape[1])]
+        
+        # map the mutation counts to cij values from the competition coefficient
+        # definition: cj = (1+c+)**mutCnt
+        scij = [self.mcModel.sc_i[ii] for ii in cmc]
+        scij = np.tile(scij,(self.cij_mutCnt.shape[0],1))
+
+        return scij
+    
+    # --------------------------------------------------------------------------
+    
+    def get_scbar(self):
+        # The method returns the mean relative fitness selection coefficients
+
+        scbar = np.sum(self.nij*self.get_scij())/np.sum(self.nij)
+
+        return scbar
+    
+        
+    # --------------------------------------------------------------------------
+    
+    def get_idx_nijMode(self,fitType):
+        # get_idx_nijMode returns the b/c mutation index for mode of abundances
+        # along fitType dimension (abs or rel). If there are two classes that 
+        # have identical abundances, then first index is regarded as the mode.
+        
+        nij_proj_dstr = self.get_projected_nijDistrition(fitType)
+        
+        proj_nij = nij_proj_dstr[0]
+        idxs_mut = nij_proj_dstr[1]
+        
+        idx_mode = idxs_mut[np.argmax(proj_nij)]
+        
+        return idx_mode
+    
     #------------------------------------------------------------------------------
     
     def output_evoStats(self,ti):
         # The method output_evoStats will collect all of the mean values of bij, cij,
-        # dij, and popsize
-
-        # collect outputs
+        # dij, and popsize, as well as other outputs 
+        
+        # setup o parameters for data collection
         outputs = []
+        headers = []
+        idx_bmod = self.get_idx_nijMode('abs') # abs fitness state for mode
+        idx_cmod = self.get_idx_nijMode('rel') # rel fitness state for mode
+
+        idx_bmin = np.min(self.bij_mutCnt[:,0])
+        idx_bmax = np.max(self.bij_mutCnt[:,0])
+        idx_bbar = self.get_ibarAbs()
+        idx_bmax_int = int(idx_bmax)
+        idx_bbar_int = int(np.round(idx_bbar))
+        
+        # -------------------------------------
+        # population 
         outputs.append(ti)                                          # 00. time  
         outputs.append(np.sum(self.nij))                            # 01. popsize
         outputs.append(np.sum(self.nij)/self.mcModel.params['T'])   # 02. gamma
-        outputs.append(self.get_ibar())                             # 03. ibar
-        
-        outputs.append(np.min(self.bij_mutCnt[:,0]))                # 04. min bi
+
+        headers.append('time')
+        headers.append('popsize')
+        headers.append('gamma')
+
+        # -------------------------------------
+        # b-mutation data
+        outputs.append(np.min(self.get_bij()))                      # 03. min bi
+        outputs.append(np.max(self.get_bij()))                      # 04. max bi
         outputs.append(self.get_bbar())                             # 05. mean b
-        outputs.append(np.max(self.bij_mutCnt[:,0]))                # 06. max bi
-        outputs.append(np.sum(np.sign(np.sum(self.nij,1))))         # 07. b_width
+        outputs.append(self.bij_mutCnt[idx_bmod])                   # 06. mode b
+        outputs.append(idx_bbar)                                    # 07. b-index mean
+        outputs.append(idx_bmod)                                    # 08. b-index mode
         
-        outputs.append(np.min(self.cij_mutCnt[0,:]))                # 09. min cj
-        outputs.append(self.get_cbar())                             # 10. mean c
-        outputs.append(np.max(self.cij_mutCnt[0,:]))                # 11. max cj
-        outputs.append(np.sum(np.sign(np.sum(self.nij,0))))         # 12. c_width
+        headers.append('min_bi')
+        headers.append('max_bi')
+        headers.append('mean_bi')
+        headers.append('mode_bi')
+        headers.append('mean_b_idx')
+        headers.append('mode_b_idx')
         
-        outputs.append(self.get_varAbs())                           # 08. var_abs
+        # -------------------------------------
+        # c-mutation data
+        outputs.append(np.min(self.get_cij()))                      # 09. min cj
+        outputs.append(np.max(self.get_cij()))                      # 10. max cj
+        outputs.append(self.get_cbar())                             # 11. mean c
+        
+        headers.append('min_ci')
+        headers.append('max_ci')
+        headers.append('mean_ci')
+        
+        # -------------------------------------
+        # variance/covariance fitness values
+        # note: these are scaled by the mean selection coefficients (last 2 entries)
+        outputs.append(self.get_varAbs())                           # 12. var_abs
         outputs.append(self.get_varRel())                           # 13. var_rel
         outputs.append(self.get_covAbsRel())                        # 14. covAbsRel
+        outputs.append(self.get_sabar())                            # 15. mean sa_i
+        outputs.append(self.get_scbar())                            # 16. mean sc_i
         
-        outputs.append(self.mcModel.va_i[])                                            #
-        outputs.append(self.mcModel.vc_i[])
+        headers.append('var_abs')
+        headers.append('var_rel')
+        headers.append('covAbsRel')
+        headers.append('mean_sa')
+        headers.append('mean_sc')
 
+        # -------------------------------------
+        # rate of adaptation 
+        # note: for vc, we capture the vc at the average and max abs fitness state
+        outputs.append(self.mcModel.va_i[idx_bmax_int])             # 17. va at imaxAbs
+        outputs.append(self.mcModel.va_i[idx_bbar_int])             # 18. va at rounded ibarAbs
+        outputs.append(self.mcModel.vc_i[idx_bmax_int])             # 19. vc at imaxAbs
+        outputs.append(self.mcModel.vc_i[idx_bbar_int])             # 20. vc at rounded ibarAbs
+        
+        headers.append('va_imax')
+        headers.append('va_ibar')
+        headers.append('vc_imax')
+        headers.append('vc_ibar')
+
+        # -------------------------------------
+        # selection coefficients
+        outputs.append(self.mcModel.sa_i[idx_bmax_int])             # 21. sa at imaxAbs
+        outputs.append(self.mcModel.sa_i[idx_bbar_int])             # 22. sa at rounded ibarAbs
+        outputs.append(self.mcModel.sc_i[idx_bmax_int])             # 23. sc at imaxAbs
+        outputs.append(self.mcModel.sc_i[idx_bbar_int])             # 24. sc at rounded ibarAbs
+        
+        headers.append('sa_imax')
+        headers.append('sa_ibar')
+        headers.append('sc_imax')
+        headers.append('sc_ibar')
+
+        # -------------------------------------
+        # mutation rates
+        outputs.append(self.mcModel.Ua_i[idx_bmax_int])             # 25. Ua at imaxAbs
+        outputs.append(self.mcModel.Ua_i[idx_bbar_int])             # 26. Ua at rounded ibarAbs
+        outputs.append(self.mcModel.Uc_i[idx_bmax_int])             # 27. Uc at imaxAbs
+        outputs.append(self.mcModel.Uc_i[idx_bbar_int])             # 28. Uc at rounded ibarAbs
+
+        headers.append('Ua_imax')
+        headers.append('Ua_ibar')
+        headers.append('Uc_imax')
+        headers.append('Uc_ibar')
+        
         # open the file and append new data
         with open(self.outputStatsFile, "a") as file:
             if (ti==0):
                 # output column if at initial time
-                file.write("time,popsize,gamma,ibar_abs,min_b,avg_b,max_b,width_b,var_abs,min_c,avg_c,max_c,width_c,var_rel,covAbsRel\n")
+                file.write( ','.join(tuple(headers))+'\n' )
             # output data collected
-            file.write("%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n" % tuple(outputs))
+            file.write((','.join(tuple(['%f']*len(outputs)))+'\n') % tuple(outputs))
         
         return None
     
@@ -649,3 +848,4 @@ class simClass(ABC):
             pickle.dump(simInitSave, file)
 
         return None
+# %%

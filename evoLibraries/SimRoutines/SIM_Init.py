@@ -50,7 +50,7 @@ class SimEvoInit():
         # --------------------------------------------------------------------------
         # Setup of parameters and MC model
         # --------------------------------------------------------------------------
-        self.fullStochModelFlag = simPathsIO['fullStochModelFlag']
+        self.modelDynamics = simPathsIO['modelDynamics']
         self.simpleEnvShift     = simPathsIO['simpleEnvShift']
         self.modelType  = simPathsIO['modelType']
         self.absFitType = simPathsIO['absFitType']
@@ -87,7 +87,7 @@ class SimEvoInit():
         simIODict_out['statsFile'] = self.simDatFile1 # file name for stats print outs
         simIODict_out['snpshtFile'] = self.simDatFile2 # file name for end-of-run snapshot
         
-        simIODict_out['fullStochModelFlag'] = self.fullStochModelFlag
+        simIODict_out['modelDynamics']      = self.modelDynamics
         simIODict_out['simpleEnvShift']     = self.simpleEnvShift
         simIODict_out['modelType']          = self.modelType
         simIODict_out['absFitType']         = self.absFitType

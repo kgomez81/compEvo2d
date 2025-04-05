@@ -708,7 +708,7 @@ class simClass(ABC):
         proj_nij = nij_proj_dstr[0]
         idxs_mut = nij_proj_dstr[1]
         
-        idx_mode = idxs_mut[np.argmax(proj_nij)]
+        idx_mode = np.argmax(proj_nij)
         
         return idx_mode
     
@@ -824,7 +824,7 @@ class simClass(ABC):
                 # output column if at initial time
                 file.write( ','.join(tuple(headers))+'\n' )
             # output data collected
-            file.write((','.join(tuple(['%f']*len(outputs)))+'\n') % tuple(outputs))
+            file.write( (','.join(tuple(['%f']*len(outputs))) + '\n') % tuple(outputs))
         
         return None
     

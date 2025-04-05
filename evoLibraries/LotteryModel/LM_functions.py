@@ -322,3 +322,125 @@ def get_iterationsPerGenotypeGeneration(d_i):
     return tau_i
 
 #------------------------------------------------------------------------------
+
+def run_lotteryModelSelection_noMutations(nij,bij,dij,cij,T,tmax,outpar):
+    # runs the deterministic selection dynamics of the Lotter Model tmax iterations
+    # i.e. no mutations, only selection dynamics. This is used to test analytic
+    # approdiximations of paper.
+    # 
+    # inputs:
+    # nij, bij, dij, cij - m-by-n arrays assocated with travelinging wave model
+    #     NOTE: Abs & Rel fitness dimensions increment by row & cols, respectively 
+    # T -  territory size
+    # outputFileParameters - 
+    #     0. output file to capture snapshots (string with file full path)
+    #     1. number of iterations per snapshot (integer value)
+    
+    n = nij.flatten()
+    b = bij.flatten()
+    d = dij.flatten()
+    c = cij.flatten()
+    
+    nclass = len(n)
+    kk = np.array([ii for ii in range(nclass)]) 
+    
+    filepath = outpar[0]
+    tsample = outpar[1]
+    
+    t = 0
+    
+    while (t < tmax):
+        # get pop size and number of unoccupied territories
+        Ntot  = np.sum(n)
+        Uterr = T-Ntot
+        
+        m = n*b*(Uterr/T)
+        
+        delta_n = deltnplus(m,c,Uterr)
+        n = (n + delta_n)/d
+        
+        out = removeExtinctClasses(n,b,d,c,kk)
+        
+        n = out[0]
+        b = out[1]
+        d = out[2]
+        c = out[3]
+        kk = out[4]
+        
+        if (np.mod(t,tsample)==0):
+            printPopDetails(t, n, kk, nclass, filepath)
+        
+        t = t+1
+        
+    return None
+
+#------------------------------------------------------------------------------
+
+def removeExtinctClasses(n,b,d,c,k):
+    # method that removes extinct clases
+    
+    ntemp = []
+    btemp = []
+    dtemp = []
+    ctemp = []
+    ktemp = []
+    
+    for ii in range(len(n)):
+        if (n[ii] >= 1):
+            ntemp.append(n[ii])
+            btemp.append(b[ii])
+            dtemp.append(d[ii])
+            ctemp.append(c[ii])
+            ktemp.append(k[ii])
+    
+    ntemp = np.asarray(ntemp)
+    btemp = np.asarray(btemp)
+    dtemp = np.asarray(dtemp)
+    ctemp = np.asarray(ctemp)
+        
+    return [ntemp,btemp,dtemp,ctemp,ktemp]
+
+# -----------------------------------------------------------------------------
+
+def printPopDetails(t,n,kk,nclass,outfile):
+    # simple function to print outputs from lottery model selection dynamics
+    
+    datatemp = np.zeros(nclass+1)
+    datatemp[0]
+    
+    for ii in range(len(kk)):
+        datatemp[kk[ii]+1] = n[kk[ii]]
+        
+    
+    with open(outfile, "a") as file:
+        # output data collected
+        file.write((','.join(tuple(['%f']*len(datatemp)))+'\n') % tuple(datatemp))
+    
+    return None
+
+#------------------------------------------------------------------------------
+
+def get_flatArryMap_1Dto2D(kkVal,arryShape):
+    # simple utility that maps index value in 1d array to 2d form
+    # arryShape = (n-rows,n-cols)
+    nRow = arryShape[0]
+    nCol = arryShape[1]
+    
+    ijVal = [0,0]
+    ijVal[1] = int(np.mod(kkVal,nCol))
+    ijVal[0] = int((kkVal-ijVal[1])/nRow )
+    
+    return ijVal
+
+#------------------------------------------------------------------------------
+
+def get_flatArryMap_2Dto1D(ijVal,arryShape):
+    # simiple utility that maps index value in 2d array to 1d form
+    # arryShape = (n-rows,n-cols), ijVal is list with ii and jj as entries
+    nRow = arryShape[0]
+    nCol = arryShape[1]
+    
+    kkVal = int(nRow*ijVal+ijVal[1])
+    
+    return kkVal
+    

@@ -69,7 +69,7 @@ class simClass(ABC):
         # Simulation flag - 
         #   true: stochastic birth/comp/death simulated, 
         #   false: poisson sampling with expectation given dens-dep lottery model Eqtns
-        self.fullStochModelFlag = simInit.fullStochModelFlag
+        self.modelDynamics      = simInit.modelDynamics
         self.simpleEnvShift     = simInit.simpleEnvShift
         
         # stochastic dynamics cutoff
@@ -209,7 +209,7 @@ class simClass(ABC):
             # print("time=%d" % (t))
             # print('---------------')
             
-            if not (self.fullStochModelFlag):
+            if not (self.modelDynamics):
 
                 # get new juveniles and modify arrays for potentially new classes
                 # this will pad arrays and fill in an updated mij w/ mutation fluxes

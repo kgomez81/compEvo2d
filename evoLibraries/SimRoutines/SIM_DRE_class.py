@@ -41,7 +41,7 @@ class simDREClass(sim.simClass):
     # # Simulation flag - 
     # #   true: stochastic birth/comp/death simulated, 
     # #   false: poisson sampling with expectation given dens-dep lottery model Eqtns
-    # self.fullStochModelFlag 
+    # self.modelDynamics 
     
     #%% ------------------------------------------------------------------------
     # Constructor

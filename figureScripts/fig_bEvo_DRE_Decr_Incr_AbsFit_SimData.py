@@ -44,7 +44,7 @@ simPathsIO['simDatDir']     = 'sim_bEvo_DRE_Fig2B'
 simPathsIO['statsFile']     = 'sim_Fig2B_T1E9_stats'
 simPathsIO['snpshtFile']    = 'sim_Fig2B_T1E9_snpsht'
 
-simPathsIO['fullStochModelFlag']    = False
+simPathsIO['modelDynamics']         = 2
 simPathsIO['simpleEnvShift']        = True
 simPathsIO['modelType']             = 'DRE'
 simPathsIO['absFitType']            = 'bEvo'

@@ -64,6 +64,10 @@ class simDREClass(sim.simClass):
         "Absolute fitness mutations add/modify rows of the 2d evolution arrays"
         "while relative fitness mutations add columns to 2d evo arrays        "      
         
+        # if mutation rates are zero, then its not a travelling wave
+        NoMutations = (self.params['Ua'] == 0) and (self.params['Uc'] == 0)
+        if (not NoMutations): return None
+        
         # expand evo arrays to include new slots for mutations
         self.get_evoArraysExpand()
 
@@ -266,7 +270,6 @@ class simDREClass(sim.simClass):
     def get_ibarAbs(self):
         # IMPLEMENTATION OF ABSTACT METHOD
         " The method returns the mean state over the absolute fitness space   "
-        bmc = [int(self.bij_mutCnt[int(ii),0]) for ii in range(self.bij_mutCnt.shape[0])]
         
         ibarAbs = np.sum(self.nij*self.bij_mutCnt)/np.sum(self.nij)
 

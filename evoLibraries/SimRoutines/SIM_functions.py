@@ -21,6 +21,7 @@ import bisect
 import math as math 
 
 from joblib import Parallel, delayed
+from evoLibraries.LotteryModel import LM_functions as lmfun
 
 #------------------------------------------------------------------------------
 #                       Simulation functions
@@ -115,111 +116,6 @@ def deltnplussim(m,c,U,pop,params,d):
             # then wins[MUT] = 3 and below increments it to 4.
             wins[victor] = wins[victor] + 1
     return wins
-
-#------------------------------------------------------------------------------
-    
-def calculate_Ri_term(m,c,U):
-    # This function calculates the value of the Ri competitive term. 
-    # Inputs:
-    # m - array of new propogule abundances
-    # c - array of relative fitness values
-    # U - Number of unoccupied territories
-    # Outputs:    
-    # out - value of Ri term
-    
-    # get array with the set of juvenile densities. 
-    # 1st index is the wild type and the 2nd index is the mutant class
-    l = [m[ii]/float(U) for ii in range(len(m))]
-    
-    # get total juvenile density 
-    L = sum(l)
-    
-    # calculate the average value of the competitive trait
-    # NOTE: the m[ii] is proportional to pop[ii] so okay to use
-    cbar = sum([m[ii]*c[ii] for ii in range(len(m))])/sum(m)
-    
-    # generate array to store the Ri term the 
-    out = l
-    
-    # loop through the classes and calcualte the respective Ri term
-    for i in range(len(l)):
-        # calculate value via formula from Bertram & Masel Lottery Model paper
-        out[i] = cbar*np.exp(-l[i])*(1-np.exp(-(L-l[i]))) \
-                /( c[i] + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * ( (L-1+np.exp(-L)) / (1-(1+L)*np.exp(-L) ) ) )
-
-    return out
-
-#------------------------------------------------------------------------------
-    
-def calculate_Ai_term(m,c,U):
-    # This function calculates the value of the Ri competitive term
-    # Inputs:
-    # m - array of new propogule abundances
-    # c - array of relative fitness values
-    # U - Number of unoccupied territories
-    # Outputs:    
-    # out - value of Ai term
-    
-    # get array with the set of juvenile densities. 
-    # 1st index is the wild type and the 2nd index is the mutant class
-    l = [m[ii]/float(U) for ii in range(len(m))]
-    
-    # get total juvenile density 
-    L = sum(l)
-    
-    # calculate the average value of the competitive trait
-    cbar = sum([m[ii]*c[ii] for ii in range(len(m))])/sum(m)
-    
-    # generate array to store the Ri term the 
-    out = l
-    
-    # loop through the classes and calcualte the respective Ri term
-    for i in range(len(l)):   
-        if ((1-(1+l[i])*np.exp(-l[i])) > 0):
-            # use normal calculation when l[i] sufficiently large
-            t1 = l[i]*(1-np.exp(-l[i]))/(1-(1+l[i])*np.exp(-l[i]))
-        else:             
-            # use this calculation when l[i] << 1, i.e. for a small mutant class that leads to divide by zero
-            t1 = 1
-                        
-        out[i] = cbar*( 1-np.exp(-l[i]) ) \
-                    / ( c[i]*t1 + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * \
-                      ( L*(1-np.exp(-L)) / (1-(1+L)*np.exp(-L)) - t1 ) ) 
-                        
-    return out
-
-#------------------------------------------------------------------------------
-    
-def deltnplus(m,c,U):
-    # This function calculates the deterministic incremental adults from juveniles 
-    # winning territorial competitions (set of delta_n_i).
-    #
-    # Inputs:
-    # m - array of juveniles for each class
-    # c - array of competitive trait values 
-    # U - number of unoccupied territories
-    #
-    # Outputs:
-    # delta_n = array of new adults per class (delta_n_1,...,delta_n_k)
-    #
-    
-    if sum(m)>0 and U>0:
-        # calculate juvenile density
-        L = sum(m)/float(U)
-        
-        # calculate mean relative fitness (average c value)
-        cbar = sum([m[ii]*c[ii] for ii in range(len(m))])/sum(m)
-        
-        # return the expected number of new adults
-        factor = ( np.exp(-L) + ( calculate_Ri_term(m,c,U) + calculate_Ai_term(m,c,U) ) )
-                  
-        newAdults = [m[ii] * factor * c[ii] / cbar for ii in range(len(m))]
-    
-    else:
-        # if the population has gone extinct
-        newAdults = [0 for ii in range(len(m))]
-    
-    return newAdults
     
 #------------------------------------------------------------------------------
         
@@ -279,12 +175,10 @@ def simulate_popEvoSelection(params,pop,b,d,c):
     if U > 0:
         # calcualte new adults using both the deterministic equations and stochastic
         # sampling of competitions
-        deter_newAdults = deltnplus(m,c,U)
+        deter_newAdults = lmfun.deltnplus(m,c,U)
         stoch_newAdults = deltnplussim(m,c,U,pop,params,d)
         
         # calculate the total number of adults per class.
-        print(pop[0])
-        print(deter_newAdults[0])
         newpop[0] = int(pop[0] + deter_newAdults[0])
         newpop[1] = int(pop[1] + stoch_newAdults[1])
         

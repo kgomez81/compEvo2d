@@ -77,7 +77,7 @@ class simClass(ABC):
         self.stochThrsh = np.ones(self.nij.shape) * self.get_stochasticDynamicsCutoff()
 
         # file output paramters
-        self.simDatDir            = simInit.simDatDir
+        self.simDatDir              = '/'.join((simInit.outputsPath,simInit.simDatDir))
         # filenames for two types of outputs
         # eg. outputStatsFile = ''
         self.outputStatsFileBase    = simInit.outputStatsFileBase
@@ -205,28 +205,9 @@ class simClass(ABC):
         
         # run model tmax generations or until population is extinct
         while ( (t < self.tmax) and not popExtinct ):
-            # print('---------------')
-            # print("time=%d" % (t))
-            # print('---------------')
             
-            if not (self.modelDynamics):
+            if (self.modelDynamics == 0):
 
-                # get new juveniles and modify arrays for potentially new classes
-                # this will pad arrays and fill in an updated mij w/ mutation fluxes
-                self.get_populationMutations()
-                
-                # run selection with Lotter model 
-                self.run_determinsticEvolution()
-                
-                # print('pre-poiss pop array')
-                # print(self.nij)
-                # run poisson samling of each class
-                self.run_poissonSamplingOfAbundances()
-                
-                # print('post-poiss pop array')
-                # print(self.nij)
-            else:
-                
                 # get new juveniles and modify arrays for potentially new classes
                 # this will pad arrays and fill in an updated mij w/ mutation fluxes
                 self.get_populationMutations()
@@ -236,17 +217,30 @@ class simClass(ABC):
                 
                 # run death phase of model
                 self.run_deathPhase()
+                
+            elif (self.modelDynamics == 1):
+                
+                # get new juveniles and modify arrays for potentially new classes
+                # this will pad arrays and fill in an updated mij w/ mutation fluxes
+                self.get_populationMutations()
+                
+                # run selection with Lotter model 
+                self.run_determinsticEvolution()
+                
+            else:
+                
+                # get new juveniles and modify arrays for potentially new classes
+                # this will pad arrays and fill in an updated mij w/ mutation fluxes
+                self.get_populationMutations()
+                
+                # run selection with Lotter model 
+                self.run_determinsticEvolution()
+                
+                # run poisson samling of each class
+                self.run_poissonSamplingOfAbundances()
+
             
-            # collapse 2d array boundaries
             self.get_evoArraysCollapse()
-            
-            # print('post-collapse pop array')
-            # print(self.nij)
-            
-            # print('cij mut array')
-            # print(self.get_cij())
-            # print('average c')
-            # print(self.get_cbar())
             
             # check if we should if environment has changed
             sampleEnvDegrCnt = np.random.poisson(self.mcModel.params['R'])
@@ -258,14 +252,13 @@ class simClass(ABC):
             # check to see if a snapshot of the mean needs to be taken
             if (self.tcap>0) and (np.mod(t,self.tcap)==0):
                 self.output_evoStats(t)
+                
+                # for runs with selection dynamics, take snapshot of abundances
+                if (self.modelDynamics == 1):
+                    self.output_selectionDyanmics(t)
 
             # update time increment
             t = t + 1
-            
-            # print('sizes')
-            # print(self.nij.shape)
-            # print(self.bij_mutCnt.shape)
-            # print(self.cij_mutCnt.shape)
             
             popExtinct = (self.popSize() < 10)
         
@@ -283,7 +276,8 @@ class simClass(ABC):
         # simulates competition to determine the number of adults prior
         # to the death phase.
         # 
-        # temporarily not implemented 
+        # !!!!!!!! NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!
+        #
         idxMap  = self.get_arrayMap(self.mij)
         idxkk   = [ii[2] for ii in idxMap]
 
@@ -395,6 +389,10 @@ class simClass(ABC):
         # get_evoArraysCollapse() collapses evo arrays to remove any rows/cols
         # with only zero entries
         
+        # if mutation rates are zero, then its not a travelling wave
+        NoMutations = (self.params['Ua'] == 0) and (self.params['Uc'] == 0)
+        if (not NoMutations): return None
+        
         # get indices for rows and columns with only zero entries, excluding 
         # those within the bulk
         idxR = self.get_trimIndicesForZeroRows(self.nij)
@@ -474,41 +472,17 @@ class simClass(ABC):
         # calculate the expected number of new adults
         delta_nij_plus = lmFun.deltnplus(mij_f,cij_f,self.get_U())
         
-        # print('-- pre add n+ --')
-        # print('2. pop array')
-        # print(self.nij)
-        # print('3. juveniles')
-        # print(self.mij)
-        # print('4. mij array')
-        # print(mij_f)
-        # # print('5. cij mutations')
-        # # print(cij_f)
-        # print('5. bij array')
-        # print(self.get_bij())
-        # print('6. calculated new adults')
-        # print(idxMap)
-        # print(delta_nij_plus)
-        
         # now add the expected new adults to the nij array (nij + delta_nij_plus)
         for idx in range(len(idxkk)):
             crnt_ii = idxMap[idx][0]
             crnt_jj = idxMap[idx][1]
             self.nij[crnt_ii,crnt_jj] = self.nij[crnt_ii,crnt_jj] + delta_nij_plus[idx]
-            
-        # print('-- post add delta_n+ --')
-        # print(self.nij)
         
         # apply death phase to complete calculation of lottery model selection
         #
         #    n_ij(t+1) = (1/dij) * (nij + delta_nij+)
         # 
         self.nij = (1/self.get_dij()) * self.nij
-        
-        # print('-- post add n+ and 1/d --')
-        # print('1. pop array')
-        # print(self.nij)
-        # print('2. 1/dij array')
-        # print(1/self.get_dij())
         
         return None
     
@@ -706,7 +680,6 @@ class simClass(ABC):
         nij_proj_dstr = self.get_projected_nijDistrition(fitType)
         
         proj_nij = nij_proj_dstr[0]
-        idxs_mut = nij_proj_dstr[1]
         
         idx_mode = np.argmax(proj_nij)
         
@@ -722,9 +695,7 @@ class simClass(ABC):
         outputs = []
         headers = []
         idx_bmod = self.get_idx_nijMode('abs') # abs fitness state for mode
-        idx_cmod = self.get_idx_nijMode('rel') # rel fitness state for mode
 
-        idx_bmin = np.min(self.bij_mutCnt[:,0])
         idx_bmax = np.max(self.bij_mutCnt[:,0])
         idx_bbar = self.get_ibarAbs()
         idx_bmax_int = int(idx_bmax)
@@ -745,7 +716,7 @@ class simClass(ABC):
         outputs.append(np.min(self.get_bij()))                      # 03. min bi
         outputs.append(np.max(self.get_bij()))                      # 04. max bi
         outputs.append(self.get_bbar())                             # 05. mean b
-        outputs.append(self.bij_mutCnt[idx_bmod])                   # 06. mode b
+        outputs.append(self.bij_mutCnt[idx_bmod,0])                 # 06. mode b
         outputs.append(idx_bbar)                                    # 07. b-index mean
         outputs.append(idx_bmod)                                    # 08. b-index mode
         
@@ -820,6 +791,7 @@ class simClass(ABC):
         
         # open the file and append new data
         with open(self.outputStatsFile, "a") as file:
+            
             if (ti==0):
                 # output column if at initial time
                 file.write( ','.join(tuple(headers))+'\n' )
@@ -848,4 +820,64 @@ class simClass(ABC):
             pickle.dump(simInitSave, file)
 
         return None
-# %%
+
+    #------------------------------------------------------------------------------
+    
+    def output_selectionDyanmics(self,ti):
+        # The method output_selectionDyanmics will output abundances as a time
+        # series. This can only be used when mutation rates are zero, and env
+        # change is absent.
+        
+        # first check conditions to output selection dynamics
+        NoMutations = (self.params['Ua'] == 0) and (self.params['Uc'] == 0)
+        NoEnvChange = (self.params['R'] == 0)
+        SelDynamics = (self.modelDynamics == 1)
+        if not (NoMutations and NoEnvChange and SelDynamics): return None
+        
+        # setup o parameters for data collection
+        outputs = []
+        headers = []
+        
+        outputs.append(ti)
+        headers.append('t')
+        
+        nij = self.nij.flatten()
+        pij = (np.ones(nij.shape)*nij)/sum(nij)
+        
+        # output abundances
+        for ii in range(nij.shape[0]):
+            outputs.append(nij[ii])
+            headers.append(("n%02d" % (ii)))
+            
+        # output frequencies
+        for ii in range(pij.shape[0]):
+            outputs.append(pij[ii])
+            headers.append(("p%02d" % (ii)))
+        
+        # output selection coefficients
+        idx_bbar     = self.get_ibarAbs()
+        idx_bbar_int = int(np.round(idx_bbar))
+        
+        outputs.append(self.mcModel.sa_i[idx_bbar_int])
+        outputs.append(self.mcModel.sc_i[idx_bbar_int])
+        outputs.append(self.get_bbar())
+        outputs.append(idx_bbar)
+        outputs.append(np.mean(self.get_dij()))
+        
+        headers.append('sa')
+        headers.append('sc')
+        headers.append('mean_bi')
+        headers.append('mean_b_idx')
+        headers.append('d_term')
+        
+        selDyn_file = self.outputStatsFile.replace('.csv','_selDyn.csv')
+        
+        # open the file and append new data
+        with open(selDyn_file, "a") as file:
+            if (ti==0):
+                # output column if at initial time
+                file.write( ','.join(tuple(headers))+'\n' )
+            # output data collected
+            file.write( (','.join(tuple(['%.10f']*len(outputs))) + '\n') % tuple(outputs))
+        
+        return None

@@ -23,15 +23,14 @@ import scipy.optimize as opt
 def calculate_Ri_term(m,c,U):
     # This function calculates the value of the Ri competitive term. 
     # Inputs:
-    # m - array of new propogule abundances
+    # m - juveniles
     # c - array of relative fitness values
     # U - Number of unoccupied territories
     # Outputs:    
     # out - value of Ri term
     
-    # get array with the set of juvenile densities. 
-    # 1st index is the wild type and the 2nd index is the mutant class
-    l = m/float(U)      
+    # juvenile density 
+    l = m/float(U)               
     
     # get total juvenile density 
     L = sum(l)
@@ -40,13 +39,18 @@ def calculate_Ri_term(m,c,U):
     cbar = sum(m*c)/sum(m)
     
     # generate array to store the Ri term the 
-    out = l
+    out = np.zeros(l.shape)
     
     # loop through the classes and calcualte the respective Ri term
-    for i in range(len(l)):
+    for ii in range(len(l)):
         # calculate value via formula from Bertram & Masel Lottery Model paper
-        out[i] = cbar*np.exp(-l[i])*(1-np.exp(-(L-l[i]))) \
-                /( c[i] + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * ( (L-1+np.exp(-L)) / (1-(1+L)*np.exp(-L) ) ) )
+        # but check for numerical value of certain terms
+        if ((L-l[ii]) > 0):
+            t1 = ( (cbar*L-c[ii]*l[ii]) / (L-l[ii]) )
+        else:
+            t1 = c[ii]
+            
+        out[ii] = cbar*np.exp(-l[ii])*(1-np.exp(-(L-l[ii])))/( c[ii] + t1 * ( (L-1+np.exp(-L)) / (1-(1+L)*np.exp(-L) ) ) )    
 
     return out
 
@@ -55,7 +59,7 @@ def calculate_Ri_term(m,c,U):
 def calculate_Ai_term(m,c,U):
     # This function calculates the value of the Ri competitive term
     # Inputs:
-    # m - array of new propogule abundances
+    # m - array of abundances
     # c - array of relative fitness values
     # U - Number of unoccupied territories
     # Outputs:    
@@ -75,17 +79,23 @@ def calculate_Ai_term(m,c,U):
     out = l
     
     # loop through the classes and calcualte the respective Ri term
-    for i in range(len(l)):   
-        if ((1-(1+l[i])*np.exp(-l[i])) > 0):
+    for ii in range(len(l)):   
+        
+        # first check for numerical values of certain terms
+        if ((L-l[ii]) > 0):
+            t1 = ( (cbar*L-c[ii]*l[ii]) / (L-l[ii]) )
+        else:
+            t1 = c[ii]
+            
+        if ((1-(1+l[ii])*np.exp(-l[ii])) > 0):
             # use normal calculation when l[i] sufficiently large
-            t1 = l[i]*(1-np.exp(-l[i]))/(1-(1+l[i])*np.exp(-l[i]))
+            t2 = l[ii]*(1-np.exp(-l[ii]))/(1-(1+l[ii])*np.exp(-l[ii]))
         else:             
             # use this calculation when l[i] << 1, i.e. for a small mutant class that leads to divide by zero
-            t1 = 1
-                        
-        out[i] = cbar*( 1-np.exp(-l[i]) ) \
-                    / ( c[i]*t1 + ( (cbar*L-c[i]*l[i]) / (L-l[i]) ) * \
-                      ( L*(1-np.exp(-L)) / (1-(1+L)*np.exp(-L)) - t1 ) ) 
+            t2 = 1
+            
+        out[ii] = cbar*( 1-np.exp(-l[ii]) ) \
+                    / ( c[ii]*t2 + t1 * ( L*(1-np.exp(-L)) / (1-(1+L)*np.exp(-L)) - t2 ) ) 
                         
     return out
 
@@ -323,3 +333,19 @@ def get_iterationsPerGenotypeGeneration(d_i):
 
 #------------------------------------------------------------------------------
     
+def get_conditionalMean_ii(x,p,ii):
+    # calculate the conditional mean of x, minus the ii index
+    
+    # conditional distribution
+    pcond = np.ones(x.shape)*p
+    pcond[ii] = 0.0
+    
+    # check if renormalization is possible
+    psum = sum(pcond)
+    if (psum > 0 ):
+        pcond = pcond/psum
+        
+    # caculate the new mean
+    cond_mean = x*pcond
+    
+    return cond_mean

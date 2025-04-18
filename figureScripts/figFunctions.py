@@ -217,6 +217,19 @@ def plot_rateOfAdaptation_Abs(outputfile):
 
 # --------------------------------------------------------------------------
 
+def plot_evoMcModel(mcModel):
+    
+    fig,ax = plt.subplots(1,1,figsize=[5,5])
+    ax.plot(mcModel.state_i, mcModel.va_i,c='blue')
+    ax.plot(mcModel.state_i, mcModel.vc_i,c='red')
+    ax.plot(mcModel.state_i, mcModel.ve_i,c='black')
+    ax.set_xlabel('state')
+    ax.set_ylabel('rate of adaptation')
+    
+    return None
+
+# --------------------------------------------------------------------------
+
 def plot_simulationAnalysis(outputfile):
     # plot the travelling waves by state space indices
     # also include the 

@@ -302,9 +302,9 @@ def get_c_SelectionCoeff(b,y,cr,dMt):
         return 0
         
     # calculate rate of increase in frequency per iteration
-    r_rel = cr*(1-y)*(1-(1+b*y)*np.exp(-b*y))/(y+(1-y)*(1-np.exp(-b)))*\
+    r_rel = cr*(1-y)*(1-(1+b*y)*np.exp(-b*y))/(1-(1-y)*np.exp(-b))* \
                     (b*y-1+np.exp(-b*y))/(b*y*(1-np.exp(-b*y))+cr*(1-(1+b*y)*np.exp(-b*y)))
-    
+                    
     # get time-scale of a generation
     tau = get_iterationsPerGenotypeGeneration(dMt)
     

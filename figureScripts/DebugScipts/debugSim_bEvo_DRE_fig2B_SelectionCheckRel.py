@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar 21 01:56:23 2025
+Created on Sun Apr 13 15:42:16 2025
 
 @author: Owner
 """
@@ -37,45 +37,46 @@ import figFunctions as figfun
 # filepaths for loading and saving outputs
 
 simPathsIO  = dict()
+simArryData = dict()
 
+# specify parameters for input / output paths
 simPathsIO['paramFile']     = 'evoExp_DRE_bEvo_03A_parameters.csv'
 simPathsIO['paramTag']      = 'param_03A_DRE_bEvo'
 
-simPathsIO['simDatDir']     = 'sim_bEvo_DRE_Fig2B'
+simPathsIO['simDatDir']     = 'sim_bEvo_DRE_Fig2B_SelCheckRel'
 simPathsIO['statsFile']     = 'sim_Fig2B_T1E9_stats'
 simPathsIO['snpshtFile']    = 'sim_Fig2B_T1E9_snpsht'
 
-simPathsIO['modelDynamics']         = 2
+simPathsIO['modelDynamics']         = 1
 simPathsIO['simpleEnvShift']        = True
 simPathsIO['modelType']             = 'DRE'
 simPathsIO['absFitType']            = 'bEvo'
 
 # specify parameters for the MC models
-simArryData = dict()
-simArryData['tmax'] = 10000
-simArryData['tcap'] = 5
+simArryData['tmax'] = 100
+simArryData['tcap'] = 1
 
-# simArryData['nij']          = np.array([[3e8,0],[100,0]])
-# simArryData['bij_mutCnt']   = np.array([[30,30],[31,31]])
-# simArryData['dij_mutCnt']   = np.array([[1,1],[1,1]])  
-# simArryData['cij_mutCnt']   = np.array([[1,2],[1,2]])
-i0 = 10
+simArryData['nij']          = np.array([[3e8,100]])
+simArryData['bij_mutCnt']   = np.array([[15,15]])
+simArryData['dij_mutCnt']   = np.array([[1,1]])  
+simArryData['cij_mutCnt']   = np.array([[1,2]])
 
-simArryData['nij']          = np.array([[3e8,0],[100,0]])
-simArryData['bij_mutCnt']   = np.array([[i0,i0],[i0+1,i0+1]])
-simArryData['dij_mutCnt']   = np.array([[1,1],[1,1]])  
-simArryData['cij_mutCnt']   = np.array([[1,2],[1,2]])
+# loop through states (max 88)
+bidx = [10,20,30,40,50,60]
+for idx in bidx:
+    # group sim parameters
+    simInit = evoInit.SimEvoInit(simPathsIO,simArryData)
+    simArryData['bij_mutCnt']   = np.array([[idx,idx]])
+    simInit.mcModel.params['Ua'] = 0
+    simInit.mcModel.params['Uc'] = 0
+    simInit.mcModel.params['R'] = 0
+    
+    # setting poulation size to equilibrium value
+    simInit.nij[0,0] = simInit.mcModel.eq_Ni[int(simInit.bij_mutCnt[0,0])]-simInit.nij[0,1]
 
-# group sim parameters
-simInit = evoInit.SimEvoInit(simPathsIO,simArryData)
-# simInit.mcModel.params['Uc'] = 0
+    # generate sim object and run
+    evoSim = simDre.simDREClass(simInit)
+    evoSim.run_evolutionModel()
+    
+    figfun.plot_selection_coeff(evoSim.outputStatsFile.replace('.csv','_selDyn.csv'),'rel')
 
-# setting poulation size to equilibrium value
-simInit.nij[0,0] = simInit.mcModel.eq_Ni[int(simInit.bij_mutCnt[0,0])]-simInit.nij[1,0]
-
-# generate sim object and run
-evoSim = simDre.simDREClass(simInit)
-evoSim.run_evolutionModel()
-
-# evoFile = evoSim.
-# figfun.plot_rateOfAdaptation_Abs(evoFile)

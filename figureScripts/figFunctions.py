@@ -11,6 +11,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from evoLibraries.LotteryModel import LM_functions as lmfun
+
 #%% ------------------------------------------------------------------------
 #                               Functions   
 # --------------------------------------------------------------------------
@@ -166,5 +168,60 @@ def plot_selection_coeff(outputfile,fitType):
     ax2.legend()
     
     plt.tight_layout()
+    
+    # save figure
+    save_fig_name = outputfile.replace('.csv','selcoeff.png')
+    plt.savefig(save_fig_name)
+    
+    return None
+
+# --------------------------------------------------------------------------
+
+def plot_rateOfAdaptation_Abs(outputfile):
+    # estimates the rate of adaptation in absolute fitness. v for relative
+    # cannot be calculated due to renormalization of c-terms.
+    
+    # load selection dynamics file
+    data = pd.read_csv(outputfile)
+    
+    # get the required data
+    time = data['time'].values
+    biMax = data['max_bi'].values
+    dTerm = data['d_term'][0]
+    tau = 1/(dTerm-1)
+    
+    vaThr = data['va_imax'][1:].values
+
+    nest = biMax.shape[0]-1
+    
+    vaEst = np.zeros([nest,1])
+    tt = time[0:-1]
+    
+    for ii in range(nest):
+        sGen  = lmfun.get_b_SelectionCoeff(biMax[ii+1],biMax[ii],dTerm)
+        tGen = (time[ii+1]-time[ii])/tau
+        vaEst[ii] = sGen/tGen
+
+
+    # generate the figures
+    fig,ax = plt.subplots(1,1,figsize=[6,6])
+    ax.scatter(tt,vaEst,c='blue',label='vb_Sim')
+    ax.plot(tt,vaThr,c='red',label='vb_Thr')
+    ax.set_xlabel('time (iteration)')
+    ax.set_ylabel('Rate of Adaptation (fit/gen)')
+    ax.legend()
+    
+    plt.tight_layout()
+    
+    return None
+
+# --------------------------------------------------------------------------
+
+def plot_simulationAnalysis(outputfile):
+    # plot the travelling waves by state space indices
+    # also include the 
+    
+    # load selection dynamics file
+    data = pd.read_csv(outputfile)
     
     return None

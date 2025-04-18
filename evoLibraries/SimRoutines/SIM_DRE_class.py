@@ -66,7 +66,9 @@ class simDREClass(sim.simClass):
         
         # if mutation rates are zero, then its not a travelling wave
         NoMutations = (self.params['Ua'] == 0) and (self.params['Uc'] == 0)
-        if (not NoMutations): return None
+        if (NoMutations): 
+            self.mij  = self.get_mij_noMutants() 
+            return None
         
         # expand evo arrays to include new slots for mutations
         self.get_evoArraysExpand()

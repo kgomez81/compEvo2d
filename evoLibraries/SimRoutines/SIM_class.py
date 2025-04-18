@@ -86,7 +86,7 @@ class simClass(ABC):
         # we need alternates for file outputs of particular runs, this will ensure
         # runs don't overwrite prior data
         tempT = time.localtime()
-        datetimeStamp = "%d%02d%02d_%02d%02d" % (tempT.tm_year,tempT.tm_mon,tempT.tm_mday,tempT.tm_hour,tempT.tm_min)
+        datetimeStamp = "%d%02d%02d_%02d%02d%02d" % (tempT.tm_year,tempT.tm_mon,tempT.tm_mday,tempT.tm_hour,tempT.tm_min,tempT.tm_sec)
 
         self.outputStatsFile    = self.outputStatsFileBase.replace('.csv','_'+datetimeStamp+'.csv')
         self.outputSnapshotFile = self.outputSnapshotFileBase.replace('.pickle','_'+datetimeStamp+'.pickle')
@@ -256,7 +256,7 @@ class simClass(ABC):
                 # for runs with selection dynamics, take snapshot of abundances
                 if (self.modelDynamics == 1):
                     self.output_selectionDyanmics(t)
-
+            
             # update time increment
             t = t + 1
             
@@ -391,7 +391,7 @@ class simClass(ABC):
         
         # if mutation rates are zero, then its not a travelling wave
         NoMutations = (self.params['Ua'] == 0) and (self.params['Uc'] == 0)
-        if (not NoMutations): return None
+        if (NoMutations): return None
         
         # get indices for rows and columns with only zero entries, excluding 
         # those within the bulk
@@ -592,7 +592,24 @@ class simClass(ABC):
         self.mij = self.mij*0
 
         return None
-
+    
+    #------------------------------------------------------------------------------
+    
+    def get_qi(self,idx,fitType):
+        # return the theoretical travelling wave width
+        
+        if (fitType == 'abs'):
+            s = self.mcModel.sa_i[idx]
+            U = self.mcModel.Ua_i[idx]
+        else:
+            s = self.mcModel.sc_i[idx]
+            U = self.mcModel.Uc_i[idx]
+        N = self.mcModel.eq_Ni[idx]
+        
+        qi = 2*np.log(N*s)/np.log(s/U)
+        
+        return qi
+    
     # --------------------------------------------------------------------------
     
     def get_covAbsRel(self):
@@ -685,6 +702,16 @@ class simClass(ABC):
         
         return idx_mode
     
+    # --------------------------------------------------------------------------
+    
+    def get_ibarRel(self):
+        # IMPLEMENTATION OF ABSTACT METHOD
+        " The method returns the mean state over the absolute fitness space   "
+        
+        ibarRel = np.sum(self.nij*self.cij_mutCnt)/np.sum(self.nij)
+
+        return ibarRel
+    
     #------------------------------------------------------------------------------
     
     def output_evoStats(self,ti):
@@ -694,10 +721,14 @@ class simClass(ABC):
         # setup o parameters for data collection
         outputs = []
         headers = []
+        
         idx_bmod = self.get_idx_nijMode('abs') # abs fitness state for mode
+        biCrrnt  = self.get_bij()
 
         idx_bmax = np.max(self.bij_mutCnt[:,0])
         idx_bbar = self.get_ibarAbs()
+        
+        idx_bmod_int = self.bij_mutCnt[idx_bmod,0]
         idx_bmax_int = int(idx_bmax)
         idx_bbar_int = int(np.round(idx_bbar))
         
@@ -716,35 +747,49 @@ class simClass(ABC):
         outputs.append(np.min(self.get_bij()))                      # 03. min bi
         outputs.append(np.max(self.get_bij()))                      # 04. max bi
         outputs.append(self.get_bbar())                             # 05. mean b
-        outputs.append(self.bij_mutCnt[idx_bmod,0])                 # 06. mode b
-        outputs.append(idx_bbar)                                    # 07. b-index mean
-        outputs.append(idx_bmod)                                    # 08. b-index mode
+        outputs.append(biCrrnt[idx_bmod,0])                         # 06. mode b
+        outputs.append(np.min(self.bij_mutCnt))                     # 07. b-index min
+        outputs.append(np.max(self.bij_mutCnt))                     # 08. b-index max
+        outputs.append(idx_bbar_int)                                # 09. b-index mean
+        outputs.append(idx_bmod_int)                                # 10. b-index mode
+        outputs.append(self.get_qi(idx_bbar_int,'abs'))             # 11. b-index qi
         
         headers.append('min_bi')
         headers.append('max_bi')
         headers.append('mean_bi')
         headers.append('mode_bi')
+        headers.append('min_b_idx')
+        headers.append('max_b_idx')
         headers.append('mean_b_idx')
         headers.append('mode_b_idx')
+        headers.append('qi_b')
         
         # -------------------------------------
         # c-mutation data
-        outputs.append(np.min(self.get_cij()))                      # 09. min cj
-        outputs.append(np.max(self.get_cij()))                      # 10. max cj
-        outputs.append(self.get_cbar())                             # 11. mean c
+        outputs.append(np.min(self.get_cij()))                      # 12. min cj
+        outputs.append(np.max(self.get_cij()))                      # 13. max cj
+        outputs.append(self.get_cbar())                             # 14. mean c
+        outputs.append(np.min(self.cij_mutCnt))                     # 15. c-index min 
+        outputs.append(np.max(self.cij_mutCnt))                     # 16. c-index max
+        outputs.append(self.get_ibarRel())                          # 17. c-index mean 
+        outputs.append(self.get_qi(idx_bbar_int,'rel'))             # 18. c-index qi 
         
         headers.append('min_ci')
         headers.append('max_ci')
         headers.append('mean_ci')
+        headers.append('min_c_idx')
+        headers.append('max_c_idx')
+        headers.append('mean_c_idx')
+        headers.append('qi_cmax')
         
         # -------------------------------------
         # variance/covariance fitness values
         # note: these are scaled by the mean selection coefficients (last 2 entries)
-        outputs.append(self.get_varAbs())                           # 12. var_abs
-        outputs.append(self.get_varRel())                           # 13. var_rel
-        outputs.append(self.get_covAbsRel())                        # 14. covAbsRel
-        outputs.append(self.get_sabar())                            # 15. mean sa_i
-        outputs.append(self.get_scbar())                            # 16. mean sc_i
+        outputs.append(self.get_varAbs())                           # 19. var_abs
+        outputs.append(self.get_varRel())                           # 20. var_rel
+        outputs.append(self.get_covAbsRel())                        # 21. covAbsRel
+        outputs.append(self.get_sabar())                            # 22. mean sa_i
+        outputs.append(self.get_scbar())                            # 23. mean sc_i
         
         headers.append('var_abs')
         headers.append('var_rel')
@@ -755,10 +800,10 @@ class simClass(ABC):
         # -------------------------------------
         # rate of adaptation 
         # note: for vc, we capture the vc at the average and max abs fitness state
-        outputs.append(self.mcModel.va_i[idx_bmax_int])             # 17. va at imaxAbs
-        outputs.append(self.mcModel.va_i[idx_bbar_int])             # 18. va at rounded ibarAbs
-        outputs.append(self.mcModel.vc_i[idx_bmax_int])             # 19. vc at imaxAbs
-        outputs.append(self.mcModel.vc_i[idx_bbar_int])             # 20. vc at rounded ibarAbs
+        outputs.append(self.mcModel.va_i[idx_bmax_int])             # 24. va at imaxAbs
+        outputs.append(self.mcModel.va_i[idx_bbar_int])             # 25. va at rounded ibarAbs
+        outputs.append(self.mcModel.vc_i[idx_bmax_int])             # 26. vc at imaxAbs
+        outputs.append(self.mcModel.vc_i[idx_bbar_int])             # 27. vc at rounded ibarAbs
         
         headers.append('va_imax')
         headers.append('va_ibar')
@@ -767,10 +812,10 @@ class simClass(ABC):
 
         # -------------------------------------
         # selection coefficients
-        outputs.append(self.mcModel.sa_i[idx_bmax_int])             # 21. sa at imaxAbs
-        outputs.append(self.mcModel.sa_i[idx_bbar_int])             # 22. sa at rounded ibarAbs
-        outputs.append(self.mcModel.sc_i[idx_bmax_int])             # 23. sc at imaxAbs
-        outputs.append(self.mcModel.sc_i[idx_bbar_int])             # 24. sc at rounded ibarAbs
+        outputs.append(self.mcModel.sa_i[idx_bmax_int])             # 28. sa at imaxAbs
+        outputs.append(self.mcModel.sa_i[idx_bbar_int])             # 29. sa at rounded ibarAbs
+        outputs.append(self.mcModel.sc_i[idx_bmax_int])             # 30. sc at imaxAbs
+        outputs.append(self.mcModel.sc_i[idx_bbar_int])             # 31. sc at rounded ibarAbs
         
         headers.append('sa_imax')
         headers.append('sa_ibar')
@@ -779,15 +824,19 @@ class simClass(ABC):
 
         # -------------------------------------
         # mutation rates
-        outputs.append(self.mcModel.Ua_i[idx_bmax_int])             # 25. Ua at imaxAbs
-        outputs.append(self.mcModel.Ua_i[idx_bbar_int])             # 26. Ua at rounded ibarAbs
-        outputs.append(self.mcModel.Uc_i[idx_bmax_int])             # 27. Uc at imaxAbs
-        outputs.append(self.mcModel.Uc_i[idx_bbar_int])             # 28. Uc at rounded ibarAbs
+        outputs.append(self.mcModel.Ua_i[idx_bmax_int])             # 32. Ua at imaxAbs
+        outputs.append(self.mcModel.Ua_i[idx_bbar_int])             # 33. Ua at rounded ibarAbs
+        outputs.append(self.mcModel.Uc_i[idx_bmax_int])             # 34. Uc at imaxAbs
+        outputs.append(self.mcModel.Uc_i[idx_bbar_int])             # 35. Uc at rounded ibarAbs
 
         headers.append('Ua_imax')
         headers.append('Ua_ibar')
         headers.append('Uc_imax')
         headers.append('Uc_ibar')
+        
+        # -------------------------------------
+        outputs.append(np.min(self.get_dij()))                      # 36. d-term
+        headers.append('d_term')
         
         # open the file and append new data
         with open(self.outputStatsFile, "a") as file:
@@ -831,8 +880,7 @@ class simClass(ABC):
         # first check conditions to output selection dynamics
         NoMutations = (self.params['Ua'] == 0) and (self.params['Uc'] == 0)
         NoEnvChange = (self.params['R'] == 0)
-        SelDynamics = (self.modelDynamics == 1)
-        if not (NoMutations and NoEnvChange and SelDynamics): return None
+        if not (NoMutations and NoEnvChange): return None
         
         # setup o parameters for data collection
         outputs = []

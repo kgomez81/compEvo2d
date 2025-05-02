@@ -43,39 +43,40 @@ simArryData = dict()
 simPathsIO['paramFile']     = 'evoExp_DRE_bEvo_03A_parameters.csv'
 simPathsIO['paramTag']      = 'param_03A_DRE_bEvo'
 
-simPathsIO['simDatDir']     = 'sim_bEvo_DRE_Fig2B_SelCheckAbs'
+simPathsIO['simDatDir']     = 'sim_bEvo_DRE_Fig2B_MutOnly'
 simPathsIO['statsFile']     = 'sim_Fig2B_T1E9_stats'
 simPathsIO['snpshtFile']    = 'sim_Fig2B_T1E9_snpsht'
 
-simPathsIO['modelDynamics']         = 1
+simPathsIO['modelDynamics']         = 2
 simPathsIO['simpleEnvShift']        = True
 simPathsIO['modelType']             = 'DRE'
 simPathsIO['absFitType']            = 'bEvo'
 
 # specify parameters for the MC models
-simArryData['tmax'] = 100
+simArryData['tmax'] = 1000
 simArryData['tcap'] = 1
 
-simArryData['nij']          = np.array([[3e8],[100]])
-simArryData['bij_mutCnt']   = np.array([[15],[16]])
-simArryData['dij_mutCnt']   = np.array([[1],[1]])  
-simArryData['cij_mutCnt']   = np.array([[1],[1]])
+simArryData['nij']          = np.array([[3e8]])
+simArryData['bij_mutCnt']   = np.array([[16]])
+simArryData['dij_mutCnt']   = np.array([[1]])  
+simArryData['cij_mutCnt']   = np.array([[1]])
 
-# loop through states (max 88)
-bidx = [10,20,30,40,50,60]
-for idx in bidx:
-    # group sim parameters
-    simInit = evoInit.SimEvoInit(simPathsIO,simArryData)
-    simArryData['bij_mutCnt']   = np.array([[idx],[idx+1]])
-    simInit.params['Ua'] = 0
-    simInit.params['Uc'] = 0
-    simInit.params['R'] = 0
-    
-    # setting poulation size to equilibrium value
-    simInit.nij[0,0] = simInit.mcModel.eq_Ni[int(simInit.bij_mutCnt[0,0])]-simInit.nij[1,0]
+# group sim parameters
+simInit = evoInit.SimEvoInit(simPathsIO,simArryData)
 
-    # generate sim object and run
-    evoSim = simDre.simDREClass(simInit)
-    evoSim.run_evolutionModel()
-    
-    figfun.plot_selection_coeff(evoSim.outputStatsFile.replace('.csv','_selDyn.csv'),'abs')
+# setting poulation size to equilibrium value
+simInit.nij[0,0] = simInit.mcModel.eq_Ni[int(simInit.bij_mutCnt[0,0])]
+
+# # recalculate MC model with change to rate of environmental change
+# simInit.recaculate_mcModel()
+
+simInit.params['R']
+simInit.params['se']
+simInit.params['Ua']
+simInit.params['Uc']
+
+# generate sim object and run
+evoSim = simDre.simDREClass(simInit)
+evoSim.run_evolutionModel()
+
+figfun.plot_simulationAnalysis(evoSim)

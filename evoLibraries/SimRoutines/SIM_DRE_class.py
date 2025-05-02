@@ -66,10 +66,12 @@ class simDREClass(sim.simClass):
         
         # if mutation rates are zero, then its not a travelling wave
         NoMutations = (self.params['Ua'] == 0) and (self.params['Uc'] == 0)
-        if (NoMutations): 
+        NoEnvChange = (self.params['R'] == 0) or (self.params['se'] == 0)
+        if (NoMutations and NoEnvChange): 
             self.mij  = self.get_mij_noMutants() 
             return None
         
+        print('evo array expanded')
         # expand evo arrays to include new slots for mutations
         self.get_evoArraysExpand()
 
@@ -81,10 +83,10 @@ class simDREClass(sim.simClass):
         final_mij   = (1-self.params['Ua']-self.params['Uc']) * temp_mij
 
         # 2) b mutations 
-        final_mij[1:,:] = final_mij[1:,:] + self.mcModel.params['Ua'] * temp_mij[0:-1,:]
+        final_mij[1:,:] = final_mij[1:,:] + self.params['Ua'] * temp_mij[0:-1,:]
 
         # 3) c mutation
-        final_mij[:,1:] = final_mij[:,1:] + self.mcModel.params['Uc'] * temp_mij[:,0:-1]
+        final_mij[:,1:] = final_mij[:,1:] + self.params['Uc'] * temp_mij[:,0:-1]
         
         self.mij = final_mij
 
@@ -138,11 +140,22 @@ class simDREClass(sim.simClass):
         # Note: we assume that the padded nij has not been trimmed.
 
         if (self.simpleEnvShift):
-            # simple environmental shift
+            # Simple environmental shift model
+            #
+            # We assum that environmental degredation shifts the population back
+            # one state leading to  ~ sa_i per shift, but we vary the probability
+            # of the occurrence to achieve a desired ve. We use the mean abs
+            # fitness to decide how to vary the rate.
+            #
             temp_nij = np.zeros(self.nij.shape)
-            temp_nij[0:-2,:] = self.nij[1:-1,:]
+            temp_nij[0:-1,:] = self.nij[1:,:]
+            self.nij = temp_nij
         else:
             # complicated environmental shift
+            # 
+            # The probability of a shift back is constant, so the shifts back
+            # have to be approximately ~ se, so abundances have to be shuffuled 
+            # across the state space to achieve this
             
             # first we need an array large enought to account for the shifts 
             # back. get a list of class and map them to class after the shift 
@@ -230,7 +243,7 @@ class simDREClass(sim.simClass):
         sa_i = self.mcModel.sa_i
 
         # environmental fitness decline per event
-        se_per_iter = self.mcModel.params['se']
+        se_per_iter = self.params['se']
 
         # loop through
         for ii in range(len(self.mcModel.sa_i)):
@@ -276,6 +289,21 @@ class simDREClass(sim.simClass):
         ibarAbs = np.sum(self.nij*self.bij_mutCnt)/np.sum(self.nij)
 
         return ibarAbs
+    
+    # --------------------------------------------------------------------------
+    
+    def get_saEnvShift(self):
+        # IMPLEMENTATION OF ABSTACT METHOD
+        " The method returns the sa fitness increment one state back, which   "
+        " is needed to caclulate the rate of environmental change.            "
+        
+        # get the state behind the rounded back mean state
+        
+        ibarBack = int(np.floor(self.get_ibarAbs()-1))
+        
+        saEnvShift = self.mcModel.sa_i[ibarBack]     
+
+        return saEnvShift
     
     # --------------------------------------------------------------------------
     

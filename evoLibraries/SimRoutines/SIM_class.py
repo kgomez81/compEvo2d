@@ -41,7 +41,7 @@ class simClass(ABC):
         # Basic evolution parameters for Lottery Model (Bertram & Masel 2019)
         # - mcModel is associated Markov Chain used to reference state space
         self.mcModel = simInit.mcModel
-        self.params  = self.mcModel.params
+        self.params  = self.mcModel.params       # take the copy for the MC model
 
         self.tmax       = simInit.tmax           # max iterations
         self.tcap       = simInit.tcap           # number of iterations between each snapshot
@@ -98,6 +98,9 @@ class simClass(ABC):
 
         # lastly, we keep a copy of simInit to use for the final snapshot
         self.simInit = simInit
+        
+        # counter for environmental shifts
+        self.envShiftCntr = 0
         
     #%% ------------------------------------------------------------------------
     # Abstract methods
@@ -175,12 +178,19 @@ class simClass(ABC):
         " The method returns the mean absolute fitness selection coefficents  "
         pass
     
-    
     # --------------------------------------------------------------------------
     
     @abstractmethod
     def get_ibarAbs(self):
         " The method returns the mean state over the absolute fitness space   "
+        pass
+    
+    # --------------------------------------------------------------------------
+    
+    @abstractmethod
+    def get_saEnvShift(self):
+        " The method returns the sa fitness increment one state back, which   "
+        " is needed to caclulate the rate of environmental change.            "
         pass
     
     # --------------------------------------------------------------------------
@@ -238,16 +248,22 @@ class simClass(ABC):
                 
                 # run poisson samling of each class
                 self.run_poissonSamplingOfAbundances()
-
-            
-            self.get_evoArraysCollapse()
             
             # check if we should if environment has changed
-            sampleEnvDegrCnt = np.random.poisson(self.mcModel.params['R'])
-            if (sampleEnvDegrCnt>0):
-                while(sampleEnvDegrCnt > 0):
+            envDegrCnt = np.random.poisson(self.get_lambdaEnvPoiss())
+            self.envShiftCntr += envDegrCnt
+            
+            if (envDegrCnt>0):
+                # we could get multiple shifts back at once, in which case
+                # we depart a bit from ve, but not by much.
+                while(envDegrCnt > 0):
+                    # shift the distribution back accordingly
                     self.run_environmentalDegredation()
-                    sampleEnvDegrCnt=sampleEnvDegrCnt-1
+                    envDegrCnt = envDegrCnt-1
+            
+            # Collapse the array for Abundances.
+            # NOTE: collapse has to occur before we output evo stats
+            self.get_evoArraysCollapse()
             
             # check to see if a snapshot of the mean needs to be taken
             if (self.tcap>0) and (np.mod(t,self.tcap)==0):
@@ -391,7 +407,11 @@ class simClass(ABC):
         
         # if mutation rates are zero, then its not a travelling wave
         NoMutations = (self.params['Ua'] == 0) and (self.params['Uc'] == 0)
-        if (NoMutations): return None
+        NoEnvChange = (self.params['R'] == 0) or (self.params['se'] == 0)
+        if (NoMutations and NoEnvChange): 
+            return None
+        
+        print('evo array collapsed')
         
         # get indices for rows and columns with only zero entries, excluding 
         # those within the bulk
@@ -542,7 +562,7 @@ class simClass(ABC):
     def get_U(self):    
         # get_U() returns the number of unoccupied territories
         
-        U = self.mcModel.params['T']-self.popSize()    
+        U = self.params['T']-self.popSize()    
         
         return U
     
@@ -551,7 +571,7 @@ class simClass(ABC):
     def get_mij_noMutants(self):
         # get_mij() returns the expected juveniles, but does not include mutations
         
-        mij = self.nij*self.get_bij()*(self.get_U()/self.mcModel.params['T'])
+        mij = self.nij*self.get_bij()*(self.get_U()/self.params['T'])
         
         return mij
     
@@ -705,12 +725,60 @@ class simClass(ABC):
     # --------------------------------------------------------------------------
     
     def get_ibarRel(self):
-        # IMPLEMENTATION OF ABSTACT METHOD
-        " The method returns the mean state over the absolute fitness space   "
+        # The method returns the mean state over the relative fitness space.
+        # this is ibar with renormalized mutation counts, not absolute mutation
+        # counts.
         
         ibarRel = np.sum(self.nij*self.cij_mutCnt)/np.sum(self.nij)
 
         return ibarRel
+    
+    #------------------------------------------------------------------------------
+    
+    def get_veIter(self):
+        # calculates the rate of environmental degredation per iteration
+        
+        # get ve per generation 
+        veIter = self.params['se']*self.params['R']
+        
+        return veIter
+    
+    #------------------------------------------------------------------------------
+    
+    def get_lambdaEnvPoiss(self):
+        # calculates poisson rate of environental change per iter to achieve
+        # an approximate desired ve.
+        # 
+        # 1. SIMPLE MODEL (shift back by one)
+        # this is done by varying the probability of an event, instead of the 
+        # fitness decrease. we use the mean fitness as the reference; i.e. find
+        # and equivalent number of small steps to one large one, or vice versa.
+        #
+        # Caculate the poiss rate by finding "lam_env"
+        # 
+        #      ve = sa(ibbar-1) / E[T | lam_env] = sa(ibbar-1)* lam_env
+        # 
+        # This leads to setting a poss rate of 
+        #
+        #      lam_env = ve / sa(ibbar-1) = (se / sa(ibbar-1))/ Te
+        #
+        # where R = 1/Te. This will achieve ve at the bulk.
+        #
+        # 2. COMPLEX MODE (shift abundances across state space)
+        # We keep the sampling rate of environmental degredation constant, and
+        # reshuffule abundances in the state space to achieve ve.
+        
+        if (self.simpleEnvShift):
+            # get the fitness index and increment one step back from the bulk
+            # saEnvShift = sa(ibbar-1) above.
+            saEnvShift = self.get_saEnvShift()
+        else:
+            saEnvShift = self.params['se']    
+        
+        # calculate the poisson rate with fitness adjustment
+        lam_env = self.get_veIter()/saEnvShift
+        
+        return lam_env
     
     #------------------------------------------------------------------------------
     
@@ -736,7 +804,7 @@ class simClass(ABC):
         # population 
         outputs.append(ti)                                          # 00. time  
         outputs.append(np.sum(self.nij))                            # 01. popsize
-        outputs.append(np.sum(self.nij)/self.mcModel.params['T'])   # 02. gamma
+        outputs.append(np.sum(self.nij)/self.params['T'])           # 02. gamma
 
         headers.append('time')
         headers.append('popsize')
@@ -762,7 +830,7 @@ class simClass(ABC):
         headers.append('max_b_idx')
         headers.append('mean_b_idx')
         headers.append('mode_b_idx')
-        headers.append('qi_b')
+        headers.append('qi_bavg')
         
         # -------------------------------------
         # c-mutation data
@@ -780,7 +848,7 @@ class simClass(ABC):
         headers.append('min_c_idx')
         headers.append('max_c_idx')
         headers.append('mean_c_idx')
-        headers.append('qi_cmax')
+        headers.append('qi_cavg')
         
         # -------------------------------------
         # variance/covariance fitness values
@@ -836,7 +904,9 @@ class simClass(ABC):
         
         # -------------------------------------
         outputs.append(np.min(self.get_dij()))                      # 36. d-term
+        outputs.append(self.envShiftCntr)                           # 37. environment shifts
         headers.append('d_term')
+        headers.append('envShft')
         
         # open the file and append new data
         with open(self.outputStatsFile, "a") as file:
@@ -879,7 +949,7 @@ class simClass(ABC):
         
         # first check conditions to output selection dynamics
         NoMutations = (self.params['Ua'] == 0) and (self.params['Uc'] == 0)
-        NoEnvChange = (self.params['R'] == 0)
+        NoEnvChange = (self.params['R'] == 0 or self.params['se'] == 0)
         if not (NoMutations and NoEnvChange): return None
         
         # setup o parameters for data collection

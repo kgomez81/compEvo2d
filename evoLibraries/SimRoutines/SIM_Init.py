@@ -59,9 +59,13 @@ class SimEvoInit():
         #   note: parameters are capture as a member of this class
         #   note: set pfixSolver type to 3 (use selection coeff) for faster calculations
         #         since we don't actually need pfix for the simulations
-        tempEvoOptions =  evoObj.evoOptions(self.paramFilePath,self.modelType,self.absFitType)
-        tempEvoOptions.params['pfixSolver'] = 3
-        self.mcModel   = mcFac.mcFactory().createMcModel( tempEvoOptions )
+        self.evoOptions = evoObj.evoOptions(self.paramFilePath,self.modelType,self.absFitType)
+        self.evoOptions.params['pfixSolver'] = 3
+        
+        self.mcModel   = mcFac.mcFactory().createMcModel( self.evoOptions )
+        
+        # NOTE: if we need to update parameters, we should update this copy.
+        self.params    = self.mcModel.params
 
         # --------------------------------------------------------------------------
         # initialize empty arrays to track evolution
@@ -73,7 +77,9 @@ class SimEvoInit():
         self.bij_mutCnt = simArryData['bij_mutCnt']     # 2d array for b mutation counts    
         self.dij_mutCnt = simArryData['dij_mutCnt']     # 2d array for d mutation counts
         self.cij_mutCnt = simArryData['cij_mutCnt']     # 2d array for c mutation counts
-        
+    
+    # --------------------------------------------------------------------------
+    
     def get_simPathsIO_dict(self):
         # get_simPathsIO_dict is used to retrieve IO dictionary that was provided to 
         # instantiate of object of type SimEvoInit
@@ -94,6 +100,8 @@ class SimEvoInit():
 
         return simIODict_out
     
+    # --------------------------------------------------------------------------
+    
     def get_simArryData_dict(self):
         # get_simArryData_dict is used to retrieve array data dictionary that was provided to 
         # instantiate of object of type SimEvoInit
@@ -108,5 +116,59 @@ class SimEvoInit():
         simDataDict_out['cij_mutCnt'] = self.cij_mutCnt # 2d array for c mutation counts
 
         return simDataDict_out
-   
+    
+    # --------------------------------------------------------------------------
+    
+    def recaculate_mcModel(self):
+        # recaculate_mcModel() allows you to update the associated mcModel after
+        # parameters have been updated. This prevents the need to update paramter
+        # files directly.
+        
+        if self.check_newParams():
+            # tranfer the updated parameter set to the evoOptions copy
+            self.evoOptions.params = self.params
+            
+            # regenerate the mcModel. 
+            # Note: user is responsible for using valid paramters. There are not che
+            self.mcModel   = mcFac.mcFactory().createMcModel( self.evoOptions )
+        
+        return None
+    
+    # --------------------------------------------------------------------------
+    
+    def check_newParams(self):
+        # simple function to prevent errors in computing an MC model that isn't 
+        # valid. For now we assume the b-evo DRE model
+        
+        validParams = True
+        paramErr = []
+        
+        # following parameters cannot be zero
+        validParams = validParams and (self.params['Ua'] > 0 )
+        if not validParams:
+            paramErr.append('Ua')
+        validParams = validParams and (self.params['Uc'] > 0 )
+        if not validParams:
+            paramErr.append('Uc')
+        validParams = validParams and (self.params['cp'] > 0 )
+        if not validParams:
+            paramErr.append('cp')
+        validParams = validParams and (self.params['sa_0'] > 0 )
+        if not validParams:
+            paramErr.append('sa_0')
+        validParams = validParams and (self.params['d'] > 1 )
+        if not validParams:
+            paramErr.append('d')
+        validParams = validParams and (self.params['T'] > 1e3 )
+        if not validParams:
+            paramErr.append('T')
+        validParams = validParams and (self.params['alpha'] <= 1.0 )
+        if not validParams:
+            paramErr.append('alpha')
+        
+        if not validParams:
+            errMsg = "Invalid Inputs for: " + ("%s,"*len(paramErr))
+            print(errMsg % tuple(paramErr))
+        
+        return validParams
     

@@ -53,27 +53,30 @@ simPathsIO['modelType']             = 'DRE'
 simPathsIO['absFitType']            = 'bEvo'
 
 # specify parameters for the MC models
-simArryData['tmax'] = 100
+simArryData['tmax'] = 200
 simArryData['tcap'] = 1
 
-simArryData['nij']          = np.array([[1e8]])
-simArryData['bij_mutCnt']   = np.array([[15]])
+simArryData['nij']          = np.array([[3e8]])
+simArryData['bij_mutCnt']   = np.array([[29]])
 simArryData['dij_mutCnt']   = np.array([[1]])  
 simArryData['cij_mutCnt']   = np.array([[1]])
 
 # group sim parameters
 simInit = evoInit.SimEvoInit(simPathsIO,simArryData)
-simInit.mcModel.params['Ua'] = 0
-simInit.mcModel.params['Uc'] = 0
-
-# simInit.mcModel.params['R'] = 0.01
+simInit.params['se'] = 0.06
+# simInit.params['R'] = 0.01
 
 # setting poulation size to equilibrium value
 simInit.nij[0,0] = simInit.mcModel.eq_Ni[int(simInit.bij_mutCnt[0,0])]
+
+# recalculate MC model with change to rate of environmental change
+simInit.recaculate_mcModel()
+
+simInit.params['Ua'] = 0
+simInit.params['Uc'] = 0
 
 # generate sim object and run
 evoSim = simDre.simDREClass(simInit)
 evoSim.run_evolutionModel()
 
-figfun.plot_selection_coeff(evoSim.outputStatsFile.replace('.csv','_selDyn.csv'),'rel')
-
+figfun.plot_simulationAnalysis(evoSim)

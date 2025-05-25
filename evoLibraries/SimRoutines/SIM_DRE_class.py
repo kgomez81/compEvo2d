@@ -71,7 +71,6 @@ class simDREClass(sim.simClass):
             self.mij  = self.get_mij_noMutants() 
             return None
         
-        print('evo array expanded')
         # expand evo arrays to include new slots for mutations
         self.get_evoArraysExpand()
 
@@ -147,9 +146,8 @@ class simDREClass(sim.simClass):
             # of the occurrence to achieve a desired ve. We use the mean abs
             # fitness to decide how to vary the rate.
             #
-            temp_nij = np.zeros(self.nij.shape)
-            temp_nij[0:-1,:] = self.nij[1:,:]
-            self.nij = temp_nij
+            self.bij_mutCnt -= 1
+            
         else:
             # complicated environmental shift
             # 
@@ -463,6 +461,11 @@ class simDREClass(sim.simClass):
 
     # #------------------------------------------------------------------------------
     
+    # def get_qi(self,idx,fitType):
+    #     # return the theoretical travelling wave width
+
+    # #------------------------------------------------------------------------------
+    
     # def get_covAbsRel(self):
     #     # The method returns the absolute & relative fitness covariance 
 
@@ -493,6 +496,50 @@ class simDREClass(sim.simClass):
     #     # along fitType dimension (abs or rel). If there are two classes that 
     #     # have identical abundances, then first index is regarded as the mode.
 
+    # # --------------------------------------------------------------------------
+    
+    # def get_ibarRel(self):
+    #     # The method returns the mean state over the relative fitness space.
+    #     # this is ibar with renormalized mutation counts, not absolute mutation
+    #     # counts.
+
+    # #------------------------------------------------------------------------------
+    
+    # def get_veIter(self):
+    #     # calculates the rate of environmental degredation per iteration
+
+    # #------------------------------------------------------------------------------
+
+    # def get_lambdaEnvPoiss(self):
+    #     # calculates poisson rate of environental change per iter to achieve
+    #     # an approximate desired ve.
+    #     # 
+    #     # 1. SIMPLE MODEL (shift back by one)
+    #     # this is done by varying the probability of an event, instead of the 
+    #     # fitness decrease. we use the mean fitness as the reference; i.e. find
+    #     # and equivalent number of small steps to one large one, or vice versa.
+    #     #
+    #     # Caculate the poiss rate by finding "lam_env"
+    #     # 
+    #     #      ve = sa(ibbar-1) / E[T | lam_env] = sa(ibbar-1)* lam_env
+    #     # 
+    #     # This leads to setting a poss rate of 
+    #     #
+    #     #      lam_env = ve / sa(ibbar-1) = (se / sa(ibbar-1))/ Te
+    #     #
+    #     # where R = 1/Te. This will achieve ve at the bulk.
+    #     #
+    #     # 2. COMPLEX MODE (shift abundances across state space)
+    #     # We keep the sampling rate of environmental degredation constant, and
+    #     # reshuffule abundances in the state space to achieve ve.
+
+    # #------------------------------------------------------------------------------
+
+    # def sample_environmentalDegredation(self):
+    #     # sample_environmentalDegredation checks if an environmental 
+    #     # degredation event has occured and if so, it calls the method 
+    #     # run_environmentalDegredation
+
     # #------------------------------------------------------------------------------
 
     # def output_evoStats(self,ti):
@@ -504,3 +551,10 @@ class simDREClass(sim.simClass):
     # def store_evoSnapshot(self):       
     #     #  Capture the final snapshot, use the simInit class features and save
     #     # a new simInit drived from the prior one
+
+    # #------------------------------------------------------------------------------
+
+    # def output_selectionDyanmics(self,ti):
+    #     # The method output_selectionDyanmics will output abundances as a time
+    #     # series. This can only be used when mutation rates are zero, and env
+    #     # change is absent.

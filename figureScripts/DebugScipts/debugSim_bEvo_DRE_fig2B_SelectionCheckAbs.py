@@ -66,10 +66,11 @@ bidx = [10,20,30,40,50,60]
 for idx in bidx:
     # group sim parameters
     simInit = evoInit.SimEvoInit(simPathsIO,simArryData)
+
+    # these adjustments don't affect the MC model state space
     simArryData['bij_mutCnt']   = np.array([[idx],[idx+1]])
-    simInit.params['Ua'] = 0
-    simInit.params['Uc'] = 0
-    simInit.params['R'] = 0
+    simInit.turn_off_mutations()
+    simInit.turn_off_environmentalChanges()
     
     # setting poulation size to equilibrium value
     simInit.nij[0,0] = simInit.mcModel.eq_Ni[int(simInit.bij_mutCnt[0,0])]-simInit.nij[1,0]

@@ -78,9 +78,9 @@ def run_and_plot():
     
         # generate sim object and run
         evoSim = simDre.simDREClass(simInit)
-        evoSim.run_evolutionModel()
+        # evoSim.run_evolutionModel()
         
-        figfun.plot_selection_coeff(evoSim.outputStatsFile.replace('.csv','_selDyn.csv'),'rel')
+        #figfun.plot_selection_coeff(evoSim.outputStatsFile.replace('.csv','_selDyn.csv'),'rel')
     
     return None
 
@@ -104,7 +104,8 @@ def run_plots_only():
         
         
 def main():
-    run_plots_only()
+    #run_plots_only()
+    run_and_plot()
     
 if __name__ == "__main__":
     main()

@@ -67,14 +67,6 @@ simInit = evoInit.SimEvoInit(simPathsIO,simArryData)
 # setting poulation size to equilibrium value
 simInit.nij[0,0] = simInit.mcModel.eq_Ni[int(simInit.bij_mutCnt[0,0])]
 
-# # recalculate MC model with change to rate of environmental change
-# simInit.recaculate_mcModel()
-
-simInit.params['R']
-simInit.params['se']
-simInit.params['Ua']
-simInit.params['Uc']
-
 # generate sim object and run
 evoSim = simDre.simDREClass(simInit)
 evoSim.run_evolutionModel()

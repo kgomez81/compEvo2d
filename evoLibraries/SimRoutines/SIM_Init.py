@@ -77,6 +77,33 @@ class SimEvoInit():
         self.bij_mutCnt = simArryData['bij_mutCnt']     # 2d array for b mutation counts    
         self.dij_mutCnt = simArryData['dij_mutCnt']     # 2d array for d mutation counts
         self.cij_mutCnt = simArryData['cij_mutCnt']     # 2d array for c mutation counts
+        
+        # NOTE1: we have three parameter sets in this class
+        #
+        # 1. self.paramsself.mcModel.params
+        #      - used to store parameter changes to avoid having to update input files
+        #
+        # 2. self.evoOptions.params
+        #      - initially read from the input file provided, but can be updated
+        #        with changes to self.params using the method recaculate_mcModel()
+        #
+        # 3. self.mcModel.params
+        #      - initially generate from self.evoOptions.params to generate an 
+        #        an MC model. This set is updated when recaculate_mcModel() is 
+        #        called. These parameters reflect those from evoOptions used to
+        #        generate the MC model.
+        #
+        # NOTE2: parameter updates are only required when a model needsd to be
+        #        generated after updating params.
+        #
+        # NOTE3: The MC model should not be updated if changes to self.params
+        #        for altering sim dynamics, but not state space, should not be
+        #        passed to self.mcModel.params and self.evoOptions.params using
+        #        recaculate_mcModel(). For example
+        #            Ua, Uc = 0 to turn off mutations
+        #            se, R  = 0 to turn off environmental changes
+        #        These can be set directly to alter sim dynamics alone, but not
+        #        the state space.
     
     # --------------------------------------------------------------------------
     
@@ -143,7 +170,10 @@ class SimEvoInit():
         validParams = True
         paramErr = []
         
-        # following parameters cannot be zero
+        # NOTE: check below is an implementation for bEvo evolution with DRE.
+        #       conditions for other models have not been implemented
+        
+        # Following parameters cannot be zero. 
         validParams = validParams and (self.params['Ua'] > 0 )
         if not validParams:
             paramErr.append('Ua')
@@ -172,3 +202,33 @@ class SimEvoInit():
         
         return validParams
     
+    # --------------------------------------------------------------------------
+    
+    def turn_off_mutations(self,mutList=None):
+        # simple method to turn off mutations in simulation
+        # this will not update the MC model
+        try:
+            if (mutList == None):
+                # update mutation rates to turn off mutations
+                self.params['Ua'] = 0
+                self.params['Uc'] = 0
+                
+                self.params['UaDel'] = 0
+                self.params['UcDel'] = 0
+            else:
+                for mutType in mutList:
+                    self.params[mutType] = 0
+        except:
+            print('invalid list of mutation paramters')
+        return None
+    
+    # --------------------------------------------------------------------------
+    
+    def turn_off_environmentalChanges(self):
+        # simple method to rate of environmental changes in simulation
+        # this will not update the MC model
+        
+        # update mutation rates to turn off mutations
+        self.params['se'] = 0
+        
+        return None

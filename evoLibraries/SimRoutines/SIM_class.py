@@ -238,7 +238,6 @@ class simClass(ABC):
                 self.run_determinsticEvolution()
                 
             else:
-                
                 # get new juveniles and modify arrays for potentially new classes
                 # this will pad arrays and fill in an updated mij w/ mutation fluxes
                 self.get_populationMutations()
@@ -248,18 +247,9 @@ class simClass(ABC):
                 
                 # run poisson samling of each class
                 self.run_poissonSamplingOfAbundances()
-            
+                
             # check if we should if environment has changed
-            envDegrCnt = np.random.poisson(self.get_lambdaEnvPoiss())
-            self.envShiftCntr += envDegrCnt
-            
-            if (envDegrCnt>0):
-                # we could get multiple shifts back at once, in which case
-                # we depart a bit from ve, but not by much.
-                while(envDegrCnt > 0):
-                    # shift the distribution back accordingly
-                    self.run_environmentalDegredation()
-                    envDegrCnt = envDegrCnt-1
+            self.sample_environmentalDegredation()
             
             # Collapse the array for Abundances.
             # NOTE: collapse has to occur before we output evo stats
@@ -411,8 +401,6 @@ class simClass(ABC):
         if (NoMutations and NoEnvChange): 
             return None
         
-        print('evo array collapsed')
-        
         # get indices for rows and columns with only zero entries, excluding 
         # those within the bulk
         idxR = self.get_trimIndicesForZeroRows(self.nij)
@@ -448,9 +436,9 @@ class simClass(ABC):
         As = np.sign(np.sum(A,1))
         
         # array for non-zero entries
-        nzR= np.array([ii for ii in range(len(As))])  
+        nzR = np.array([ii for ii in range(len(As))])  
         nzR = nzR[As>0]
-                
+        
         # find first nonzero row beginning from 0 index
         idx1 = np.min(nzR)
         
@@ -681,8 +669,7 @@ class simClass(ABC):
         varRel = np.sum(self.nij * delta_sc * delta_sc)/np.sum(self.nij)
 
         return varRel
-    
-    
+
     # --------------------------------------------------------------------------
     
     def get_scij(self):
@@ -705,7 +692,6 @@ class simClass(ABC):
         scbar = np.sum(self.nij*self.get_scij())/np.sum(self.nij)
 
         return scbar
-    
         
     # --------------------------------------------------------------------------
     
@@ -779,6 +765,25 @@ class simClass(ABC):
         lam_env = self.get_veIter()/saEnvShift
         
         return lam_env
+    
+    #------------------------------------------------------------------------------
+    
+    def sample_environmentalDegredation(self):
+        # sample_environmentalDegredation checks if an environmental 
+        # degredation event has occured and if so, it calls the method 
+        # run_environmentalDegredation
+        envDegrCnt = np.random.poisson(self.get_lambdaEnvPoiss())
+        self.envShiftCntr += envDegrCnt
+        
+        if (envDegrCnt>0):
+            # we could get multiple shifts back at once, in which case
+            # we depart a bit from ve, but not by much.
+            while(envDegrCnt > 0):
+                # shift the distribution back accordingly
+                self.run_environmentalDegredation()
+                envDegrCnt = envDegrCnt-1
+        
+        return None
     
     #------------------------------------------------------------------------------
     

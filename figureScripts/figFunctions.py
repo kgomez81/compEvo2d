@@ -218,21 +218,22 @@ def plot_rateOfAdaptation_Abs(outputfile):
 # --------------------------------------------------------------------------
 
 def plot_evoMcModel(mcModel):
+    # plot the MC model 
     
     fig,ax = plt.subplots(1,1,figsize=[5,5])
-    ax.plot(mcModel.state_i, mcModel.va_i,c='blue')
-    ax.plot(mcModel.state_i, mcModel.vc_i,c='red')
-    ax.plot(mcModel.state_i, mcModel.ve_i,c='black')
+    ax.plot(mcModel.state_i, mcModel.va_i,c='blue',label='vb')
+    ax.plot(mcModel.state_i, mcModel.vc_i,c='red',label='vc')
+    ax.plot(mcModel.state_i, mcModel.ve_i,c='black',label='vE')
     ax.set_xlabel('absolute fitness state')
     ax.set_ylabel('rate of adaptation')
+    ax.legend()
     
     return None
 
 # --------------------------------------------------------------------------
 
 def plot_simulationAnalysis(evoSim):
-    # plot the travelling waves by state space indices
-    # also include the 
+    # Plot key figures to analyze the dynamics of the travelling b/c fitness wave
     
     # load selection dynamics file
     data = pd.read_csv(evoSim.outputStatsFile)
@@ -261,15 +262,28 @@ def plot_simulationAnalysis(evoSim):
     cidx_avg = data['mean_c_idx'].values
     cidx_qi  = data['mean_c_idx'].values + data['qi_cavg'].values
     
+    idxss = evoSim.mcModel.get_mc_stable_state_idx()-1
+    idxav = np.mean(bidx_avg)
+    vdx = evoSim.mcModel.va_i[idxss]
+    
     fig,((ax11,ax12),(ax21,ax22)) = plt.subplots(2,2,figsize=[12,12])
     
     # MC model
-    ax11.plot(evoSim.mcModel.state_i, evoSim.mcModel.va_i,c='blue',label='vb')
-    ax11.plot(evoSim.mcModel.state_i, evoSim.mcModel.vc_i,c='red',label='vc')
+    ax11.scatter(evoSim.mcModel.state_i, evoSim.mcModel.va_i,c='blue',label='vb')
+    ax11.scatter(evoSim.mcModel.state_i, evoSim.mcModel.vc_i,c='red',label='vc')
     ax11.plot(evoSim.mcModel.state_i, evoSim.mcModel.ve_i,c='black',label='vE')
     ax11.set_xlabel('absolute fitness state')
     ax11.set_ylabel('rate of adaptation')
     ax11.legend()
+    ax11t = ax11.twinx()
+    ax11t.hist(bidx_avg,alpha = 0.5, color= 'k')
+    ax11t.set_yticks([])
+    
+    idxlbl = ("i_ss=%d, i_av=%d, T1E%d, se=%.0E" % (idxss,idxav,int(np.log10(evoSim.params['T'])),evoSim.params['se']))
+    ax11.text(idxss-15,0*vdx,idxlbl, fontsize = 12)             
+    
+    # secax11 = ax11.secondary_yaxis('right')
+    # secax11.histogram(bidx_avg)
     
     # Mean gamma over time (generations)
     ax12.plot(tt , yavg ,c='black',label='avg density')
@@ -297,3 +311,241 @@ def plot_simulationAnalysis(evoSim):
     ax22.legend()
     
     return None
+
+# --------------------------------------------------------------------------
+
+def plot_simulationAnalysis_v2(evoSim):
+    # Plot key figures to analyze the dynamics of the travelling b/c fitness wave
+    
+    # load selection dynamics file
+    data = pd.read_csv(evoSim.outputStatsFile)
+    
+    # Figures to plot include the mean fitnes abs and relative
+    # 1. MC model
+    # 2. Mean fitness over time
+    # 3. b-idx width over time
+    # 4. c-idx width over time
+    
+    # get the data
+    time = data['time'].values
+    tau  = 1/(data['d_term'][0]-1)
+    tt   = time/tau
+    
+    yavg = data['gamma'].values
+    
+    bidx_min = data['min_b_idx'].values
+    bidx_max = data['max_b_idx'].values
+    bidx_avg = data['mean_b_idx'].values
+    bidx_mod = data['mode_b_idx'].values
+    bidx_qi  = data['mean_b_idx'].values + data['qi_bavg'].values
+    
+    cidx_min = data['min_c_idx'].values
+    cidx_max = data['max_c_idx'].values
+    cidx_avg = data['mean_c_idx'].values
+    cidx_qi  = data['mean_c_idx'].values + data['qi_cavg'].values
+    
+    idxss = evoSim.mcModel.get_mc_stable_state_idx()-1
+    idxav = np.mean(bidx_avg)
+    vdx = evoSim.mcModel.va_i[idxss]
+    
+    fig,((ax11,ax12),(ax21,ax22)) = plt.subplots(2,2,figsize=[12,12])
+    
+    # MC model
+    ax11.scatter(evoSim.mcModel.state_i, evoSim.mcModel.va_i,c='blue',label='vb')
+    ax11.scatter(evoSim.mcModel.state_i, evoSim.mcModel.vc_i,c='red',label='vc')
+    ax11.plot(evoSim.mcModel.state_i, evoSim.mcModel.ve_i,c='black',label='vE')
+    ax11.set_xlabel('absolute fitness state')
+    ax11.set_ylabel('rate of adaptation')
+    ax11.legend()
+    ax11t = ax11.twinx()
+    ax11t.boxplot(bidx_avg,vert=False)
+
+    idxlbl = ("i_ss=%d, i_av=%d, T1E%d, se=%.0E" % (idxss,idxav,int(np.log10(evoSim.params['T'])),evoSim.params['se']))
+    ax11.text(idxss+10,0*vdx,idxlbl, fontsize = 12)       
+    
+    # secax11 = ax11.secondary_yaxis('right')
+    # secax11.histogram(bidx_avg)
+    
+    # Mean gamma over time (generations)
+    ax12.plot(tt , yavg ,c='black',label='avg density')
+    ax12.set_xlabel('time (gen)')
+    ax12.set_ylabel('pop density')
+    ax12.legend()
+    
+    # b-fitness width
+    ax21.plot(tt, bidx_min, c='blue', label='i_min_b')
+    ax21.plot(tt, bidx_max, c='green', label='i_max_b')
+    ax21.plot(tt, bidx_avg, c='red', label='i_avg_b')
+    ax21.plot(tt, bidx_mod, c='magenta', label='i_mod_b')
+    ax21.plot(tt, bidx_qi, c='black', label='i_qi_b')
+    ax21.set_xlabel('time (generations)')
+    ax21.set_ylabel('b-state')
+    ax21.legend()
+    
+    # c-fitness width
+    ax22.plot(tt, cidx_min, c='blue', label='i_min_c')
+    ax22.plot(tt, cidx_max, c='green', label='i_max_c')
+    ax22.plot(tt, cidx_avg, c='red', label='i_avg_c')
+    ax22.plot(tt, cidx_qi, c='black', label='i_qi_c')
+    ax22.set_xlabel('time (generations)')
+    ax22.set_ylabel('c-state')
+    ax22.legend()
+    
+    return None
+
+# --------------------------------------------------------------------------
+
+def plot_simulationAnalysis_comparison(evoSim1,evoSim2):
+    # Plot key figures to analyze the dynamics of the travelling b/c fitness wave
+    
+    # load selection dynamics file
+    data1 = pd.read_csv(evoSim1.outputStatsFile)
+    data2 = pd.read_csv(evoSim2.outputStatsFile)
+    
+    # get the data
+    bidx_avg1 = data1['mean_b_idx'].values
+    bidx_avg2 = data2['mean_b_idx'].values
+    bidx_avg = [bidx_avg1,bidx_avg2]
+    
+    lb1 = "1E%d" % (int(np.log10(evoSim1.mcModel.params['T'])))
+    lb2 = "1E%d" % (int(np.log10(evoSim2.mcModel.params['T'])))
+    
+    fig,ax = plt.subplots(1,1,figsize=[12,12])
+    
+    # MC model
+    ax.scatter(evoSim1.mcModel.state_i, evoSim1.mcModel.va_i,c='blue',label='vb_T'+lb1)
+    ax.scatter(evoSim1.mcModel.state_i, evoSim1.mcModel.vc_i,c='red',label='vc_T'+lb1)
+    ax.plot(evoSim1.mcModel.state_i, evoSim1.mcModel.ve_i,c='black',label='vE_T'+lb1)
+    ax.scatter(evoSim2.mcModel.state_i, evoSim2.mcModel.va_i,c='blue',label='vb_T'+lb2,marker='.')
+    ax.scatter(evoSim2.mcModel.state_i, evoSim2.mcModel.vc_i,c='red',label='vc_T'+lb2,marker='.')
+    ax.plot(evoSim2.mcModel.state_i, evoSim2.mcModel.ve_i,c='grey',label='vE_T'+lb2,linestyle=':')
+    ax.set_xlabel('absolute fitness state')
+    ax.set_ylabel('rate of adaptation')
+    ax.legend()
+    axt = ax.twinx()
+    axt.boxplot(bidx_avg,vert=False)
+    
+    return None
+
+# --------------------------------------------------------------------------
+
+def plot_environmentalChange(evoSim):
+    # Plot fitness over time and estimates of the rate of environmental change
+    # these plots were mainly developed to check that the rate of environmental
+    # change was implemented adequately to achieve the set rate in the parameters
+    #
+    # key assumptions for running this function are
+    #
+    # Assumptions: 
+    # 1. population is homogeneous in b-mutations (no b-evolution)
+    # 2. environmental changes occur at non-trivial rate, with se > 0 decrease
+    #    in fitness
+    # 3. no d-evolution
+    
+    # load selection dynamics file
+    data = pd.read_csv(evoSim.outputStatsFile)
+    
+    # Figures to plot include the mean fitnes abs and relative
+    # 1. plot b-fitness over time (iterations)
+    # 2. vE realizations historgram
+    # 3. vE realizations across time (generations)
+    # 4. vE realization across gamma
+    
+    # get the data
+    time    = data['time'].values
+    max_bi  = data['max_bi'].values
+    dterm   = data['d_term'][0]    
+    y       = data['gamma'].values
+    envJmp  = data['envShft'].values
+    tau     = 1.0/(dterm-1.0)
+    tt      = time/tau 
+    
+    # calculate vE estimates, and get the indices where jmps occur
+    output = get_rateOfEnvironmentalChange_samples(time,max_bi,dterm,envJmp)
+    vE  = output[0]
+    idxE= output[1]
+    ttE = tt[idxE]
+    yE  = y[idxE]
+    
+    # theoretical vE 
+    vEThry = -evoSim.params['se']*evoSim.params['R']*tau*np.ones(vE.shape)
+    
+    fig,((ax11,ax12),(ax21,ax22)) = plt.subplots(2,2,figsize=[12,12])
+    
+    # b-fitness vs generations
+    ax11.plot(tt, max_bi,c='blue')
+    ax11.set_xlabel('time (generations)')
+    ax11.set_ylabel('population b-term')
+    
+    # vE estimates histogram (rel err)
+    ax12.hist(np.log10(vE/vEThry))
+    ax12.set_xlabel('log10(vE/vEthy)')
+    
+    # vE estimates vs generations
+    ax21.scatter(ttE, np.log10(-vE), c='blue',label='vE_est')
+    ax21.plot(ttE, np.log10(-vEThry), c='red',label='vE_thy')
+    ax21.set_xlabel('time (generations)')
+    ax21.set_ylabel('log10(vE)')
+    ax21.legend()
+    
+    # vE estimates vs population density
+    ax22.scatter(yE, np.log10(-vE), c='blue',label='vE_est')
+    ax22.plot(yE, np.log10(-vEThry), c='red',label='vE_thy')
+    ax22.set_xlabel('population density')
+    ax22.set_ylabel('log10(vE)')
+    ax22.legend()
+    
+
+    
+    return None
+
+# --------------------------------------------------------------------------
+
+def get_rateOfEnvironmentalChange_samples(tIter,biFit,dterm,envJmp):
+    # function takes an array of realized fitness changes due the environment
+    # and creates estimates of the rate of environmental change.
+    #
+    # Assumptions: 
+    # 1. population is homogeneous in b-mutations, i.e. bmin=bmax, for all t
+    # 2. environmental changes occur at non-trivial rate.
+    # 3. no d-evolution
+    #
+    # Inputs:
+    # tIter - time in terms of model iterations
+    # biFit - b-fitness of population
+    # dterm - d-term of the population (assumed no mutations in d trait)
+    # envJmp- array with cumulative count of jumps from env change
+    
+    # first get the jumps in fitness from environment 
+    idx2 = np.where(np.diff(envJmp)>0)[0]+1  # index of jumps
+    
+    # now 0 with other index of jumps to get duration with no env changes
+    idx1     = np.where(np.diff(envJmp)>0)[0]+1
+    idx1[1:] = idx1[0:-1]
+    idx1[0]  = 0
+
+    # list of start to jump values
+    idxJmp = [idx1,idx2]
+
+    biJmp  = [biFit[idxJmp[0]],biFit[idxJmp[1]]]
+    tiJmp  = [tIter[idxJmp[0]],tIter[idxJmp[1]]]
+    nJmps  = len(idxJmp[0])
+    
+    # calculate tau (iterations per generation)
+    tau = 1.0/(dterm-1.0)
+    
+    # create array to store vE estimates
+    vEi = np.zeros(idxJmp[0].shape)
+    
+    # get vE estimates from breaks
+    for ii in range(nJmps):
+        # change in fitness
+        delta_si = lmfun.get_b_SelectionCoeff(biJmp[0][ii],biJmp[1][ii],dterm)
+        
+        # estiamte of rate of environmental change (time only), in generations
+        T_Ei     = (tiJmp[1][ii] - tiJmp[0][ii]) / tau
+        
+        # estimate of vE for current jump.
+        vEi[ii]  = delta_si/T_Ei
+        
+    return [vEi,idxJmp[1]]

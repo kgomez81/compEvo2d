@@ -211,10 +211,9 @@ class simClass(ABC):
         
         # set time index
         t           = 0
-        popExtinct  = False 
-        
+
         # run model tmax generations or until population is extinct
-        while ( (t < self.tmax) and not popExtinct ):
+        while ( self.check_evoStop() ):
             
             if (self.modelDynamics == 0):
 
@@ -265,8 +264,6 @@ class simClass(ABC):
             
             # update time increment
             t = t + 1
-            
-            popExtinct = (self.popSize() < 10)
         
         # store final results for end of simulation
         self.store_evoSnapshot()
@@ -772,15 +769,29 @@ class simClass(ABC):
         # sample_environmentalDegredation checks if an environmental 
         # degredation event has occured and if so, it calls the method 
         # run_environmentalDegredation
-        envDegrCnt = np.random.poisson(self.get_lambdaEnvPoiss())
-        self.envShiftCntr += envDegrCnt
+        
+        # special sim code for cases where environmental decay is disabled
+        # since the state space of our MC model is limited to the max state that 
+        # is calculated, we have to reset the model to the initial state when
+        maxMcState = np.argmax(self.mcModel.istate)
+        crntMcState = np.max(self.bij_mutCnt)
+
+        # first check if we are evolving without changes in the environment
+        # and apply degredation to reset to the initial state
+        if (self.params['R']==0) and (crntMcState >= maxMcState):
+            # reset the states to moved back towards the initial one saved in simInit
+            envDegrCnt = crntMcState - np.max(self.simInit.bij_mutCnt)
+        else:
+            # if we're evolving with 
+            envDegrCnt = np.random.poisson(self.get_lambdaEnvPoiss())
+            self.envShiftCntr += envDegrCnt
         
         if (envDegrCnt>0):
             # we could get multiple shifts back at once, in which case
             # we depart a bit from ve, but not by much.
             while(envDegrCnt > 0):
                 # shift the distribution back accordingly
-                self.run_environmentalDegredation()
+                self.run_environmentalDegredation()  
                 envDegrCnt = envDegrCnt-1
         
         return None
@@ -1004,3 +1015,16 @@ class simClass(ABC):
             file.write( (','.join(tuple(['%.10f']*len(outputs))) + '\n') % tuple(outputs))
         
         return None
+
+    #------------------------------------------------------------------------------
+    
+    def check_evoStop(self,t):
+        # The method check_evoStop checks key condtions to detemrine if evolution 
+        # should stop
+        max_t_hit = ( t < self.tmax)
+        popExtinct = (self.popSize() < 10)
+        maxEvoState = (np.max(self.bij_mutCnt) >= np.argmax(self.mcModel.istate))
+
+        stopEvolution = max_t_hit or popExtinct or maxEvoState
+        
+        return stopEvolution

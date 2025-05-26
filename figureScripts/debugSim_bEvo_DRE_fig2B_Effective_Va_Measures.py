@@ -20,11 +20,10 @@ import pdb
 
 #%%
 
-# debugging effort:
-# 1. generate a state space and find the attractor
-#    we want to verify selection coefficients at the attractor
-# 2. once we have the selection coefficients at the attractor, we are going to 
-#    compare them with deterministic dynamics of selection 
+# Purpose:
+# run simulation with mutations limited environmental changes to measure the 
+# rate of adaptation in absolute fitness with interference from the relative 
+# fitness trait.
 
 #%% ------------------------------------------------------------------------
 # Get parameters/options
@@ -45,7 +44,7 @@ def run_and_plot():
     simPathsIO['paramFile']     = 'evoExp_DRE_bEvo_03A_parameters.csv'
     simPathsIO['paramTag']      = 'param_03A_DRE_bEvo'
     
-    simPathsIO['simDatDir']     = 'sim_bEvo_DRE_Fig2B_SelCheckRel'
+    simPathsIO['simDatDir']     = 'sim_bEvo_DRE_Fig2B_VaMeasure'
     simPathsIO['statsFile']     = 'sim_Fig2B_T1E9_stats'
     simPathsIO['snpshtFile']    = 'sim_Fig2B_T1E9_snpsht'
     

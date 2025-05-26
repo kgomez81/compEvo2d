@@ -50,6 +50,22 @@ class SimEvoInit():
         # --------------------------------------------------------------------------
         # Setup of parameters and MC model
         # --------------------------------------------------------------------------
+        # Some key definitions: 
+        #  - modelDyanmics - flag to indicate the expected type of model dynamics for
+        #                    for mutation. Either:
+        #                    0) full stochastics dynamics (no implemented)
+        #                    1) lottery model of selection with Poisson sampling
+        #                    Otherwise) detrministic model with/without mutations, and 
+        #                    environmental changes.
+        #  - simpleEnvShft - Either: 
+        #                    1) for simple shifts back with rates scaled to achieve 
+        #                    desired rate of environmental degredation (variable R), or 
+        #                    2) for shifts back that shuffle abudances to decrease
+        #                    fitness of individiuals by fixed amount (fixed s)
+        #  - modeType   - RM (running our of mutations) or DRE (diminishing returns
+        #                 epistasis) for selection coefficients
+        #  - absFitType - bEvo or dEvo for evolution in b- or d- trait
+        #                 (dEvo sim class not implemented)
         self.modelDynamics = simPathsIO['modelDynamics']
         self.simpleEnvShift     = simPathsIO['simpleEnvShift']
         self.modelType  = simPathsIO['modelType']

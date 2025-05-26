@@ -558,3 +558,9 @@ class simDREClass(sim.simClass):
     #     # The method output_selectionDyanmics will output abundances as a time
     #     # series. This can only be used when mutation rates are zero, and env
     #     # change is absent.
+
+    # #------------------------------------------------------------------------------
+    
+    # def check_evoStop(self,t):
+    #     # The method check_evoStop checks key condtions to detemrine if evolution 
+    #     # should stop

@@ -395,6 +395,110 @@ def plot_simulationAnalysis_v2(evoSim):
 
 # --------------------------------------------------------------------------
 
+def plot_simulationAnalysis_RateEstimate(evoSim):
+    # Plot key figures to analyze the dynamics of the travelling b/c fitness wave
+    
+    # load selection dynamics file
+    data = pd.read_csv(evoSim.outputStatsFile)
+    
+    # Figures to plot include the mean fitnes abs and relative
+    # 1. MC model
+    # 2. Mean fitness over time
+    # 3. b-idx width over time
+    # 4. c-idx width over time
+    
+    # get the data
+    time = data['time'].values
+    tau  = 1/(data['d_term'][0]-1)
+    tt   = time/tau
+    
+    yavg = data['gamma'].values
+    
+    bidx_min = data['min_b_idx'].values
+    bidx_max = data['max_b_idx'].values
+    bidx_avg = data['mean_b_idx'].values
+    bidx_mod = data['mode_b_idx'].values
+    bidx_qi  = data['mean_b_idx'].values + data['qi_bavg'].values
+    
+    cidx_min = data['min_c_idx'].values
+    cidx_max = data['max_c_idx'].values
+    cidx_avg = data['mean_c_idx'].values
+    cidx_qi  = data['mean_c_idx'].values + data['qi_cavg'].values
+    
+    idxss = evoSim.mcModel.get_mc_stable_state_idx()-1
+    idxav = np.mean(bidx_avg)
+    vdx = evoSim.mcModel.va_i[idxss]
+    
+    # va-estimates
+    bidx_avg = np.floor(data['mean_b_idx'].values)
+    init_state = np.max(evoSim.simInit.bij_mutCnt)
+    max_state = np.max(evoSim.mcModel.state_i)
+    
+    nCycles = np.sum(np.abs(np.diff(bidx_avg))>10) + (bidx_avg[-1] - init_state)/(max_state-init_state)
+    
+    va_idx = np.unique(bidx_avg)
+    va_est = np.zeros(va_idx.shape)
+    
+    for ii in range(len(va_idx)):
+        # va_est[ii] = 1.6E-5 / (np.sum(bidx_avg == (va_idx[ii]))/500000) # 
+        # va_est[ii] = 0.033 * evoSim.mcModel.sa_i[int(va_idx[ii])] / (tau * np.sum(bidx_avg == (va_idx[ii]))* nCycles / 500000)
+        Tp = ( 500000 / nCycles )
+        fp = ( np.sum(bidx_avg == (va_idx[ii])) / 500000 )
+        Ts = fp*Tp/tau
+        va_est[ii] =  evoSim.mcModel.sa_i[int(va_idx[ii]+1)] / Ts
+                                       
+    fig,((ax11,ax12),(ax21,ax22)) = plt.subplots(2,2,figsize=[12,12])
+    
+    # MC model
+    ax11.scatter(evoSim.mcModel.state_i, evoSim.mcModel.va_i,c='blue',label='vb')
+    ax11.scatter(evoSim.mcModel.state_i, evoSim.mcModel.vc_i,c='red',label='vc')
+    ax11.plot(evoSim.mcModel.state_i, evoSim.mcModel.ve_i,c='black',label='vE')
+    ax11.set_xlabel('absolute fitness state')
+    ax11.set_ylabel('rate of adaptation')
+    ax11.legend()
+    ax11t = ax11.twinx()
+    ax11t.hist(bidx_avg,alpha = 0.5, color= 'k')
+    ax11t.set_yticks([])
+    
+    idxlbl = ("i_ss=%d, i_av=%d, T1E%d, se=%.0E" % (idxss,idxav,int(np.log10(evoSim.params['T'])),evoSim.params['se']))
+    ax11.text(idxss-15,0*vdx,idxlbl, fontsize = 12)             
+    
+    # secax11 = ax11.secondary_yaxis('right')
+    # secax11.histogram(bidx_avg)
+    
+    # MC model
+    ax12.scatter(evoSim.mcModel.state_i, evoSim.mcModel.va_i,c='blue',label='vb')
+    ax12.scatter(evoSim.mcModel.state_i, evoSim.mcModel.vc_i,c='red',label='vc')
+    ax12.plot(evoSim.mcModel.state_i, evoSim.mcModel.ve_i,c='black',label='vE')
+    ax12.scatter(va_idx,va_est,c='cyan',label='vb_est')
+    
+    ax12.set_xlabel('absolute fitness state')
+    ax12.set_ylabel('rate of adaptation')
+    ax12.legend()
+    
+    # b-fitness width
+    ax21.plot(tt, bidx_min, c='blue', label='i_min_b')
+    ax21.plot(tt, bidx_max, c='green', label='i_max_b')
+    ax21.plot(tt, bidx_avg, c='red', label='i_avg_b')
+    ax21.plot(tt, bidx_mod, c='magenta', label='i_mod_b')
+    ax21.plot(tt, bidx_qi, c='black', label='i_qi_b')
+    ax21.set_xlabel('time (generations)')
+    ax21.set_ylabel('b-state')
+    ax21.legend()
+    
+    # c-fitness width
+    ax22.plot(tt, cidx_min, c='blue', label='i_min_c')
+    ax22.plot(tt, cidx_max, c='green', label='i_max_c')
+    ax22.plot(tt, cidx_avg, c='red', label='i_avg_c')
+    ax22.plot(tt, cidx_qi, c='black', label='i_qi_c')
+    ax22.set_xlabel('time (generations)')
+    ax22.set_ylabel('c-state')
+    ax22.legend()
+    
+    return None
+
+# --------------------------------------------------------------------------
+
 def plot_simulationAnalysis_comparison(evoSim1,evoSim2):
     # Plot key figures to analyze the dynamics of the travelling b/c fitness wave
     

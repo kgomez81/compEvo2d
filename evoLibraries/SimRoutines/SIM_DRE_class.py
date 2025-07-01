@@ -564,3 +564,8 @@ class simDREClass(sim.simClass):
     # def check_evoStop(self,t):
     #     # The method check_evoStop checks key condtions to detemrine if evolution 
     #     # should stop
+    
+    # #------------------------------------------------------------------------------
+    
+    # def maxMcState(self):
+    #     # check if the max MC state has been reached

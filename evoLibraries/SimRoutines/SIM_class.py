@@ -210,10 +210,10 @@ class simClass(ABC):
         # the population is extinct or tmax is reached.
         
         # set time index
-        t           = 0
+        t = 0
 
         # run model tmax generations or until population is extinct
-        while ( self.check_evoStop() ):
+        while ( self.continue_evoSim(t) ):
             
             if (self.modelDynamics == 0):
 
@@ -773,14 +773,12 @@ class simClass(ABC):
         # special sim code for cases where environmental decay is disabled
         # since the state space of our MC model is limited to the max state that 
         # is calculated, we have to reset the model to the initial state when
-        maxMcState = np.argmax(self.mcModel.istate)
-        crntMcState = np.max(self.bij_mutCnt)
 
         # first check if we are evolving without changes in the environment
         # and apply degredation to reset to the initial state
-        if (self.params['R']==0) and (crntMcState >= maxMcState):
+        if ((self.params['R']==0) or (self.params['se']==0)) and self.maxMcState():
             # reset the states to moved back towards the initial one saved in simInit
-            envDegrCnt = crntMcState - np.max(self.simInit.bij_mutCnt)
+            envDegrCnt = np.max(self.bij_mutCnt) - np.max(self.simInit.bij_mutCnt) + 1
         else:
             # if we're evolving with 
             envDegrCnt = np.random.poisson(self.get_lambdaEnvPoiss())
@@ -1018,13 +1016,29 @@ class simClass(ABC):
 
     #------------------------------------------------------------------------------
     
-    def check_evoStop(self,t):
+    def continue_evoSim(self,t):
         # The method check_evoStop checks key condtions to detemrine if evolution 
         # should stop
-        max_t_hit = ( t < self.tmax)
-        popExtinct = (self.popSize() < 10)
-        maxEvoState = (np.max(self.bij_mutCnt) >= np.argmax(self.mcModel.istate))
-
-        stopEvolution = max_t_hit or popExtinct or maxEvoState
+        max_t_not_hit   = ( t < self.tmax)
+        pop_not_extinct = (self.popSize() > 10)
+        
+        stopEvolution = max_t_not_hit and pop_not_extinct
+        
+        # for sim runs with env change, don't stop for invalid mc state, as we 
+        # we will reset the state space
+        if (self.params['R'] == 0) or (self.params['se'] == 0):
+            validMcState    = True
+        else:
+            validMcState    = not self.maxMcState()
+        
+        stopEvolution = max_t_not_hit and pop_not_extinct and validMcState
         
         return stopEvolution
+
+    #------------------------------------------------------------------------------
+    
+    def maxMcState(self):
+        # check if the max MC state has been reached
+        maxMcState = np.argmax(self.mcModel.state_i)-2
+        crntMcState = np.max(self.bij_mutCnt)
+        return (crntMcState >= maxMcState)

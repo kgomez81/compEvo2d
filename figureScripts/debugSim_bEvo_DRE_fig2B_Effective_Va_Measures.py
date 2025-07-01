@@ -21,7 +21,7 @@ import pdb
 #%%
 
 # Purpose:
-# run simulation with mutations limited environmental changes to measure the 
+# run simulation with mutations and limited environmental changes to measure the 
 # rate of adaptation in absolute fitness with interference from the relative 
 # fitness trait.
 
@@ -36,7 +36,7 @@ import pdb
 #
 ############################################
 # filepaths for loading and saving outputs
-def run_and_plot():
+def run_simulation():
     simPathsIO  = dict()
     simArryData = dict()
     
@@ -48,63 +48,44 @@ def run_and_plot():
     simPathsIO['statsFile']     = 'sim_Fig2B_T1E9_stats'
     simPathsIO['snpshtFile']    = 'sim_Fig2B_T1E9_snpsht'
     
-    simPathsIO['modelDynamics']         = 1
+    # model dynamics: 0 full stoch, 1 deterministic, else  poiss stoch
+    simPathsIO['modelDynamics']         = 2
     simPathsIO['simpleEnvShift']        = True
     simPathsIO['modelType']             = 'DRE'
     simPathsIO['absFitType']            = 'bEvo'
     
     # specify parameters for the MC models
-    simArryData['tmax'] = 100
+    simArryData['tmax'] = 500000
     simArryData['tcap'] = 1
     
-    simArryData['nij']          = np.array([[3e8,100]])
-    simArryData['bij_mutCnt']   = np.array([[15,15]])
-    simArryData['dij_mutCnt']   = np.array([[1,1]])  
-    simArryData['cij_mutCnt']   = np.array([[1,2]])
+    simArryData['nij']          = np.array([[3e8]])
+    simArryData['bij_mutCnt']   = np.array([[10]])
+    simArryData['dij_mutCnt']   = np.array([[1]])  
+    simArryData['cij_mutCnt']   = np.array([[1]])
     
-    # loop through states (max 88)
-    bidx = [10,20,30,40,50,60]
-    for idx in bidx:
-        # group sim parameters
-        simInit = evoInit.SimEvoInit(simPathsIO,simArryData)
-        simArryData['bij_mutCnt']   = np.array([[idx,idx]])
-        simInit.params['Ua'] = 0
-        simInit.params['Uc'] = 0
-        simInit.params['R'] = 0
-        
-        # setting poulation size to equilibrium value
-        simInit.nij[0,0] = simInit.mcModel.eq_Ni[int(simInit.bij_mutCnt[0,0])]-simInit.nij[0,1]
+    # group sim parameters
+    simInit = evoInit.SimEvoInit(simPathsIO,simArryData)
+    simInit.turn_off_environmentalChanges()
     
-        # generate sim object and run
-        evoSim = simDre.simDREClass(simInit)
-        # evoSim.run_evolutionModel()
-        
-        #figfun.plot_selection_coeff(evoSim.outputStatsFile.replace('.csv','_selDyn.csv'),'rel')
+    # setting poulation size to equilibrium value
+    simInit.nij[0,0] = simInit.mcModel.eq_Ni[int(simInit.bij_mutCnt[0,0])]
+
+    # generate sim object and run
+    evoSim = simDre.simDREClass(simInit)
+    evoSim.run_evolutionModel()
+    
+    # save evoSim
+    evoSimFile = evoSim.outputSnapshotFile.replace('.pickle','_evoSim.pickle')
+    with open(evoSimFile, 'wb') as file:
+        # Serialize and write the variable to the file
+        pickle.dump(evoSim, file)
     
     return None
 
 #%%
-
-def run_plots_only():
-    path = 'D:\\Documents\\GitHub\\compEvo2d\\figureScripts\\outputs\\sim_bEvo_DRE_Fig2B_SelCheckRel\\' 
-    
-    # get the list of files
-    file_list = [ \
-                'sim_Fig2B_T1E9_stats_param_03A_DRE_bEvo_20250413_214011_selDyn.csv', \
-                'sim_Fig2B_T1E9_stats_param_03A_DRE_bEvo_20250413_214017_selDyn.csv', \
-                'sim_Fig2B_T1E9_stats_param_03A_DRE_bEvo_20250413_214023_selDyn.csv', \
-                'sim_Fig2B_T1E9_stats_param_03A_DRE_bEvo_20250413_214029_selDyn.csv', \
-                'sim_Fig2B_T1E9_stats_param_03A_DRE_bEvo_20250413_214035_selDyn.csv', \
-                'sim_Fig2B_T1E9_stats_param_03A_DRE_bEvo_20250413_214040_selDyn.csv']
-        
-    for fp in file_list:
-        tempFile = path+fp
-        figfun.plot_selection_coeff(tempFile,'rel') 
-        
-        
+     
 def main():
-    #run_plots_only()
-    run_and_plot()
+    run_simulation()
     
 if __name__ == "__main__":
     main()

@@ -107,6 +107,7 @@ class simClass(ABC):
         #  0. time of last adaptive event
         #  1. current mean fitness state
         #  2. rate correction factor
+        #  3. adaptive event counter
         #
         # One key assumption is va_mean = va_front as measure and so we meaure
         # va_mean as an estimate of the rate of adaptation. The rate correction 
@@ -121,7 +122,10 @@ class simClass(ABC):
         # with the assumption being that va_mean = d_ibar/dt ~ const.
         
         # Initialize for time zero, and current mean fitness, no kappa correction
-        self.adaptiveEventLog = [0,np.floor(self.get_ibarAbs()),0]
+        self.adaptiveEventLog = [0,np.floor(self.get_ibarAbs()),0,0]
+        
+        # sim time
+        self.t = 0
         
     #%% ------------------------------------------------------------------------
     # Abstract methods
@@ -230,11 +234,8 @@ class simClass(ABC):
         # main function to run evolutionary model, iterations continue until
         # the population is extinct or tmax is reached.
         
-        # set time index
-        t = 0
-
         # run model tmax generations or until population is extinct
-        while ( self.continue_evoSim(t) ):
+        while ( self.continue_evoSim() ):
             
             if (self.modelDynamics == 0):
 
@@ -276,18 +277,18 @@ class simClass(ABC):
             self.get_evoArraysCollapse()
             
             # check to see if a snapshot of the mean needs to be taken
-            if (self.tcap>0) and (np.mod(t,self.tcap)==0):
-                self.output_evoStats(t)
+            if (self.tcap>0) and (np.mod(self.t,self.tcap)==0):
+                self.output_evoStats()
                 
                 # for runs with selection dynamics, take snapshot of abundances
                 if (self.modelDynamics == 1):
-                    self.output_selectionDyanmics(t)
+                    self.output_selectionDyanmics()
             
             # update time increment
-            t = t + 1
+            self.t = self.t + 1
             
             # after iteration, check if adaptive event occurred and log it
-            self.check_adaptiveEvent(t)
+            self.check_adaptiveEvent()
         
         # store final results for end of simulation
         self.store_evoSnapshot()
@@ -815,12 +816,18 @@ class simClass(ABC):
                 # shift the distribution back accordingly
                 self.run_environmentalDegredation()  
                 envDegrCnt = envDegrCnt-1
+                
+            # reset log for adaptive events, due to environment changing
+            self.adaptiveEventLog[0] = self.t                           # set current time
+            self.adaptiveEventLog[1] = np.floor(self.get_ibarAbs())     # set current fit state
+            self.adaptiveEventLog[2] = np.mod(self.get_ibarAbs(),1)     # set kappa after fitness decline
+            # self.adaptiveEventLog[3]                                  # no update to counter                
         
         return None
     
     #------------------------------------------------------------------------------
     
-    def output_evoStats(self,ti):
+    def output_evoStats(self):
         # The method output_evoStats will collect all of the mean values of bij, cij,
         # dij, and popsize, as well as other outputs 
         
@@ -840,7 +847,7 @@ class simClass(ABC):
         
         # -------------------------------------
         # population 
-        outputs.append(ti)                                          # 00. time  
+        outputs.append(self.t)                                      # 00. time  
         outputs.append(np.sum(self.nij))                            # 01. popsize
         outputs.append(np.sum(self.nij)/self.params['T'])           # 02. gamma
 
@@ -949,7 +956,7 @@ class simClass(ABC):
         # open the file and append new data
         with open(self.outputStatsFile, "a") as file:
             
-            if (ti==0):
+            if (self.t==0):
                 # output column if at initial time
                 file.write( ','.join(tuple(headers))+'\n' )
             # output data collected
@@ -980,7 +987,7 @@ class simClass(ABC):
 
     #------------------------------------------------------------------------------
     
-    def check_adaptiveEvent(self,t):
+    def check_adaptiveEvent(self):
         # check_adaptiveStatistics is ran each iteration to determine if there
         # has been an adaptive event, i.e. the mean fitness state incremented
         # 
@@ -991,73 +998,57 @@ class simClass(ABC):
         if ( self.adaptiveEventLog[1] < np.floor(self.get_ibarAbs())):
             
             # log the adaptive event 
-            self.store_adpativeEventStatistics(t)
+            self.store_adpativeEventStatistics()
             
-            # reset log for the next adaptive event
-            self.adaptiveEventLog = [t,np.floor(self.get_ibarAbs()),0]
+            # reset log for the next adaptive event, and increment the counter
+            self.adaptiveEventLog[0] = self.t
+            self.adaptiveEventLog[1] = np.floor(self.get_ibarAbs())
+            self.adaptiveEventLog[2] = 0
+            self.adaptiveEventLog[3] = self.adaptiveEventLog[3]+1
         
         return None
     
     #------------------------------------------------------------------------------
     
-    def store_adpativeEventStatistics(self,t):
+    def store_adpativeEventStatistics(self):
+        # store_adpativeEventStatistics() calculates the outputs to track the 
+        # statistics of adaptive events. 
         
         # setup o parameters for data collection
         outputs = []
         headers = []
         
-        if (self.adaptiveEventLog[2] < 1):
-            # use Est. sojourn time =  # iterations (i-1+alpha => i) / (1-alpha)
-            sjrn_kapa = self.adaptiveEventLog[2]
-            sjrn_time = (t-self.adaptiveEventLog[0])/(1-sjrn_alpha)
-            fitn_state = self.adaptiveEventLog[1]
+        sjrn_kappa = self.adaptiveEventLog[2]
+        fitn_state = self.adaptiveEventLog[1]
+        adap_cntr  = self.adaptiveEventLog[3]
+        
+        if (1 - self.adaptiveEventLog[2] > 0):
+            # use Est. sojourn time =  # iterations (i-1+kappa => i) / (1-kappa)
+            sjrn_time = (self.t-self.adaptiveEventLog[0])/(1-sjrn_kappa)
         else:
-            # alpha was set to 1.
-            sjrn_time = (t-self.adaptiveEventLog[0])
-            fitn_state = self.adaptiveEventLog[1]
+            # alpha was set to 1 (should be no greater than 1)
+            sjrn_time = (self.t-self.adaptiveEventLog[0])
             
-        outputs.append(sjrn_time)
         outputs.append(fitn_state)
-        outputs.appned()
-        headers.append('tSojourn')
-        headers.append('tSojourn')
+        outputs.append(sjrn_time)
+        outputs.append(sjrn_kappa)
+        outputs.append(adap_cntr)
+        headers.append('fitness_tate')
+        headers.append('sojourn_time')
+        headers.append('sojourn_kappa')
+        headers.append('adapt_counter')
         
-        nij = self.nij.flatten()
-        pij = (np.ones(nij.shape)*nij)/sum(nij)
-        
-        # output abundances
-        for ii in range(nij.shape[0]):
-            outputs.append(nij[ii])
-            headers.append(("n%02d" % (ii)))
-            
-        # output frequencies
-        for ii in range(pij.shape[0]):
-            outputs.append(pij[ii])
-            headers.append(("p%02d" % (ii)))
-        
-        # output selection coefficients
-        idx_bbar     = self.get_ibarAbs()
-        idx_bbar_int = int(np.round(idx_bbar))
-        
-        outputs.append(self.mcModel.sa_i[idx_bbar_int])
-        outputs.append(self.mcModel.sc_i[idx_bbar_int])
-        outputs.append(self.get_bbar())
-        outputs.append(idx_bbar)
-        outputs.append(np.mean(self.get_dij()))
-        
-        headers.append('sa')
-        headers.append('sc')
-        headers.append('mean_bi')
-        headers.append('mean_b_idx')
-        headers.append('d_term')
-        
-        selDyn_file = self.outputStatsFile.replace('.csv','_selDyn.csv')
+        # output adaptation estimates
+        selDyn_file = self.outputStatsFile.replace('.csv','_adapStats.csv')
         
         # open the file and append new data
         with open(selDyn_file, "a") as file:
-            if (ti==0):
+            
+            # we output headers first
+            if (adap_cntr==0):
                 # output column if at initial time
                 file.write( ','.join(tuple(headers))+'\n' )
+            
             # output data collected
             file.write( (','.join(tuple(['%.10f']*len(outputs))) + '\n') % tuple(outputs))
 
@@ -1065,7 +1056,7 @@ class simClass(ABC):
     
     #------------------------------------------------------------------------------
     
-    def output_selectionDyanmics(self,ti):
+    def output_selectionDyanmics(self):
         # The method output_selectionDyanmics will output abundances as a time
         # series. This can only be used when mutation rates are zero, and env
         # change is absent.
@@ -1079,7 +1070,7 @@ class simClass(ABC):
         outputs = []
         headers = []
         
-        outputs.append(ti)
+        outputs.append(self.t)
         headers.append('t')
         
         nij = self.nij.flatten()
@@ -1115,7 +1106,7 @@ class simClass(ABC):
         
         # open the file and append new data
         with open(selDyn_file, "a") as file:
-            if (ti==0):
+            if (self.t==0):
                 # output column if at initial time
                 file.write( ','.join(tuple(headers))+'\n' )
             # output data collected
@@ -1125,10 +1116,10 @@ class simClass(ABC):
 
     #------------------------------------------------------------------------------
     
-    def continue_evoSim(self,t):
+    def continue_evoSim(self):
         # The method check_evoStop checks key condtions to detemrine if evolution 
         # should stop
-        max_t_not_hit   = ( t < self.tmax)
+        max_t_not_hit   = ( self.t < self.tmax)
         pop_not_extinct = (self.popSize() > 10)
         
         stopEvolution = max_t_not_hit and pop_not_extinct

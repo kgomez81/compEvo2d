@@ -554,6 +554,21 @@ class simDREClass(sim.simClass):
 
     # #------------------------------------------------------------------------------
 
+    # def check_adaptiveEvent(self):
+    #     # check_adaptiveStatistics is ran each iteration to determine if there
+    #     # has been an adaptive event, i.e. the mean fitness state incremented
+    #     # 
+    #     # cases where mean fitness has dropped because of environmental changes
+    #     # are handled in sample_environmentalDegredation()
+    
+    # #------------------------------------------------------------------------------
+    
+    # def store_adpativeEventStatistics(self):
+    #     # store_adpativeEventStatistics() calculates the outputs to track the 
+    #     # statistics of adaptive events. 
+        
+    # #------------------------------------------------------------------------------
+    
     # def output_selectionDyanmics(self,ti):
     #     # The method output_selectionDyanmics will output abundances as a time
     #     # series. This can only be used when mutation rates are zero, and env

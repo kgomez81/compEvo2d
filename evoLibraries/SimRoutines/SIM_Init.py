@@ -71,7 +71,7 @@ class SimEvoInit():
         #                 (dEvo sim class not implemented)
         #
         self.modelDynamics = simPathsIO['modelDynamics']
-        self.simpleEnvShift     = simPathsIO['simpleEnvShift']
+        self.simpleEnvShift = simPathsIO['simpleEnvShift']
         self.modelType  = simPathsIO['modelType']
         self.absFitType = simPathsIO['absFitType']
 

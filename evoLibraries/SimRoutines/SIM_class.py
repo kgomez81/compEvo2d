@@ -102,6 +102,27 @@ class simClass(ABC):
         # counter for environmental shifts
         self.envShiftCntr = 0
         
+        # Adaptive events logger, with entries corresponding to following
+        #
+        #  0. time of last adaptive event
+        #  1. current mean fitness state
+        #  2. rate correction factor
+        #
+        # One key assumption is va_mean = va_front as measure and so we meaure
+        # va_mean as an estimate of the rate of adaptation. The rate correction 
+        # factor helps adjust sojourn times following environmental changes. 
+        # For example, if ibar_Abs = i + kappa < i + 1 at the time of an event
+        # degrading the environment by 1, then we cannot simply use the number
+        # of iterations it takes to get from i-1+kappa -> i as the sojourn time.
+        # So, we use instead
+        #
+        #    Est. sojourn time =  # iterations (i-1+kappa => i) / (1-kappa)
+        #
+        # with the assumption being that va_mean = d_ibar/dt ~ const.
+        
+        # Initialize for time zero, and current mean fitness, no kappa correction
+        self.adaptiveEventLog = [0,np.floor(self.get_ibarAbs()),0]
+        
     #%% ------------------------------------------------------------------------
     # Abstract methods
     # --------------------------------------------------------------------------
@@ -264,6 +285,9 @@ class simClass(ABC):
             
             # update time increment
             t = t + 1
+            
+            # after iteration, check if adaptive event occurred and log it
+            self.check_adaptiveEvent(t)
         
         # store final results for end of simulation
         self.store_evoSnapshot()
@@ -954,6 +978,91 @@ class simClass(ABC):
 
         return None
 
+    #------------------------------------------------------------------------------
+    
+    def check_adaptiveEvent(self,t):
+        # check_adaptiveStatistics is ran each iteration to determine if there
+        # has been an adaptive event, i.e. the mean fitness state incremented
+        # 
+        # cases where mean fitness has dropped because of environmental changes
+        # are handled in sample_environmentalDegredation()
+        
+        # check if mean fitness has jumped to the next state
+        if ( self.adaptiveEventLog[1] < np.floor(self.get_ibarAbs())):
+            
+            # log the adaptive event 
+            self.store_adpativeEventStatistics(t)
+            
+            # reset log for the next adaptive event
+            self.adaptiveEventLog = [t,np.floor(self.get_ibarAbs()),0]
+        
+        return None
+    
+    #------------------------------------------------------------------------------
+    
+    def store_adpativeEventStatistics(self,t):
+        
+        # setup o parameters for data collection
+        outputs = []
+        headers = []
+        
+        if (self.adaptiveEventLog[2] < 1):
+            # use Est. sojourn time =  # iterations (i-1+alpha => i) / (1-alpha)
+            sjrn_kapa = self.adaptiveEventLog[2]
+            sjrn_time = (t-self.adaptiveEventLog[0])/(1-sjrn_alpha)
+            fitn_state = self.adaptiveEventLog[1]
+        else:
+            # alpha was set to 1.
+            sjrn_time = (t-self.adaptiveEventLog[0])
+            fitn_state = self.adaptiveEventLog[1]
+            
+        outputs.append(sjrn_time)
+        outputs.append(fitn_state)
+        outputs.appned()
+        headers.append('tSojourn')
+        headers.append('tSojourn')
+        
+        nij = self.nij.flatten()
+        pij = (np.ones(nij.shape)*nij)/sum(nij)
+        
+        # output abundances
+        for ii in range(nij.shape[0]):
+            outputs.append(nij[ii])
+            headers.append(("n%02d" % (ii)))
+            
+        # output frequencies
+        for ii in range(pij.shape[0]):
+            outputs.append(pij[ii])
+            headers.append(("p%02d" % (ii)))
+        
+        # output selection coefficients
+        idx_bbar     = self.get_ibarAbs()
+        idx_bbar_int = int(np.round(idx_bbar))
+        
+        outputs.append(self.mcModel.sa_i[idx_bbar_int])
+        outputs.append(self.mcModel.sc_i[idx_bbar_int])
+        outputs.append(self.get_bbar())
+        outputs.append(idx_bbar)
+        outputs.append(np.mean(self.get_dij()))
+        
+        headers.append('sa')
+        headers.append('sc')
+        headers.append('mean_bi')
+        headers.append('mean_b_idx')
+        headers.append('d_term')
+        
+        selDyn_file = self.outputStatsFile.replace('.csv','_selDyn.csv')
+        
+        # open the file and append new data
+        with open(selDyn_file, "a") as file:
+            if (ti==0):
+                # output column if at initial time
+                file.write( ','.join(tuple(headers))+'\n' )
+            # output data collected
+            file.write( (','.join(tuple(['%.10f']*len(outputs))) + '\n') % tuple(outputs))
+
+        return None
+    
     #------------------------------------------------------------------------------
     
     def output_selectionDyanmics(self,ti):

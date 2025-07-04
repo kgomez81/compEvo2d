@@ -105,8 +105,8 @@ class simClass(ABC):
         # Adaptive events logger, with entries corresponding to following
         #
         #  0. time of last adaptive event
-        #  1. current mean fitness state
-        #  2. rate correction factor
+        #  1. current absolute fitness state
+        #  2. rate correction factor (kappa)
         #  3. adaptive event counter
         #
         # One key assumption is va_mean = va_front as measure and so we meaure
@@ -122,7 +122,10 @@ class simClass(ABC):
         # with the assumption being that va_mean = d_ibar/dt ~ const.
         
         # Initialize for time zero, and current mean fitness, no kappa correction
-        self.adaptiveEventLog = [0,np.floor(self.get_ibarAbs()),0,0]
+        self.adaptiveEventLog = dict({'last_event_time':0, 
+                                     'crnt_fitness_state': np.floor(self.get_ibarAbs()),
+                                     'sojourn_kappa': 0,
+                                     'adapt_event_counter':0 })
         
         # sim time
         self.t = 0
@@ -818,10 +821,9 @@ class simClass(ABC):
                 envDegrCnt = envDegrCnt-1
                 
             # reset log for adaptive events, due to environment changing
-            self.adaptiveEventLog[0] = self.t                           # set current time
-            self.adaptiveEventLog[1] = np.floor(self.get_ibarAbs())     # set current fit state
-            self.adaptiveEventLog[2] = np.mod(self.get_ibarAbs(),1)     # set kappa after fitness decline
-            # self.adaptiveEventLog[3]                                  # no update to counter                
+            self.adaptiveEventLog['last_event_time'] = self.t                           # set current time
+            self.adaptiveEventLog['crnt_fitness_state'] = np.floor(self.get_ibarAbs())     # set current fit state
+            self.adaptiveEventLog['sojourn_kappa'] = np.mod(self.get_ibarAbs(),1)     # set kappa after fitness decline
         
         return None
     
@@ -954,13 +956,12 @@ class simClass(ABC):
         headers.append('envShft')
         
         # open the file and append new data
-        with open(self.outputStatsFile, "a") as file:
-            
-            if (self.t==0):
-                # output column if at initial time
-                file.write( ','.join(tuple(headers))+'\n' )
-            # output data collected
-            file.write( (','.join(tuple(['%f']*len(outputs))) + '\n') % tuple(outputs))
+        if (self.t==0):  
+            # if logging for first time, add headers             
+            self.log_evoData(self.outputStatsFile,outputs,headers)
+        else:
+            # subsequent logs don't require headers
+            self.log_evoData(self.outputStatsFile,outputs)
         
         return None
     
@@ -995,22 +996,22 @@ class simClass(ABC):
         # are handled in sample_environmentalDegredation()
         
         # check if mean fitness has jumped to the next state
-        if ( self.adaptiveEventLog[1] < np.floor(self.get_ibarAbs())):
+        if ( self.adaptiveEventLog['crnt_fitness_state'] < np.floor(self.get_ibarAbs())):
             
             # log the adaptive event 
-            self.store_adpativeEventStatistics()
+            self.output_adpativeEventStatistics()
             
             # reset log for the next adaptive event, and increment the counter
-            self.adaptiveEventLog[0] = self.t
-            self.adaptiveEventLog[1] = np.floor(self.get_ibarAbs())
-            self.adaptiveEventLog[2] = 0
-            self.adaptiveEventLog[3] = self.adaptiveEventLog[3]+1
+            self.adaptiveEventLog['last_event_time'] = self.t
+            self.adaptiveEventLog['crnt_fitness_state'] = np.floor(self.get_ibarAbs())
+            self.adaptiveEventLog['sojourn_kappa'] = 0
+            self.adaptiveEventLog['adapt_event_counter'] = self.adaptiveEventLog['adapt_event_counter']+1
         
         return None
     
     #------------------------------------------------------------------------------
     
-    def store_adpativeEventStatistics(self):
+    def output_adpativeEventStatistics(self):
         # store_adpativeEventStatistics() calculates the outputs to track the 
         # statistics of adaptive events. 
         
@@ -1018,39 +1019,33 @@ class simClass(ABC):
         outputs = []
         headers = []
         
-        sjrn_kappa = self.adaptiveEventLog[2]
-        fitn_state = self.adaptiveEventLog[1]
-        adap_cntr  = self.adaptiveEventLog[3]
+        sjrn_kappa = self.adaptiveEventLog['sojourn_kappa']
+        fitn_state = self.adaptiveEventLog['crnt_fitness_state']
+        adap_cntr  = self.adaptiveEventLog['adapt_event_counter']
         
-        if (1 - self.adaptiveEventLog[2] > 0):
+        if (1 - self.adaptiveEventLog['sojourn_kappa'] > 0):
             # use Est. sojourn time =  # iterations (i-1+kappa => i) / (1-kappa)
-            sjrn_time = (self.t-self.adaptiveEventLog[0])/(1-sjrn_kappa)
+            sjrn_time = (self.t-self.adaptiveEventLog['last_event_time'])/(1-sjrn_kappa)
         else:
             # alpha was set to 1 (should be no greater than 1)
-            sjrn_time = (self.t-self.adaptiveEventLog[0])
+            sjrn_time = (self.t-self.adaptiveEventLog['last_event_time'])
             
         outputs.append(fitn_state)
         outputs.append(sjrn_time)
         outputs.append(sjrn_kappa)
         outputs.append(adap_cntr)
-        headers.append('fitness_tate')
+        headers.append('fitness_state')
         headers.append('sojourn_time')
         headers.append('sojourn_kappa')
         headers.append('adapt_counter')
-        
-        # output adaptation estimates
-        selDyn_file = self.outputStatsFile.replace('.csv','_adapStats.csv')
-        
+            
         # open the file and append new data
-        with open(selDyn_file, "a") as file:
-            
-            # we output headers first
-            if (adap_cntr==0):
-                # output column if at initial time
-                file.write( ','.join(tuple(headers))+'\n' )
-            
-            # output data collected
-            file.write( (','.join(tuple(['%.10f']*len(outputs))) + '\n') % tuple(outputs))
+        if (adap_cntr==0):  
+            # if logging for first time, add headers             
+            self.log_evoData(self.get_adaptiveEventsLogFilename(),outputs,headers)
+        else:
+            # subsequent logs don't require headers
+            self.log_evoData(self.get_adaptiveEventsLogFilename(),outputs)
 
         return None
     
@@ -1102,15 +1097,13 @@ class simClass(ABC):
         headers.append('mean_b_idx')
         headers.append('d_term')
         
-        selDyn_file = self.outputStatsFile.replace('.csv','_selDyn.csv')
-        
         # open the file and append new data
-        with open(selDyn_file, "a") as file:
-            if (self.t==0):
-                # output column if at initial time
-                file.write( ','.join(tuple(headers))+'\n' )
-            # output data collected
-            file.write( (','.join(tuple(['%.10f']*len(outputs))) + '\n') % tuple(outputs))
+        if (self.t==0):   
+            # if logging for first time, add headers             
+            self.log_evoData(self.get_selectionDynamicsFilename(),outputs,headers)
+        else:
+            # subsequent logs don't require headers
+            self.log_evoData(self.get_selectionDynamicsFilename(),outputs)
         
         return None
 
@@ -1142,3 +1135,43 @@ class simClass(ABC):
         maxMcState = np.argmax(self.mcModel.state_i)-2
         crntMcState = np.max(self.bij_mutCnt)
         return (crntMcState >= maxMcState)
+
+    #------------------------------------------------------------------------------
+    
+    def get_adaptiveEventsLogFilename(self):
+        # get_adaptiveEventsLogFilename() is a simple wrapper to get the name
+        # of the file with the logged adaptive events. 
+        return self.outputStatsFile.replace('.csv','_adaptLog.csv')
+    
+    #------------------------------------------------------------------------------
+    
+    def get_selectionDynamicsFilename(self):
+        # get_selectionDynamicsFilename() is a simple wrapper to get the name
+        # of the file that stores the selection dynamics. 
+        return self.outputStatsFile.replace('.csv','_selDyn.csv')
+    
+    #------------------------------------------------------------------------------
+    
+    def get_evoSimFilename(self):
+        # get_evoSimFilename() is a simple wrapper to get a standardized pickle 
+        # output filename to save snapshots of the evoSim object in the same
+        # directory as other file names.
+        
+        return self.outputSnapshotFile.replace('.pickle','_evoSim.pickle')
+    
+    #------------------------------------------------------------------------------
+    
+    def log_evoData(self,outputFile,outputs,headers=None):
+        # log_evoData() is is a generic function to output data to files while 
+        # the simulation runs
+        
+        # open the file and append new data
+        with open(outputFile, "a") as file:
+            if (headers!=None):
+                # output column if at initial time
+                file.write( ','.join(tuple(headers))+'\n' )
+            
+            # output data collected
+            file.write( (','.join(tuple(['%.10f']*len(outputs))) + '\n') % tuple(outputs))
+        
+        return None

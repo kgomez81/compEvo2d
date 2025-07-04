@@ -584,3 +584,15 @@ class simDREClass(sim.simClass):
     
     # def maxMcState(self):
     #     # check if the max MC state has been reached
+    
+    # #------------------------------------------------------------------------------
+    
+    # def get_adaptiveEventsLogFilename(self):
+    #     # get_adaptiveEventsLogFilename() is a simple wrapper to get the name
+    #     # of the file with the logged adaptive events. 
+    
+    # #------------------------------------------------------------------------------
+    
+    # def get_selectionDynamicsFilename(self):
+    #     # get_selectionDynamicsFilename() is a simple wrapper to get the name
+    #     # of the file that stores the selection dynamics.

@@ -10,6 +10,11 @@ Created on Sun Jun 23 17:26:48 2024
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import pickle
+
+import os
+import sys
+sys.path.insert(0, os.getcwd() + '\\..')
 
 from evoLibraries.LotteryModel import LM_functions as lmfun
 
@@ -310,6 +315,9 @@ def plot_simulationAnalysis(evoSim):
     ax22.set_ylabel('c-state')
     ax22.legend()
     
+    # save figure in location where outputs are located
+    figName = evoSim.outputStatsFile.replace('.csv','.png')
+    fig.savefig(figName,bbox_inches='tight')
     return None
 
 # --------------------------------------------------------------------------
@@ -397,6 +405,8 @@ def plot_simulationAnalysis_v2(evoSim):
 
 def plot_simulationAnalysis_RateEstimate(evoSim):
     # Plot key figures to analyze the dynamics of the travelling b/c fitness wave
+    # this function should only be used with runs of the simulation that have set
+    # the rate of environmental chance to zero.
     
     # load selection dynamics file
     data = pd.read_csv(evoSim.outputStatsFile)
@@ -599,8 +609,6 @@ def plot_environmentalChange(evoSim):
     ax22.set_ylabel('log10(vE)')
     ax22.legend()
     
-
-    
     return None
 
 # --------------------------------------------------------------------------
@@ -653,3 +661,134 @@ def get_rateOfEnvironmentalChange_samples(tIter,biFit,dterm,envJmp):
         vEi[ii]  = delta_si/T_Ei
         
     return [vEi,idxJmp[1]]
+
+#------------------------------------------------------------------------------
+    
+def calculate_RateOfAdapt_estimates(evoSim):
+    # calculate_RateOfAdapt_estimates() takes the data from the adaptive 
+    # events log from a simulation run and estimates rate of adaptation
+    # across the state space.
+    
+    # initialize all estimates to zero
+    vaEstimates = np.zeros(evoSim.mcModel.va_i.shape)
+
+    # load the data from the output file, w/ headers
+    # fitness_state
+    # sojourn_time
+    # sojourn_kappa
+    # adapt_counter
+    data = pd.read_csv(evoSim.get_adaptiveEventsLogFilename())
+    
+    # process data to calculate the estimates as follows:
+    #   1. T_i = iterations spend in state at state k
+    #   2. T_bar_k = (1/n) * sum_(T_i for state k)
+    #   3. va_iter = sa_k / T_bar_k
+    #   4. va_gen = tau * va_iter
+    
+    # loop through the states with data
+    states = list(map(int,np.sort(np.unique(data['fitness_state'].values))))
+    for ii in states:
+        tempData = data.query('fitness_state == '+str(ii)+' and sojourn_kappa < 0.4')
+        # query for the entries if state ii
+        if (len(tempData)>0):
+            Tbar = np.sum(tempData['sojourn_time'].values)/len(tempData)
+            sa = evoSim.mcModel.sa_i[ii]
+            tau = 1/(evoSim.mcModel.di[ii]-1)
+            vaEstimates[ii] = sa/Tbar*tau
+            
+    return vaEstimates
+    
+#------------------------------------------------------------------------------
+
+def plot_evoMcModel_withVaEst(evoSim,vaEst):
+    # plot the MC model 
+    
+    fig,ax = plt.subplots(1,1,figsize=[5,5])
+    ax.plot(evoSim.mcModel.state_i, evoSim.mcModel.va_i,c='blue',label='vb')
+    ax.plot(evoSim.mcModel.state_i, evoSim.mcModel.vc_i,c='red',label='vc')
+    ax.plot(evoSim.mcModel.state_i, evoSim.mcModel.ve_i,c='black',label='vE')
+    ax.scatter(evoSim.mcModel.state_i[vaEst!=0],vaEst[vaEst!=0],facecolors='none', edgecolors='b',label='vbEst')
+    ax.set_xlabel('absolute fitness state')
+    ax.set_ylabel('rate of adaptation')
+    ax.legend()
+    
+    return None
+
+# --------------------------------------------------------------------------
+
+def plot_mcModel_histAndVaEstimates(evoSim):
+    # plot_vaEstimateMcChainPlots() takes the evo file and generates plots of 
+    # of the MC state space with theoretical rates of adaptation, estimates of
+    # the rates of adaptation, and rates of environmental change.
+    
+    # load selection dynamics file
+    data = pd.read_csv(evoSim.outputStatsFile)
+    
+    # Figures to plot include the mean fitnes abs and relative
+    # 1. MC model w/ histogram
+    # 2. MC model w/ va estimates
+    
+    # get the data
+    bidx_avg = data['mean_b_idx'].values
+
+    idxss = evoSim.mcModel.get_mc_stable_state_idx()-1
+    idxav = np.mean(bidx_avg)
+    vdx = evoSim.mcModel.va_i[idxss]
+    
+    vaEst = calculate_RateOfAdapt_estimates(evoSim)
+    
+    fig,(ax11,ax12) = plt.subplots(1,2,figsize=[12,6])
+    
+    # MC model
+    ax11.scatter(evoSim.mcModel.state_i, evoSim.mcModel.va_i,c='blue',label='vb')
+    ax11.scatter(evoSim.mcModel.state_i, evoSim.mcModel.vc_i,c='red',label='vc')
+    ax11.plot(evoSim.mcModel.state_i, evoSim.mcModel.ve_i,c='black',label='vE')
+    ax11.set_xlabel('absolute fitness state')
+    ax11.set_ylabel('rate of adaptation')
+    ax11.legend()
+    ax11t = ax11.twinx()
+    ax11t.hist(bidx_avg,alpha = 0.5, color= 'k')
+    ax11t.set_yticks([])
+    
+    idxlbl = ("i_ss=%d, i_av=%d, T1E%d, se=%.0E" % (idxss,idxav,int(np.log10(evoSim.params['T'])),evoSim.params['se']))
+    ax11.text(idxss-15,0*vdx,idxlbl, fontsize = 12)             
+    
+    # Mean gamma over time (generations)
+    ax12.plot(evoSim.mcModel.state_i, evoSim.mcModel.va_i,c='blue',label='vb')
+    ax12.plot(evoSim.mcModel.state_i, evoSim.mcModel.vc_i,c='red',label='vc')
+    ax12.plot(evoSim.mcModel.state_i, evoSim.mcModel.ve_i,c='black',label='vE')
+    ax12.scatter(evoSim.mcModel.state_i[vaEst!=0],vaEst[vaEst!=0],facecolors='none', edgecolors='b',label='vbEst')
+    ax12.set_xlabel('absolute fitness state')
+    ax12.set_ylabel('rate of adaptation')
+    ax12.legend()
+    
+    # save figure in location where outputs are located
+    figName = evoSim.outputStatsFile.replace('.csv','_mcModel.png')
+    fig.savefig(figName,bbox_inches='tight')
+    
+    return None
+
+# --------------------------------------------------------------------------
+
+def get_evoSnapshot(evoSimSnapShotFile):
+    # simple method to load the Sim data
+    
+    # save the data to a pickle file
+    with open(evoSimSnapShotFile, 'rb') as file:
+        # Serialize and write the variable to the file
+        evoSim = pickle.load(file)
+            
+    return evoSim
+
+# --------------------------------------------------------------------------
+
+def save_evoSnapshot(evoSim):
+    # save evoSim object to location of outputs
+    
+    with open(evoSim.get_evoSimFilename(), 'wb') as file:
+        # Serialize and write the variable to the file
+        pickle.dump(evoSim, file)
+    
+    return None
+
+# --------------------------------------------------------------------------

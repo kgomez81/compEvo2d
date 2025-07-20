@@ -64,22 +64,22 @@ class SimEvoInit():
         #                    2) for shifts back that shuffle abudances to decrease
         #                    fitness of individiuals by fixed amount (fixed s)
         #
-        #  - modeType   - RM (running our of mutations) or DRE (diminishing returns
+        #  - modelType  - RM (running our of mutations) or DRE (diminishing returns
         #                 epistasis) for selection coefficients
         #
-        # - absFitType - bEvo or dEvo for evolution in b- or d- trait
+        #  - absFitType - bEvo or dEvo for evolution in b- or d- trait
         #                 (dEvo sim class not implemented)
         #
-        self.modelDynamics = simPathsIO['modelDynamics']
+        self.modelDynamics  = simPathsIO['modelDynamics']
         self.simpleEnvShift = simPathsIO['simpleEnvShift']
-        self.modelType  = simPathsIO['modelType']
-        self.absFitType = simPathsIO['absFitType']
+        self.modelType      = simPathsIO['modelType']
+        self.absFitType     = simPathsIO['absFitType']
 
         # generate the MC model 
         #   note: parameters are capture as a member of this class
         #   note: set pfixSolver type to 3 (use selection coeff) for faster calculations
         #         since we don't actually need pfix for the simulations
-        self.evoOptions = evoObj.evoOptions(self.paramFilePath,self.modelType,self.absFitType)
+        self.evoOptions     = evoObj.evoOptions(self.paramFilePath,self.modelType,self.absFitType)
         self.evoOptions.params['pfixSolver'] = 3
         
         self.mcModel   = mcFac.mcFactory().createMcModel( self.evoOptions )

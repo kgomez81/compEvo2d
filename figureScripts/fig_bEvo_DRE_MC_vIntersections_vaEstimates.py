@@ -2,7 +2,9 @@
 """
 Created on Sat Mar 05 15:30:20 2022
 
-@author: dirge
+@author: Kevin Gomez
+This is a second version of the MC vIntersections figure, with sim data used
+to get 
 """
 
 # --------------------------------------------------------------------------
@@ -78,6 +80,13 @@ else:
         with open(os.path.join(mcModelOutputPath,saveDatFile[ii]), 'rb') as file:
             # Serialize and write the variable to the file
             mcModels.append(pickle.load(file))
+
+#%% ------------------------------------------------------------------------
+# Load the sim data
+# --------------------------------------------------------------------------
+
+
+
             
 #%% ------------------------------------------------------------------------
 # generate figures

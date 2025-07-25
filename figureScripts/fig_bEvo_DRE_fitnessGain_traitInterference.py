@@ -37,16 +37,21 @@ def create_traitInterferenceFig(figDataSet):
     
     for ii in range(len(figDataSet)):
         
-        figData = figDataSet[0]
+        figData = figDataSet[ii]
     
         ax[ii].plot(figData['ve_perc'], figData['fit_int2env'],c='blue',marker='o', label='No Interference')
         ax[ii].plot(figData['ve_perc'], np.zeros(figData['ve_perc'].shape),c='red',marker='o',label='Perfect Stalling')
         ax[ii].plot(figData['ve_perc'], figData['fit_int2avg'],c='black',marker='o',label='Est. Interference')
         ax[ii].set_ylabel('Fitness Increase')
+        ax[ii].set_xlim([10,80])
+        ax[ii].set_xticks([10*ii for ii in range(1,9)])
         
-        if (ii==0):
+        if (ii==len(figDataSet)-1):
             ax[ii].set_xlabel('ve/v*(vb=vc)')
+            ax[ii].set_xticklabels([("%d%%" % (10*ii)) for ii in range(1,9)])
             ax[ii].legend()
+        else:
+            ax[ii].set_xticklabels(['' for ii in range(1,9)])
     
     # fig.savefig(figData['figSaveName'],bbox_inches='tight')
     

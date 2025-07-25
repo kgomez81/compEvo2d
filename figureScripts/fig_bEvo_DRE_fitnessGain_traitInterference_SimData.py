@@ -268,7 +268,7 @@ def main():
     # are needed to get the same number of sample sojourn times 
     
     # define input file paths setups
-    paramDefs['parFiles']   = ['04A','04A','04A','04A']
+    paramDefs['paramFile']   = ['04A','04A','04A','04A']
     paramDefs['figPanel']   = ['B','B','B','B']         # intended fig panel
     paramDefs['veSize']     = ['75','50','25','10']     # percent of vc=va value
     paramDefs['start_i']    = [145,145,145,145]
@@ -294,7 +294,7 @@ def main():
     # are needed to get the same number of sample sojourn times 
     
     # define input file paths setups
-    paramDefs['parFiles']   = ['03A','03A','03A','03A']
+    paramDefs['paramFile']   = ['03A','03A','03A','03A']
     paramDefs['figPanel']   = ['C','C','C','C']         # intended fig panel
     paramDefs['veSize']     = ['75','50','25','10']     # percent of vc=va value
     paramDefs['start_i']    = [75,75,75,75]

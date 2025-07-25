@@ -160,7 +160,7 @@ def write_outputfile_list(outputfiles,save_name):
     full_save_name = os.path.join(outputfiles[0][-1],save_name)
     
     # headers
-    headers = ['ve_percent','sim_stats','adap_log','sim_snapshot','sim_runtime','output_dir']
+    headers = ['ve_percent','sim_runtime','sim_stats','adap_log','sim_snapshot','output_dir']
     
     # loop through list of output files
     for ii in range(len(outputfiles)):

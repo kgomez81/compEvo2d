@@ -277,7 +277,11 @@ def main():
     
     # carry out sim runs in parallel
     outputfiles = Parallel(n_jobs=cpu_count())(delayed(runSimulation)(get_simInit(paramDefs,kk)) for kk in range(nSims))
-    
+
+    # add to the list the selected ve size
+    for ii in range(nSims):
+        outputfiles[ii] = [paramDefs['veSize'][ii]] + outputfiles[ii]
+        
     # save a list of the output files in the output directory
     save_name  = 'simList_bEvo_DRE_fitnessGain_traitInterference_medRho.csv'
     write_outputfile_list(outputfiles,save_name)
@@ -300,6 +304,10 @@ def main():
     # carry out sim runs in parallel
     outputfiles = Parallel(n_jobs=cpu_count())(delayed(runSimulation)(get_simInit(paramDefs,kk)) for kk in range(nSims))
     
+    # add to the list the selected ve size
+    for ii in range(nSims):
+        outputfiles[ii] = [paramDefs['veSize'][ii]] + outputfiles[ii]
+        
     # save a list of the output files in the output directory
     save_name  = 'simList_bEvo_DRE_fitnessGain_traitInterference_highRho.csv'
     write_outputfile_list(outputfiles,save_name)

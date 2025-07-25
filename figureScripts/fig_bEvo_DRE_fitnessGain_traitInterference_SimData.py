@@ -200,6 +200,9 @@ def runSimulation(simInit):
     # return collections of the relevant output files to use for figure generation
     sim_run_output_files = []
     
+    # save run time
+    sim_run_output_files.append(str(sim_runtime))
+    
     # file with times and mean fitness statistics
     sim_run_output_files.append(evoSim.outputStatsFile)
     
@@ -208,9 +211,6 @@ def runSimulation(simInit):
     
     # pickle snapshot of evo object, needed to build plots
     sim_run_output_files.append(evoSim.get_evoSimFilename())
-    
-    # save run time
-    sim_run_output_files.append(str(sim_runtime))
     
     # save output directory
     sim_run_output_files.append(os.path.split(evoSim.get_evoSimFilename())[0])
@@ -239,11 +239,11 @@ def main():
     ##############################
     
     # define input file paths setups
-    paramDefs['paramFile']  = ['04A','04A','04A','04A']
-    paramDefs['figPanel']   = ['B','B','B','B']         # intended fig panel
+    paramDefs['paramFile']  = ['04B','04B','04B','04B']
+    paramDefs['figPanel']   = ['A','A','A','A']         # intended fig panel
     paramDefs['veSize']     = ['75','50','25','10']     # percent of vc=va value
-    paramDefs['start_i']    = [20,20,20,20]
-    paramDefs['t_stop']     = [5E4,5E4,5E4,5E4]
+    paramDefs['start_i']    = [95,95,95,95]
+    paramDefs['t_stop']     = [7E4,7E4,7E4,7E4]
     nSims                   = len(paramDefs['veSize'])
     
     # carry out sim runs in parallel
@@ -261,6 +261,28 @@ def main():
     write_outputfile_list(outputfiles,save_name)
     
     ##############################
+    # Rho ~ 1 sample set
+    ##############################
+    # These runs take much longer because rho > 1 parameter sets 
+    # often have low va conditions, so significantly more iterations
+    # are needed to get the same number of sample sojourn times 
+    
+    # define input file paths setups
+    paramDefs['parFiles']   = ['04A','04A','04A','04A']
+    paramDefs['figPanel']   = ['B','B','B','B']         # intended fig panel
+    paramDefs['veSize']     = ['75','50','25','10']     # percent of vc=va value
+    paramDefs['start_i']    = [145,145,145,145]
+    paramDefs['t_stop']     = [7E4,7E4,7E4,7E4]
+    nSims                   = len(paramDefs['veSize'])
+    
+    # carry out sim runs in parallel
+    outputfiles = Parallel(n_jobs=cpu_count())(delayed(runSimulation)(get_simInit(paramDefs,kk)) for kk in range(nSims))
+    
+    # save a list of the output files in the output directory
+    save_name  = 'simList_bEvo_DRE_fitnessGain_traitInterference_medRho.csv'
+    write_outputfile_list(outputfiles,save_name)
+    
+    ##############################
     # Rho > 1 sample set
     ##############################
     # These runs take much longer because rho > 1 parameter sets 
@@ -269,9 +291,9 @@ def main():
     
     # define input file paths setups
     paramDefs['parFiles']   = ['03A','03A','03A','03A']
-    paramDefs['figPanel']   = ['A','A','A','A']         # intended fig panel
+    paramDefs['figPanel']   = ['C','C','C','C']         # intended fig panel
     paramDefs['veSize']     = ['75','50','25','10']     # percent of vc=va value
-    paramDefs['start_i']    = [20,20,20,20]
+    paramDefs['start_i']    = [75,75,75,75]
     paramDefs['t_stop']     = [7E4,7E4,7E4,7E4]
     nSims                   = len(paramDefs['veSize'])
     

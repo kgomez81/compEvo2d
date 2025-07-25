@@ -18,6 +18,9 @@ sys.path.insert(0, os.getcwd() + '\\..')
 
 from evoLibraries.LotteryModel import LM_functions as lmfun
 
+from evoLibraries import evoObjects as evoObj
+from evoLibraries.MarkovChain import MC_factory as mcFac
+
 #%% ------------------------------------------------------------------------
 #                               Functions   
 # --------------------------------------------------------------------------
@@ -767,6 +770,37 @@ def plot_mcModel_histAndVaEstimates(evoSim):
     fig.savefig(figName,bbox_inches='tight')
     
     return None
+
+# --------------------------------------------------------------------------
+
+def plot_mcModel_fromInputFile(paramfile,modelType,absFitType):
+    # plot_mcModel_fromInputFile() generates the MC model from a parameter file
+    
+    # load selection dynamics file
+    
+    mcEvoOptions    = evoObj.evoOptions(paramfile,modelType,absFitType)
+    mcModel         = mcFac.mcFactory().createMcModel( mcEvoOptions )
+    
+    # Figures to plot include the mean fitnes abs and relative
+    idxss = int(mcModel.get_mc_stable_state_idx()-1)
+    vdx   = mcModel.va_i[idxss]
+    rho   = mcModel.calculate_evoRho()
+    
+    fig,ax = plt.subplots(1,1,figsize=[6,6])
+    
+    # MC model
+    ax.scatter(mcModel.state_i, mcModel.va_i,c='blue',label='vb')
+    ax.scatter(mcModel.state_i, mcModel.vc_i,c='red',label='vc')
+    ax.plot(mcModel.state_i, mcModel.ve_i,c='black',label='vE')
+    ax.set_xlabel('absolute fitness state')
+    ax.set_ylabel('rate of adaptation')
+    ax.legend()
+    
+    idxlbl = ("i_ss=%d, rho=%.2f" % (idxss,rho))
+    ax.text(15,0*vdx,idxlbl, fontsize = 12)             
+    
+    return None
+
 
 # --------------------------------------------------------------------------
 

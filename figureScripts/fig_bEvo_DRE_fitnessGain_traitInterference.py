@@ -152,8 +152,8 @@ def main():
     
     figSetup['dataList'] = []
     figSetup['dataList'].append('simList_bEvo_DRE_fitnessGain_traitInterference_lowRho.csv')
-    figSetup['dataList'].append('simList_bEvo_DRE_fitnessGain_traitInterference_medRho.csv')
-    figSetup['dataList'].append('simList_bEvo_DRE_fitnessGain_traitInterference_highRho.csv')
+    # figSetup['dataList'].append('simList_bEvo_DRE_fitnessGain_traitInterference_medRho.csv')
+    # figSetup['dataList'].append('simList_bEvo_DRE_fitnessGain_traitInterference_highRho.csv')
     
     nFig = len(figSetup['dataList'])
     figDatSet = []

@@ -222,6 +222,7 @@ def runSimulation(simInit):
 # --------------------------------------------------------------------------
 
 def param_set_varyVe():
+    # param_set_varyVe parameter sets 
     
     # dictionary to setup parameters
     paramDefs = dict()
@@ -233,16 +234,19 @@ def param_set_varyVe():
     paramDefs['start_i'  ] = []    # starting state
     paramDefs['t_stop'   ] = []    # sim stopping time
     
+    # add the full set of simulations for the new figures
+    # each set will include sampled simulations from 10,20,...,100
+    
     ##############################
     # Rho < 1 sample set    
     ##############################
     
     # define input file paths setups
-    paramDefs['paramFile']  .extend(['04B'           for kk in range()])
-    paramDefs['figPanel']   .extend(['A'             for kk in range()])
-    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range()])
-    paramDefs['start_i']    .extend([95              for kk in range()])
-    paramDefs['t_stop']     .extend([7E4             for kk in range()])
+    paramDefs['paramFile']  .extend(['04B'           for kk in range(1,11)])
+    paramDefs['figPanel']   .extend(['A'             for kk in range(1,11)])
+    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
+    paramDefs['start_i']    .extend([95              for kk in range(1,11)])
+    paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
 
     ##############################
     # Rho ~ 1 sample set
@@ -252,11 +256,11 @@ def param_set_varyVe():
     # are needed to get the same number of sample sojourn times 
     
     # define input file paths setups
-    paramDefs['paramFile']  .extend(['04A','04A','04A','04A'])
-    paramDefs['figPanel']   .extend(['B','B','B','B'])
-    paramDefs['veSize']     .extend(['75','50','25','10'])
-    paramDefs['start_i']    .extend([145,145,145,145])
-    paramDefs['t_stop']     .extend([7E4,7E4,7E4,7E4])
+    paramDefs['paramFile']  .extend(['04A'           for kk in range(1,11)])
+    paramDefs['figPanel']   .extend(['B'             for kk in range(1,11)])
+    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
+    paramDefs['start_i']    .extend([145             for kk in range(1,11)])
+    paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
     
     ##############################
     # Rho > 1 sample set
@@ -266,11 +270,69 @@ def param_set_varyVe():
     # are needed to get the same number of sample sojourn times 
     
     # define input file paths setups
-    paramDefs['paramFile']  .extend(['03A','03A','03A','03A'])
-    paramDefs['figPanel']   .extend(['C','C','C','C'])
-    paramDefs['veSize']     .extend(['75','50','25','10'])
-    paramDefs['start_i']    .extend([75,75,75,75])
-    paramDefs['t_stop']     .extend([7E4,7E4,7E4,7E4])
+    paramDefs['paramFile']  .extend(['03A'           for kk in range(1,11)])
+    paramDefs['figPanel']   .extend(['C'             for kk in range(1,11)])
+    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
+    paramDefs['start_i']    .extend([75              for kk in range(1,11)])
+    paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
+     
+    return paramDefs
+
+# --------------------------------------------------------------------------
+
+def param_set_varyT():
+    
+    # dictionary to setup parameters
+    paramDefs = dict()
+    
+    # define input file paths setups
+    paramDefs['paramFile'] = []    # parameter file to use
+    paramDefs['figPanel' ] = []    # intended fig panel 
+    paramDefs['veSize'   ] = []    # percent of vc=va value
+    paramDefs['start_i'  ] = []    # starting state
+    paramDefs['t_stop'   ] = []    # sim stopping time
+    
+    # add the full set of simulations for the new figures
+    # each set will include sampled simulations from 10,20,...,100
+    
+    ##############################
+    # Rho < 1 sample set    
+    ##############################
+    
+    # define input file paths setups
+    paramDefs['paramFile']  .extend(['04B'           for kk in range(1,11)])
+    paramDefs['figPanel']   .extend(['A'             for kk in range(1,11)])
+    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
+    paramDefs['start_i']    .extend([95              for kk in range(1,11)])
+    paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
+
+    ##############################
+    # Rho ~ 1 sample set
+    ##############################
+    # These runs take much longer because rho > 1 parameter sets 
+    # often have low va conditions, so significantly more iterations
+    # are needed to get the same number of sample sojourn times 
+    
+    # define input file paths setups
+    paramDefs['paramFile']  .extend(['04A'           for kk in range(1,11)])
+    paramDefs['figPanel']   .extend(['B'             for kk in range(1,11)])
+    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
+    paramDefs['start_i']    .extend([145             for kk in range(1,11)])
+    paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
+    
+    ##############################
+    # Rho > 1 sample set
+    ##############################
+    # These runs take much longer because rho > 1 parameter sets 
+    # often have low va conditions, so significantly more iterations
+    # are needed to get the same number of sample sojourn times 
+    
+    # define input file paths setups
+    paramDefs['paramFile']  .extend(['03A'           for kk in range(1,11)])
+    paramDefs['figPanel']   .extend(['C'             for kk in range(1,11)])
+    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
+    paramDefs['start_i']    .extend([75              for kk in range(1,11)])
+    paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
      
     return paramDefs
 
@@ -286,7 +348,7 @@ def main():
     # arrayResults = Parallel(n_jobs=cpu_count())
     #           ( delayed(_myFunction) ( tuple_params(kk) ) for kk in range(arraySize) )
 
-    # dictionary to setup parameters
+    # dictionary to setup parameters for runs with ve 
     paramDefs   = param_set_varyVe()
     nSims       = len(paramDefs['paramFiles'])
     

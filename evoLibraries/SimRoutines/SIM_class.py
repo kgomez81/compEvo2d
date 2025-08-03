@@ -102,6 +102,10 @@ class simClass(ABC):
         # counter for environmental shifts
         self.envShiftCntr = 0
         
+        # mutation axis minimum to track total adaptation in relative fitness 
+        # integers track the minimum mutation count
+        self.ibarRel_MinMutCnt = 0
+        
         # Adaptive events logger, with entries corresponding to following
         #
         #  0. time of last adaptive event
@@ -122,11 +126,17 @@ class simClass(ABC):
         # with the assumption being that va_mean = d_ibar/dt ~ const.
         
         # Initialize for time zero, and current mean fitness, no kappa correction
-        self.adaptiveEventLog = dict({'last_event_time':0, 
+        self.adaptiveEventAbs_Log = dict({'last_event_time':0, 
                                      'crnt_fitness_state': np.floor(self.get_ibarAbs()),
                                      'sojourn_kappa': 0,
                                      'adapt_event_counter':0 })
         
+        # Adatpive events relative fitness logger, logs adaptive events in 
+        # relative fitness for a given absolute fitness state. 
+        self.adaptiveEventRel_Log = dict({'last_event_time':0, 
+                                     'crnt_fitness_state': np.floor(self.get_ibarRelTot()),
+                                     'sojourn_kappa': 0,
+                                     'adapt_event_counter':0 })
         # sim time
         self.t = 0
         
@@ -443,8 +453,18 @@ class simClass(ABC):
         self.cij_mutCnt = self.cij_mutCnt[idxR[0]:idxR[1],idxC[0]:idxC[1]]
         
         # need to renormalize the cij mutation counts to prevent cij values 
-        # from growing too large
-        self.cij_mutCnt = self.cij_mutCnt-np.min(self.cij_mutCnt)+1
+        # from growing too large; but save the scale adjustment to track total
+        # adaptation on the relative fitness axis.
+        #
+        # e.g.  We adjust as follows
+        #
+        #       cij_mutCnt  =   [2 3] -->   [0 1]
+        #                       [2 3]       [0 1]
+        #
+        #       ibarRelTot            --> ibarRelTot + 2
+        #
+        self.ibarRel_MinMutCnt = self.ibarRel_MinMutCnt + np.min(self.cij_mutCnt)
+        self.cij_mutCnt = self.cij_mutCnt-np.min(self.cij_mutCnt)
 
         # Note: these array are trimmed here but their values must be maintined
         #       the implementation of get_populationMutations()
@@ -744,6 +764,16 @@ class simClass(ABC):
 
         return ibarRel
     
+    # --------------------------------------------------------------------------
+    
+    def get_ibarRelTot(self):
+        # The method returns the mean state over the relative fitness space.
+        # this is ibar is for absolute mutation counts
+        
+        ibarRelTot = np.sum(self.nij*self.cij_mutCnt)/np.sum(self.nij) + self.ibarRel_MinMutCnt
+
+        return ibarRelTot
+    
     #------------------------------------------------------------------------------
     
     def get_veIter(self):
@@ -821,9 +851,10 @@ class simClass(ABC):
                 envDegrCnt = envDegrCnt-1
                 
             # reset log for adaptive events, due to environment changing
-            self.adaptiveEventLog['last_event_time'] = self.t                           # set current time
-            self.adaptiveEventLog['crnt_fitness_state'] = np.floor(self.get_ibarAbs())     # set current fit state
-            self.adaptiveEventLog['sojourn_kappa'] = np.mod(self.get_ibarAbs(),1)     # set kappa after fitness decline
+            # this only applies to absolute fitness
+            self.adaptiveEventAbs_Log['last_event_time'] = self.t                               # set current time
+            self.adaptiveEventAbs_Log['crnt_fitness_state'] = np.floor(self.get_ibarAbs())      # set current fit state
+            self.adaptiveEventAbs_Log['sojourn_kappa'] = np.mod(self.get_ibarAbs(),1)           # set kappa after fitness decline
         
         return None
     
@@ -993,42 +1024,79 @@ class simClass(ABC):
         # has been an adaptive event, i.e. the mean fitness state incremented
         # 
         # cases where mean fitness has dropped because of environmental changes
-        # are handled in sample_environmentalDegredation()
+        # are handled in sample_environmentalDegredation() for absolute fitness
         
         # check if mean fitness has jumped to the next state
-        if ( self.adaptiveEventLog['crnt_fitness_state'] < np.floor(self.get_ibarAbs())):
+        if ( self.adaptiveEventAbs_Log['crnt_fitness_state'] < np.floor(self.get_ibarAbs())):
             
             # log the adaptive event 
-            self.output_adpativeEventStatistics()
+            self.output_adpativeEventStatistics('abs')
             
             # reset log for the next adaptive event, and increment the counter
-            self.adaptiveEventLog['last_event_time'] = self.t
-            self.adaptiveEventLog['crnt_fitness_state'] = np.floor(self.get_ibarAbs())
-            self.adaptiveEventLog['sojourn_kappa'] = 0
-            self.adaptiveEventLog['adapt_event_counter'] = self.adaptiveEventLog['adapt_event_counter']+1
+            self.adaptiveEventAbs_Log['last_event_time']        = self.t
+            self.adaptiveEventAbs_Log['crnt_fitness_state']     = np.floor(self.get_ibarAbs())
+            self.adaptiveEventAbs_Log['sojourn_kappa']          = 0
+            self.adaptiveEventAbs_Log['adapt_event_counter']    = self.adaptiveEventAbs_Log['adapt_event_counter']+1
         
+        # also check if mean relative fitness jumped to the next state
+        if ( self.adaptiveEventRel_Log['crnt_fitness_state'] < np.floor(self.get_ibarRelTot())):
+            
+            # log the adaptive event 
+            self.output_adpativeEventStatistics('rel')
+            
+            # reset log for the next adaptive event, and increment the counter
+            self.adaptiveEventRel_Log['last_event_time']        = self.t
+            self.adaptiveEventRel_Log['crnt_fitness_state']     = np.floor(self.get_ibarRelTot())
+            self.adaptiveEventRel_Log['sojourn_kappa']          = 0
+            self.adaptiveEventRel_Log['adapt_event_counter']    = self.adaptiveEventRel_Log['adapt_event_counter']+1
+            
         return None
     
     #------------------------------------------------------------------------------
     
-    def output_adpativeEventStatistics(self):
+    def output_adpativeEventStatistics(self,fitType):
         # store_adpativeEventStatistics() calculates the outputs to track the 
         # statistics of adaptive events. 
         
         # setup o parameters for data collection
         outputs = []
         headers = []
+        adaptLog = dict()
         
-        sjrn_kappa = self.adaptiveEventLog['sojourn_kappa']
-        fitn_state = self.adaptiveEventLog['crnt_fitness_state']
-        adap_cntr  = self.adaptiveEventLog['adapt_event_counter']
-        
-        if (1 - self.adaptiveEventLog['sojourn_kappa'] > 0):
-            # use Est. sojourn time =  # iterations (i-1+kappa => i) / (1-kappa)
-            sjrn_time = (self.t-self.adaptiveEventLog['last_event_time'])/(1-sjrn_kappa)
+        if (fitType == 'abs'):
+            sjrn_kappa = self.adaptiveEventAbs_Log['sojourn_kappa']
+            fitn_state = self.adaptiveEventAbs_Log['crnt_fitness_state']
+            adap_cntr  = self.adaptiveEventAbs_Log['adapt_event_counter']    
+            
+            # environment degredation can cause shorter then expected sojourn
+            # times, which need to be corrected. We use the simplest correction
+            # below, but also store kappa to filter out cases where sojourn 
+            # times are unreliable.
+            if (1 - self.adaptiveEventAbs_Log['sojourn_kappa'] > 0):
+                # use Est. sojourn time =  # iterations (i-1+kappa => i) / (1-kappa)
+                sjrn_time = (self.t-self.adaptiveEventAbs_Log['last_event_time'])/(1-sjrn_kappa)
+            else:
+                # alpha was set to 1 (should be no greater than 1)
+                sjrn_time = (self.t-self.adaptiveEventAbs_Log['last_event_time'])
+            
         else:
-            # alpha was set to 1 (should be no greater than 1)
-            sjrn_time = (self.t-self.adaptiveEventLog['last_event_time'])
+            sjrn_kappa = self.adaptiveEventAbs_Log['sojourn_kappa']
+            fitn_state = self.adaptiveEventAbs_Log['crnt_fitness_state']
+            adap_cntr  = self.adaptiveEventAbs_Log['adapt_event_counter']    
+            
+            # environment degredation can cause shorter then expected sojourn
+            # times, which need to be corrected. We use the simplest correction
+            # below, but also store kappa to filter out cases where sojourn 
+            # times are unreliable.
+            if (1 - self.adaptiveEventAbs_Log['sojourn_kappa'] > 0):
+                # use Est. sojourn time =  # iterations (i-1+kappa => i) / (1-kappa)
+                sjrn_time = (self.t-self.adaptiveEventAbs_Log['last_event_time'])/(1-sjrn_kappa)
+            else:
+                # alpha was set to 1 (should be no greater than 1)
+               
+        
+        
+        
             
         outputs.append(fitn_state)
         outputs.append(sjrn_time)
@@ -1142,6 +1210,13 @@ class simClass(ABC):
         # get_adaptiveEventsLogFilename() is a simple wrapper to get the name
         # of the file with the logged adaptive events. 
         return self.outputStatsFile.replace('.csv','_adaptLog.csv')
+    
+    #------------------------------------------------------------------------------
+    
+    def get_adaptiveEventsLogFilename_Rel(self):
+        # get_adaptiveEventsLogFilename_Rel() is a simple wrapper to get the name
+        # of the file with the logged adaptive events in relative fitness. 
+        return self.outputStatsFile.replace('.csv','_adapReltLog.csv')
     
     #------------------------------------------------------------------------------
     

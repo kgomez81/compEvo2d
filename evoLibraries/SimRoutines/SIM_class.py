@@ -861,19 +861,12 @@ class simClass(ABC):
                 
             # reset log for adaptive events, due to environment changing
             self.reset_adaptiveEventAbs_Log('EnvEvent')
-            self.adaptiveEventAbs_Log['last_event_time'] = self.t                               # set current time
-            self.adaptiveEventAbs_Log['crnt_fitness_state'] = np.floor(self.get_ibarAbs())      # set current fit state
-            self.adaptiveEventAbs_Log['sojourn_kappa'] = np.mod(self.get_ibarAbs(),1)           # set kappa after fitness decline
             
             # also need to reset the log for adaptive events in relative fitness
             # when environmental events occur because we can only properly measure
             # them at a fixed state in absolute fitness space. When absolute
             # fitnes changes, the log must be adjusted 
-            self.reset_adaptiveEventRel_Log()
-            self.adaptiveEventRel_Log['last_event_time'] = self.t                               # set current time
-            self.adaptiveEventRel_Log['crnt_fitness_state'] = np.floor(self.get_ibarRelTot())   # set current fit state
-            self.adaptiveEventRel_Log['sojourn_kappa'] = np.mod(self.get_ibarRelTot(),1)        # set kappa after fitness decline
-            self.adaptiveEventRel_Log['current_abs_state'] = np.floor(self.get_ibarAbs())       # capture the current absolute fitness state
+            self.reset_adaptiveEventRel_Log('EnvEvent')
         
         return None
     
@@ -1042,13 +1035,16 @@ class simClass(ABC):
         # check_adaptiveStatistics is ran each iteration to determine if there
         # has been an adaptive event, i.e. the mean fitness state incremented
         # 
+        # Note:
         # cases where mean fitness has dropped because of environmental changes
         # are handled in sample_environmentalDegredation() for absolute fitness
         #
-        # Additionally, in the case of relative fitness, its adaptive event log
-        # must be reset with an increment in absolute fitness, because we can 
-        # only approximately measure rates adaptation in relative fitness at 
-        # a fixed absolute fitness state when both trates are evolving.
+        # Overall process:
+        #
+        # 1. Check for types of adaptive events
+        # 2. Output the adaptation events
+        # 3. Reset the adaptation logs
+        #
         
         # was there an adaptation in the absolute fitness trait
         adapEventAbs_Flag = self.adaptiveEventAbs_Log['crnt_fitness_state'] < np.floor(self.get_ibarAbs())
@@ -1056,28 +1052,31 @@ class simClass(ABC):
         adapEventRel_Flag = self.adaptiveEventRel_Log['crnt_fitness_state'] < np.floor(self.get_ibarRelTot())
         
         # Check the different cases where mean fitness jumped to the next state 
-        if ( adapEventAbs_Flag and not adapEventRel_Flag):
+        if ( adapEventAbs_Flag and not (adapEventRel_Flag) ):
             
-            # log the adaptive event 
+            # log the adaptive event
             self.output_adpativeEventStatistics('abs')
             
-            # reset log for the next adaptive event, and increment the counter
-            
+            # reset the log
+            self.reset_adaptiveEventAbs_Log('AbsEvent')
         
-        elif (): 
-            # now 
-        # also check if mean relative fitness jumped to the next state
-        if ( ):
+        elif ( not (adapEventAbs_Flag) and adapEventRel_Flag ):
             
-            # log the adaptive event 
+            # log the adaptive event
             self.output_adpativeEventStatistics('rel')
             
-            # reset log for the next adaptive event, and increment the counter
-            self.adaptiveEventRel_Log['last_event_time']        = self.t
-            self.adaptiveEventRel_Log['crnt_fitness_state']     = np.floor(self.get_ibarRelTot())
-            self.adaptiveEventRel_Log['sojourn_kappa']          = 0
-            self.adaptiveEventRel_Log['adapt_event_counter']    = self.adaptiveEventRel_Log['adapt_event_counter']+1
-            self.
+            # reset the logs
+            self.reset_adaptiveEventAbs_Log('RelEvent')
+            
+        elif ( adapEventAbs_Flag and adapEventRel_Flag ):
+            
+            # log the adaptive event
+            self.output_adpativeEventStatistics('abs')
+            self.output_adpativeEventStatistics('rel')
+            
+            # reset the logs
+            self.reset_adaptiveEventAbs_Log('AbsEvent')
+            self.reset_adaptiveEventAbs_Log('RelEvent')
             
         return None
     
@@ -1099,7 +1098,6 @@ class simClass(ABC):
         #
         self.adaptiveEventAbs_Log['last_event_time']        = self.t
         self.adaptiveEventAbs_Log['crnt_fitness_state']     = np.floor(self.get_ibarAbs())
-        
         
         if (eventType == 'EnvEvent'):
             # for enviromental degredation events, we don't update the counter
@@ -1147,6 +1145,11 @@ class simClass(ABC):
             self.adaptiveEventAbs_Log['sojourn_kappa']          = 0
             self.adaptiveEventAbs_Log['adapt_event_counter']    = self.adaptiveEventAbs_Log['adapt_event_counter']+1
         
+        elif (eventType == 'AbsRelEvent'):
+            # Special where an absolute and relative adaptive event occurs
+            self.adaptiveEventAbs_Log['sojourn_kappa']          = 0
+            self.adaptiveEventAbs_Log['adapt_event_counter']    = self.adaptiveEventAbs_Log['adapt_event_counter']+1
+        
         return None
     
     #------------------------------------------------------------------------------
@@ -1154,16 +1157,34 @@ class simClass(ABC):
     def output_adpativeEventStatistics(self,fitType):
         # store_adpativeEventStatistics() calculates the outputs to track the 
         # statistics of adaptive events. 
+        #
+        # We used identical headers for absolute and relative fitness files
+        #
+        #  1. fitness_state: relative or absolute fitness state of the 
+        #                    measured sojourn time.
+        #
+        #  2. sojourn_time:  iterations spent in the fitness_state (in 1) for
+        #                    absolute and relative fitness
+        #
+        #  3. sojourn_kappa: scale adjustment for sojourn time to account for 
+        #                    only partial times spent in a given state
+        #
+        #  4. adapt_counter: sadf
+        #
+        #  5. crnt_abs_fit:  This value only matters for relative fitness, and 
+        #                    is used to indicate the associated abs fit state
+        #                    for the measured sojourn time.
         
         # setup o parameters for data collection
         outputs = []
         headers = []
-        adaptLog = dict()
         
         if (fitType == 'abs'):
+            
             sjrn_kappa = self.adaptiveEventAbs_Log['sojourn_kappa']
             fitn_state = self.adaptiveEventAbs_Log['crnt_fitness_state']
             adap_cntr  = self.adaptiveEventAbs_Log['adapt_event_counter']    
+            crnt_iabs  = 0   # this value is irrelavent for va estimates
             
             # environment degredation can cause shorter then expected sojourn
             # times, which need to be corrected. We use the simplest correction
@@ -1176,41 +1197,47 @@ class simClass(ABC):
                 # alpha was set to 1 (should be no greater than 1)
                 sjrn_time = (self.t-self.adaptiveEventAbs_Log['last_event_time'])
             
-        else:
-            sjrn_kappa = self.adaptiveEventAbs_Log['sojourn_kappa']
-            fitn_state = self.adaptiveEventAbs_Log['crnt_fitness_state']
-            adap_cntr  = self.adaptiveEventAbs_Log['adapt_event_counter']    
+            # select the log files for absolute fitness
+            logFile = self.get_adaptiveEventsLogFilename('abs')
+            
+        elif (fitType == 'rel'):
+            sjrn_kappa = self.adaptiveEventRel_Log['sojourn_kappa']
+            fitn_state = self.adaptiveEventRel_Log['crnt_fitness_state']
+            adap_cntr  = self.adaptiveEventRel_Log['adapt_event_counter']    
+            crnt_iabs  = self.adaptiveEventAbs_Log['crnt_fitness_state']
             
             # environment degredation can cause shorter then expected sojourn
             # times, which need to be corrected. We use the simplest correction
             # below, but also store kappa to filter out cases where sojourn 
             # times are unreliable.
-            if (1 - self.adaptiveEventAbs_Log['sojourn_kappa'] > 0):
+            if (1 - self.adaptiveEventRel_Log['sojourn_kappa'] > 0):
                 # use Est. sojourn time =  # iterations (i-1+kappa => i) / (1-kappa)
                 sjrn_time = (self.t-self.adaptiveEventAbs_Log['last_event_time'])/(1-sjrn_kappa)
             else:
                 # alpha was set to 1 (should be no greater than 1)
-               
-        
-        
-        
+                sjrn_time = (self.t-self.adaptiveEventRel_Log['last_event_time'])
+            
+            # select the log files for absolute fitness
+            logFile = self.get_adaptiveEventsLogFilename('rel')
             
         outputs.append(fitn_state)
         outputs.append(sjrn_time)
         outputs.append(sjrn_kappa)
         outputs.append(adap_cntr)
+        outputs.append(crnt_iabs)
         headers.append('fitness_state')
         headers.append('sojourn_time')
         headers.append('sojourn_kappa')
         headers.append('adapt_counter')
+        headers.appedn('crnt_abs_fit')
             
         # open the file and append new data
         if (adap_cntr==0):  
             # if logging for first time, add headers             
-            self.log_evoData(self.get_adaptiveEventsLogFilename(),outputs,headers)
+            self.log_evoData(logFile,outputs,headers)
         else:
             # subsequent logs don't require headers
-            self.log_evoData(self.get_adaptiveEventsLogFilename(),outputs)
+            self.log_evoData(logFile,outputs)
 
         return None
     
@@ -1303,17 +1330,16 @@ class simClass(ABC):
 
     #------------------------------------------------------------------------------
     
-    def get_adaptiveEventsLogFilename(self):
+    def get_adaptiveEventsLogFilename(self,fitType=None):
         # get_adaptiveEventsLogFilename() is a simple wrapper to get the name
-        # of the file with the logged adaptive events. 
-        return self.outputStatsFile.replace('.csv','_adaptLog.csv')
-    
-    #------------------------------------------------------------------------------
-    
-    def get_adaptiveEventsLogFilename_Rel(self):
-        # get_adaptiveEventsLogFilename_Rel() is a simple wrapper to get the name
-        # of the file with the logged adaptive events in relative fitness. 
-        return self.outputStatsFile.replace('.csv','_adapReltLog.csv')
+        # of the file with the logged adaptive events.
+        
+        if (fitType == None) or (fitType == 'abs'):
+            logFile = self.outputStatsFile.replace('.csv','_adaptLog.csv')
+        else:
+            logFile = self.outputStatsFile.replace('.csv','_adaptLogRel.csv')
+        
+        return logFile
     
     #------------------------------------------------------------------------------
     

@@ -133,10 +133,19 @@ class simClass(ABC):
         
         # Adatpive events relative fitness logger, logs adaptive events in 
         # relative fitness for a given absolute fitness state. 
+        #
+        # Similar to the absolute fitness case, we simply log the a start time 
+        # of the prior event or environmental degredation event, log a kappa 
+        # correction factor to account for cases with the latter. 
+        #
+        # However, in this case we have to keep track of the associated absolute
+        # fiteness state space because that indicates what the strength of 
+        # selection is for the relative trait by virtue of its density dependence
         self.adaptiveEventRel_Log = dict({'last_event_time':0, 
                                      'crnt_fitness_state': np.floor(self.get_ibarRelTot()),
                                      'sojourn_kappa': 0,
-                                     'adapt_event_counter':0 })
+                                     'adapt_event_counter':0,
+                                     'current_abs_state': np.floor(self.get_ibarAbs())})
         # sim time
         self.t = 0
         
@@ -851,10 +860,20 @@ class simClass(ABC):
                 envDegrCnt = envDegrCnt-1
                 
             # reset log for adaptive events, due to environment changing
-            # this only applies to absolute fitness
+            self.reset_adaptiveEventAbs_Log('EnvEvent')
             self.adaptiveEventAbs_Log['last_event_time'] = self.t                               # set current time
             self.adaptiveEventAbs_Log['crnt_fitness_state'] = np.floor(self.get_ibarAbs())      # set current fit state
             self.adaptiveEventAbs_Log['sojourn_kappa'] = np.mod(self.get_ibarAbs(),1)           # set kappa after fitness decline
+            
+            # also need to reset the log for adaptive events in relative fitness
+            # when environmental events occur because we can only properly measure
+            # them at a fixed state in absolute fitness space. When absolute
+            # fitnes changes, the log must be adjusted 
+            self.reset_adaptiveEventRel_Log()
+            self.adaptiveEventRel_Log['last_event_time'] = self.t                               # set current time
+            self.adaptiveEventRel_Log['crnt_fitness_state'] = np.floor(self.get_ibarRelTot())   # set current fit state
+            self.adaptiveEventRel_Log['sojourn_kappa'] = np.mod(self.get_ibarRelTot(),1)        # set kappa after fitness decline
+            self.adaptiveEventRel_Log['current_abs_state'] = np.floor(self.get_ibarAbs())       # capture the current absolute fitness state
         
         return None
     
@@ -1025,21 +1044,30 @@ class simClass(ABC):
         # 
         # cases where mean fitness has dropped because of environmental changes
         # are handled in sample_environmentalDegredation() for absolute fitness
+        #
+        # Additionally, in the case of relative fitness, its adaptive event log
+        # must be reset with an increment in absolute fitness, because we can 
+        # only approximately measure rates adaptation in relative fitness at 
+        # a fixed absolute fitness state when both trates are evolving.
         
-        # check if mean fitness has jumped to the next state
-        if ( self.adaptiveEventAbs_Log['crnt_fitness_state'] < np.floor(self.get_ibarAbs())):
+        # was there an adaptation in the absolute fitness trait
+        adapEventAbs_Flag = self.adaptiveEventAbs_Log['crnt_fitness_state'] < np.floor(self.get_ibarAbs())
+        # was there an adaptation in the relative fitness trait
+        adapEventRel_Flag = self.adaptiveEventRel_Log['crnt_fitness_state'] < np.floor(self.get_ibarRelTot())
+        
+        # Check the different cases where mean fitness jumped to the next state 
+        if ( adapEventAbs_Flag and not adapEventRel_Flag):
             
             # log the adaptive event 
             self.output_adpativeEventStatistics('abs')
             
             # reset log for the next adaptive event, and increment the counter
-            self.adaptiveEventAbs_Log['last_event_time']        = self.t
-            self.adaptiveEventAbs_Log['crnt_fitness_state']     = np.floor(self.get_ibarAbs())
-            self.adaptiveEventAbs_Log['sojourn_kappa']          = 0
-            self.adaptiveEventAbs_Log['adapt_event_counter']    = self.adaptiveEventAbs_Log['adapt_event_counter']+1
+            
         
+        elif (): 
+            # now 
         # also check if mean relative fitness jumped to the next state
-        if ( self.adaptiveEventRel_Log['crnt_fitness_state'] < np.floor(self.get_ibarRelTot())):
+        if ( ):
             
             # log the adaptive event 
             self.output_adpativeEventStatistics('rel')
@@ -1049,7 +1077,76 @@ class simClass(ABC):
             self.adaptiveEventRel_Log['crnt_fitness_state']     = np.floor(self.get_ibarRelTot())
             self.adaptiveEventRel_Log['sojourn_kappa']          = 0
             self.adaptiveEventRel_Log['adapt_event_counter']    = self.adaptiveEventRel_Log['adapt_event_counter']+1
+            self.
             
+        return None
+    
+    #------------------------------------------------------------------------------
+    
+    def reset_adaptiveEventAbs_Log(self,eventType):
+        # simple function to reset the adaptive events log for absolute
+        # fitness
+        
+        # regarless of the event, we always need to update
+        #
+        #   - last_event_time
+        #   - crnt_fitness_state
+        #
+        # the other fields are case dependent
+        #
+        #   - sojourn_kappa
+        #   - adapt_event_counter
+        #
+        self.adaptiveEventAbs_Log['last_event_time']        = self.t
+        self.adaptiveEventAbs_Log['crnt_fitness_state']     = np.floor(self.get_ibarAbs())
+        
+        
+        if (eventType == 'EnvEvent'):
+            # for enviromental degredation events, we don't update the counter
+            # for absolute adaptations, just set a new kappa for sojourn time
+            # adjustments in post processing.
+            self.adaptiveEventAbs_Log['sojourn_kappa'] = np.mod(self.get_ibarAbs(),1)           # set kappa after fitness decline
+            
+        elif (eventType == 'AbsEvent'):
+            # for absolute fitness adaptation events, increment the counter 
+            # and reset the sojourn kappa
+            self.adaptiveEventAbs_Log['sojourn_kappa']          = 0
+            self.adaptiveEventAbs_Log['adapt_event_counter']    = self.adaptiveEventAbs_Log['adapt_event_counter']+1
+            
+        return None
+    
+    #------------------------------------------------------------------------------
+    
+    def reset_adaptiveEventRel_Log(self,eventType):
+        # simple function to reset the adaptive events log for relative
+        # fitness
+        
+        # regarless of the event, we always need to update
+        #
+        #   - last_event_time
+        #   - crnt_fitness_state
+        #
+        # the other fields are case dependent
+        #
+        #   - sojourn_kappa
+        #   - adapt_event_counter
+        #   - current_abs_state
+        #
+        self.adaptiveEventRel_Log['last_event_time']        = self.t
+        self.adaptiveEventRel_Log['crnt_fitness_state']     = np.floor(self.get_ibarRelTot())
+        
+        if (eventType == 'EnvEvent') or (eventType == 'AbsEvent'):
+            # for environmental degredation, we have to reset the aboslute 
+            # fitness state field, and sojourn kappa            
+            self.adaptiveEventRel_Log['sojourn_kappa'] = np.mod(self.get_ibarRelTot(),1)           # set kappa after fitness decline
+            self.adaptiveEventRel_Log['current_abs_state'] = self.get_ibarAbs()
+            
+        elif (eventType == 'RelEvent'):
+            # for the case when there is an adaptation in relative fitness, we 
+            # increment the counter, and reset the sojourn kappa value
+            self.adaptiveEventAbs_Log['sojourn_kappa']          = 0
+            self.adaptiveEventAbs_Log['adapt_event_counter']    = self.adaptiveEventAbs_Log['adapt_event_counter']+1
+        
         return None
     
     #------------------------------------------------------------------------------

@@ -51,7 +51,7 @@ import figFunctions as figfun
 # methods to setup and execute simulation runs for figures 2A/B
 # --------------------------------------------------------------------------
 
-def getSimInit(init):
+def getSimInit(init,outputDir):
     # The method getSimInit() takes in arguments to specify the struct needed
     # to initialize a simulation object.
     simPathsIO  = dict()
@@ -60,7 +60,7 @@ def getSimInit(init):
     simPathsIO['paramFile']     = init['paramFile']
     simPathsIO['paramTag']      = init['paramTag']
     
-    simPathsIO['simDatDir']     = 'sim_bEvo_DRE_VeFitChng_NewTest'
+    simPathsIO['simDatDir']     = outputDir             # Eg. 'sim_bEvo_DRE_VeFitChng_NewTest'
     simPathsIO['statsFile']     = init['statsFile']
     simPathsIO['snpshtFile']    = init['snpshtFile']
     
@@ -115,9 +115,13 @@ def getSimInit(init):
     va_intersect            = simInit.mcModel.va_i[int(inters_idx)]
     tau_intersect           = 1/(simInit.mcModel.di[int(inters_idx)]-1)
     v_fraction              = init['veSize']/100.0
+    T_fraction              = init['TSize']/100.0
     
     # implement the equation above
     simInit.params['se']    = v_fraction * va_intersect / (simInit.params['R'] * tau_intersect)
+    
+    # adjust Territory size
+    simInit.params['T']     = T_fraction * simInit.params['T']
     
     # recalculate MC model with changes to params above
     simInit.recaculate_mcModel()
@@ -126,7 +130,7 @@ def getSimInit(init):
 
 # --------------------------------------------------------------------------
 
-def get_simInit(paramDefs,ii):
+def get_simInit(paramDefs,ii,outputDir):
     # simple function to generate init structs for simulation runs simulation 
     # paramDefs should be a dictionary with lists entries for 
     #
@@ -142,13 +146,16 @@ def get_simInit(paramDefs,ii):
     # set up sim initialization items that vary
     init['paramFile']  = ('evoExp_DRE_bEvo_%s_parameters.csv'   % (paramDefs['paramFile'][ii]))
     init['paramTag']   = ('param_%s_DRE_bEvo'                   % (paramDefs['paramFile'][ii]))
-    init['statsFile']  = ('sim_Fig4%s_ve%s_stats'               % (paramDefs['figPanel'][ii],paramDefs['veSize'][ii]))
-    init['snpshtFile'] = ('sim_Fig4%s_ve%s_snpsht'              % (paramDefs['figPanel'][ii],paramDefs['veSize'][ii]))
+    init['statsFile']  = ('sim_Fig%s%s_ve%s_T%s_stats'          % (paramDefs['figNumber'][ii],paramDefs['figPanel'][ii],paramDefs['veSize'][ii],paramDefs['TSize'][ii]))
+    init['snpshtFile'] = ('sim_Fig%s%s_ve%s_T%s_snpsht'         % (paramDefs['figNumber'][ii],paramDefs['figPanel'][ii],paramDefs['veSize'][ii],paramDefs['TSize'][ii]))
     init['initState']  = paramDefs['start_i'][ii]
-    init['veSize']     = float(paramDefs['veSize'][ii])
     init['tmax']       = paramDefs['t_stop'][ii]
     
-    return getSimInit(init)
+    # set ve fraction of vc=va, and T-fraction of paramfile T
+    init['veSize']     = float(paramDefs['veSize'][ii])
+    init['TSize']      = float(paramDefs['TSize'][ii])
+        
+    return getSimInit(init,outputDir)
 
 # --------------------------------------------------------------------------
 
@@ -160,7 +167,7 @@ def write_outputfile_list(outputfiles,save_name):
     full_save_name = os.path.join(outputfiles[0][-1],save_name)
     
     # headers
-    headers = ['ve_percent','sim_runtime','sim_stats','adap_log_abs','adap_log_rel','sim_snapshot','output_dir']
+    headers = ['fig_panel','ve_percent','T_percent','sim_runtime','sim_stats','adap_log_abs','adap_log_rel','sim_snapshot','output_dir']
     
     # loop through list of output files
     for ii in range(len(outputfiles)):
@@ -230,10 +237,15 @@ def param_set_varyVe():
     
     # define input file paths setups
     paramDefs['paramFile'] = []    # parameter file to use
+    paramDefs['figNumber'] = []    # intended fig number
     paramDefs['figPanel' ] = []    # intended fig panel 
     paramDefs['veSize'   ] = []    # percent of vc=va value
+    paramDefs['TSize'    ] = []    # percent of T in param file
     paramDefs['start_i'  ] = []    # starting state
     paramDefs['t_stop'   ] = []    # sim stopping time
+    
+    # max sim time
+    tMax = 3E7
     
     # add the full set of simulations for the new figures
     # each set will include sampled simulations from 10,20,...,100
@@ -244,38 +256,44 @@ def param_set_varyVe():
     
     # define input file paths setups
     paramDefs['paramFile']  .extend(['04B'           for kk in range(1,11)])
+    paramDefs['figNumber']  .extend(['4'             for kk in range(1,11)])
     paramDefs['figPanel']   .extend(['A'             for kk in range(1,11)])
     paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
     paramDefs['start_i']    .extend([95              for kk in range(1,11)])
-    paramDefs['t_stop']     .extend([1E5             for kk in range(1,11)])
+    paramDefs['t_stop']     .extend([tMax            for kk in range(1,11)])
+    paramDefs['TSize']      .extend([str(100)        for kk in range(1,11)])
 
-    # ##############################
-    # # Rho ~ 1 sample set
-    # ##############################
-    # # These runs take much longer because rho > 1 parameter sets 
-    # # often have low va conditions, so significantly more iterations
-    # # are needed to get the same number of sample sojourn times 
+    ##############################
+    # Rho ~ 1 sample set
+    ##############################
+    # These runs take much longer because rho > 1 parameter sets 
+    # often have low va conditions, so significantly more iterations
+    # are needed to get the same number of sample sojourn times 
     
-    # # define input file paths setups
-    # paramDefs['paramFile']  .extend(['04A'           for kk in range(1,11)])
-    # paramDefs['figPanel']   .extend(['B'             for kk in range(1,11)])
-    # paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
-    # paramDefs['start_i']    .extend([145             for kk in range(1,11)])
-    # paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
+    # define input file paths setups
+    paramDefs['paramFile']  .extend(['04A'           for kk in range(1,11)])
+    paramDefs['figNumber']  .extend(['4'             for kk in range(1,11)])
+    paramDefs['figPanel']   .extend(['B'             for kk in range(1,11)])
+    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
+    paramDefs['start_i']    .extend([145             for kk in range(1,11)])
+    paramDefs['t_stop']     .extend([tMax            for kk in range(1,11)])
+    paramDefs['TSize']      .extend([str(100)        for kk in range(1,11)])
     
-    # ##############################
-    # # Rho > 1 sample set
-    # ##############################
-    # # These runs take much longer because rho > 1 parameter sets 
-    # # often have low va conditions, so significantly more iterations
-    # # are needed to get the same number of sample sojourn times 
+    ##############################
+    # Rho > 1 sample set
+    ##############################
+    # These runs take much longer because rho > 1 parameter sets 
+    # often have low va conditions, so significantly more iterations
+    # are needed to get the same number of sample sojourn times 
     
-    # # define input file paths setups
-    # paramDefs['paramFile']  .extend(['03A'           for kk in range(1,11)])
-    # paramDefs['figPanel']   .extend(['C'             for kk in range(1,11)])
-    # paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
-    # paramDefs['start_i']    .extend([75              for kk in range(1,11)])
-    # paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
+    # define input file paths setups
+    paramDefs['paramFile']  .extend(['03A'           for kk in range(1,11)])
+    paramDefs['figNumber']  .extend(['4'             for kk in range(1,11)])
+    paramDefs['figPanel']   .extend(['C'             for kk in range(1,11)])
+    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
+    paramDefs['start_i']    .extend([75              for kk in range(1,11)])
+    paramDefs['t_stop']     .extend([tMax            for kk in range(1,11)])
+    paramDefs['TSize']      .extend([str(100)        for kk in range(1,11)])
      
     return paramDefs
 
@@ -288,24 +306,27 @@ def param_set_varyT():
     
     # define input file paths setups
     paramDefs['paramFile'] = []    # parameter file to use
+    paramDefs['figNumber'] = []    # intended fig number
     paramDefs['figPanel' ] = []    # intended fig panel 
     paramDefs['veSize'   ] = []    # percent of vc=va value
+    paramDefs['TSize'    ] = []    # percent of T in param file
     paramDefs['start_i'  ] = []    # starting state
     paramDefs['t_stop'   ] = []    # sim stopping time
     
-    # add the full set of simulations for the new figures
+    # max sim time
+    tMax = 3E7
+    
+    # add the full set of simulations for the new figures with sampling design
     # each set will include sampled simulations from 10,20,...,100
+    vef = [50, 75, 100]
+    Ttf = [100, 200, 500, 1000]
     
-    ##############################
-    # Rho < 1 sample set    
-    ##############################
-    
-    # define input file paths setups
-    paramDefs['paramFile']  .extend(['04B'           for kk in range(1,11)])
-    paramDefs['figPanel']   .extend(['A'             for kk in range(1,11)])
-    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
-    paramDefs['start_i']    .extend([95              for kk in range(1,11)])
-    paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
+    kkMap = []
+    for ii in range(len(vef)):
+        for jj in range(len(Ttf)):
+            kkMap.extend([[ii,jj]])
+
+    nMap = len(kkMap)
 
     ##############################
     # Rho ~ 1 sample set
@@ -315,25 +336,13 @@ def param_set_varyT():
     # are needed to get the same number of sample sojourn times 
     
     # define input file paths setups
-    paramDefs['paramFile']  .extend(['04A'           for kk in range(1,11)])
-    paramDefs['figPanel']   .extend(['B'             for kk in range(1,11)])
-    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
-    paramDefs['start_i']    .extend([145             for kk in range(1,11)])
-    paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
-    
-    ##############################
-    # Rho > 1 sample set
-    ##############################
-    # These runs take much longer because rho > 1 parameter sets 
-    # often have low va conditions, so significantly more iterations
-    # are needed to get the same number of sample sojourn times 
-    
-    # define input file paths setups
-    paramDefs['paramFile']  .extend(['03A'           for kk in range(1,11)])
-    paramDefs['figPanel']   .extend(['C'             for kk in range(1,11)])
-    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
-    paramDefs['start_i']    .extend([75              for kk in range(1,11)])
-    paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
+    paramDefs['paramFile']  .extend(['04A'                  for kk in range(nMap)])
+    paramDefs['figNumber']  .extend(['5'                    for kk in range(nMap)])
+    paramDefs['figPanel']   .extend(['B'                    for kk in range(nMap)])
+    paramDefs['veSize']     .extend([str(vef[kkMap[kk][0]]) for kk in range(nMap)])
+    paramDefs['start_i']    .extend([145                    for kk in range(nMap)])
+    paramDefs['t_stop']     .extend([tMax                   for kk in range(nMap)])
+    paramDefs['TSize']      .extend([str(Ttf[kkMap[kk][1]]) for kk in range(nMap)])
      
     return paramDefs
 
@@ -349,22 +358,50 @@ def main():
     # arrayResults = Parallel(n_jobs=cpu_count())
     #           ( delayed(_myFunction) ( tuple_params(kk) ) for kk in range(arraySize) )
 
+    ###################################################
+    #### PART I - ve variation and intersections ######
+    ###################################################
+    
     # dictionary to setup parameters for runs with ve 
     paramDefs   = param_set_varyVe()
     nSims       = len(paramDefs['paramFile'])
+    outputDir   = 'sim_bEvo_DRE_VeFitChng_NewTest'
     
     # carry out sim runs in parallel
-    outputfiles = Parallel(n_jobs=cpu_count())(delayed(runSimulation)(get_simInit(paramDefs,kk)) for kk in range(nSims))
+    outputfiles = Parallel(n_jobs=cpu_count())(delayed(runSimulation)(get_simInit(paramDefs,kk,outputDir)) for kk in range(nSims))
     
     # non parallel verion
     # outputfiles = [runSimulation(get_simInit(paramDefs,kk)) for kk in range(1)]
     
     # add to the list the selected ve size
     for ii in range(nSims):
-        outputfiles[ii] = [paramDefs['figPanel'][ii],paramDefs['veSize'][ii]] + outputfiles[ii]
+        outputfiles[ii] = [paramDefs['figPanel'][ii],paramDefs['veSize'][ii],paramDefs['TSize'][ii]] + outputfiles[ii]
     
     # save a list of the output files in the output directory
-    save_name = 'simList_bEvo_DRE_fitnessGain_traitInterference_lowRho.csv'
+    save_name = 'simList_bEvo_DRE_fitnessGain_traitInterference_veFitChng.csv'
+    write_outputfile_list(outputfiles,save_name)
+    
+    ###################################################
+    #### PART II - T variation and intersections ######
+    ###################################################
+    
+    # dictionary to setup parameters for runs with ve 
+    paramDefs   = param_set_varyT()
+    nSims       = len(paramDefs['paramFile'])
+    outputDir   = 'sim_bEvo_DRE_TFitChng_NewTest'
+    
+    # carry out sim runs in parallel
+    outputfiles = Parallel(n_jobs=cpu_count())(delayed(runSimulation)(get_simInit(paramDefs,kk,outputDir)) for kk in range(nSims))
+    
+    # non parallel verion
+    # outputfiles = [runSimulation(get_simInit(paramDefs,kk)) for kk in range(1)]
+    
+    # add to the list the selected ve size
+    for ii in range(nSims):
+        outputfiles[ii] = [paramDefs['figPanel'][ii],paramDefs['veSize'][ii],paramDefs['TSize'][ii]] + outputfiles[ii]
+    
+    # save a list of the output files in the output directory
+    save_name = 'simList_bEvo_DRE_fitnessGain_traitInterference_TFitChng.csv'
     write_outputfile_list(outputfiles,save_name)
     
 if __name__ == "__main__":

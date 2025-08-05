@@ -60,7 +60,7 @@ def getSimInit(init):
     simPathsIO['paramFile']     = init['paramFile']
     simPathsIO['paramTag']      = init['paramTag']
     
-    simPathsIO['simDatDir']     = 'sim_bEvo_DRE_VeFitChng'
+    simPathsIO['simDatDir']     = 'sim_bEvo_DRE_VeFitChng_NewTest'
     simPathsIO['statsFile']     = init['statsFile']
     simPathsIO['snpshtFile']    = init['snpshtFile']
     
@@ -160,7 +160,7 @@ def write_outputfile_list(outputfiles,save_name):
     full_save_name = os.path.join(outputfiles[0][-1],save_name)
     
     # headers
-    headers = ['ve_percent','sim_runtime','sim_stats','adap_log','sim_snapshot','output_dir']
+    headers = ['ve_percent','sim_runtime','sim_stats','adap_log_abs','adap_log_rel','sim_snapshot','output_dir']
     
     # loop through list of output files
     for ii in range(len(outputfiles)):
@@ -207,7 +207,8 @@ def runSimulation(simInit):
     sim_run_output_files.append(evoSim.outputStatsFile)
     
     # log of adative events to estimate rates of adaptation
-    sim_run_output_files.append(evoSim.get_adaptiveEventsLogFilename())
+    sim_run_output_files.append(evoSim.get_adaptiveEventsLogFilename('abs'))
+    sim_run_output_files.append(evoSim.get_adaptiveEventsLogFilename('rel'))
     
     # pickle snapshot of evo object, needed to build plots
     sim_run_output_files.append(evoSim.get_evoSimFilename())
@@ -246,35 +247,35 @@ def param_set_varyVe():
     paramDefs['figPanel']   .extend(['A'             for kk in range(1,11)])
     paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
     paramDefs['start_i']    .extend([95              for kk in range(1,11)])
-    paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
+    paramDefs['t_stop']     .extend([1E5             for kk in range(1,11)])
 
-    ##############################
-    # Rho ~ 1 sample set
-    ##############################
-    # These runs take much longer because rho > 1 parameter sets 
-    # often have low va conditions, so significantly more iterations
-    # are needed to get the same number of sample sojourn times 
+    # ##############################
+    # # Rho ~ 1 sample set
+    # ##############################
+    # # These runs take much longer because rho > 1 parameter sets 
+    # # often have low va conditions, so significantly more iterations
+    # # are needed to get the same number of sample sojourn times 
     
-    # define input file paths setups
-    paramDefs['paramFile']  .extend(['04A'           for kk in range(1,11)])
-    paramDefs['figPanel']   .extend(['B'             for kk in range(1,11)])
-    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
-    paramDefs['start_i']    .extend([145             for kk in range(1,11)])
-    paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
+    # # define input file paths setups
+    # paramDefs['paramFile']  .extend(['04A'           for kk in range(1,11)])
+    # paramDefs['figPanel']   .extend(['B'             for kk in range(1,11)])
+    # paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
+    # paramDefs['start_i']    .extend([145             for kk in range(1,11)])
+    # paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
     
-    ##############################
-    # Rho > 1 sample set
-    ##############################
-    # These runs take much longer because rho > 1 parameter sets 
-    # often have low va conditions, so significantly more iterations
-    # are needed to get the same number of sample sojourn times 
+    # ##############################
+    # # Rho > 1 sample set
+    # ##############################
+    # # These runs take much longer because rho > 1 parameter sets 
+    # # often have low va conditions, so significantly more iterations
+    # # are needed to get the same number of sample sojourn times 
     
-    # define input file paths setups
-    paramDefs['paramFile']  .extend(['03A'           for kk in range(1,11)])
-    paramDefs['figPanel']   .extend(['C'             for kk in range(1,11)])
-    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
-    paramDefs['start_i']    .extend([75              for kk in range(1,11)])
-    paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
+    # # define input file paths setups
+    # paramDefs['paramFile']  .extend(['03A'           for kk in range(1,11)])
+    # paramDefs['figPanel']   .extend(['C'             for kk in range(1,11)])
+    # paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
+    # paramDefs['start_i']    .extend([75              for kk in range(1,11)])
+    # paramDefs['t_stop']     .extend([7E4             for kk in range(1,11)])
      
     return paramDefs
 
@@ -350,7 +351,7 @@ def main():
 
     # dictionary to setup parameters for runs with ve 
     paramDefs   = param_set_varyVe()
-    nSims       = len(paramDefs['paramFiles'])
+    nSims       = len(paramDefs['paramFile'])
     
     # carry out sim runs in parallel
     outputfiles = Parallel(n_jobs=cpu_count())(delayed(runSimulation)(get_simInit(paramDefs,kk)) for kk in range(nSims))

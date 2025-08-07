@@ -247,6 +247,10 @@ def param_set_varyVe():
     # max sim time
     tMax = 3E7
     
+    # ve sizes
+    vef  = [str(int(20*kk+10)) for kk in range(0,5)]
+    nPar = len(vef)
+    
     # add the full set of simulations for the new figures
     # each set will include sampled simulations from 10,20,...,100
     
@@ -255,13 +259,13 @@ def param_set_varyVe():
     ##############################
     
     # define input file paths setups
-    paramDefs['paramFile']  .extend(['04B'           for kk in range(1,11)])
-    paramDefs['figNumber']  .extend(['4'             for kk in range(1,11)])
-    paramDefs['figPanel']   .extend(['A'             for kk in range(1,11)])
-    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
-    paramDefs['start_i']    .extend([95              for kk in range(1,11)])
-    paramDefs['t_stop']     .extend([tMax            for kk in range(1,11)])
-    paramDefs['TSize']      .extend([str(100)        for kk in range(1,11)])
+    paramDefs['paramFile']  .extend(['04B'      for kk in range(nPar)])
+    paramDefs['figNumber']  .extend(['4'        for kk in range(nPar)])
+    paramDefs['figPanel']   .extend(['A'        for kk in range(nPar)])
+    paramDefs['veSize']     .extend([vef[kk]    for kk in range(nPar)])
+    paramDefs['start_i']    .extend([95         for kk in range(nPar)])
+    paramDefs['t_stop']     .extend([tMax       for kk in range(nPar)])
+    paramDefs['TSize']      .extend([str(100)   for kk in range(nPar)])
 
     ##############################
     # Rho ~ 1 sample set
@@ -271,13 +275,13 @@ def param_set_varyVe():
     # are needed to get the same number of sample sojourn times 
     
     # define input file paths setups
-    paramDefs['paramFile']  .extend(['04A'           for kk in range(1,11)])
-    paramDefs['figNumber']  .extend(['4'             for kk in range(1,11)])
-    paramDefs['figPanel']   .extend(['B'             for kk in range(1,11)])
-    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
-    paramDefs['start_i']    .extend([145             for kk in range(1,11)])
-    paramDefs['t_stop']     .extend([tMax            for kk in range(1,11)])
-    paramDefs['TSize']      .extend([str(100)        for kk in range(1,11)])
+    paramDefs['paramFile']  .extend(['04A'      for kk in range(nPar)])
+    paramDefs['figNumber']  .extend(['4'        for kk in range(nPar)])
+    paramDefs['figPanel']   .extend(['B'        for kk in range(nPar)])
+    paramDefs['veSize']     .extend([vef[kk]    for kk in range(nPar)])
+    paramDefs['start_i']    .extend([145        for kk in range(nPar)])
+    paramDefs['t_stop']     .extend([tMax       for kk in range(nPar)])
+    paramDefs['TSize']      .extend([str(100)   for kk in range(nPar)])
     
     ##############################
     # Rho > 1 sample set
@@ -287,13 +291,13 @@ def param_set_varyVe():
     # are needed to get the same number of sample sojourn times 
     
     # define input file paths setups
-    paramDefs['paramFile']  .extend(['03A'           for kk in range(1,11)])
-    paramDefs['figNumber']  .extend(['4'             for kk in range(1,11)])
-    paramDefs['figPanel']   .extend(['C'             for kk in range(1,11)])
-    paramDefs['veSize']     .extend([str(int(10*kk)) for kk in range(1,11)])
-    paramDefs['start_i']    .extend([75              for kk in range(1,11)])
-    paramDefs['t_stop']     .extend([tMax            for kk in range(1,11)])
-    paramDefs['TSize']      .extend([str(100)        for kk in range(1,11)])
+    paramDefs['paramFile']  .extend(['03A'      for kk in range(nPar)])
+    paramDefs['figNumber']  .extend(['4'        for kk in range(nPar)])
+    paramDefs['figPanel']   .extend(['C'        for kk in range(nPar)])
+    paramDefs['veSize']     .extend([vef[kk]    for kk in range(nPar)])
+    paramDefs['start_i']    .extend([75         for kk in range(nPar)])
+    paramDefs['t_stop']     .extend([tMax       for kk in range(nPar)])
+    paramDefs['TSize']      .extend([str(100)   for kk in range(nPar)])
      
     return paramDefs
 
@@ -368,7 +372,7 @@ def main():
     outputDir   = 'sim_bEvo_DRE_VeFitChng_NewTest'
     
     # carry out sim runs in parallel
-    outputfiles = Parallel(n_jobs=cpu_count())(delayed(runSimulation)(get_simInit(paramDefs,kk,outputDir)) for kk in range(nSims))
+    outputfiles = Parallel(n_jobs=cpu_count()-1)(delayed(runSimulation)(get_simInit(paramDefs,kk,outputDir)) for kk in range(nSims))
     
     # non parallel verion
     # outputfiles = [runSimulation(get_simInit(paramDefs,kk)) for kk in range(1)]
@@ -391,7 +395,7 @@ def main():
     outputDir   = 'sim_bEvo_DRE_TFitChng_NewTest'
     
     # carry out sim runs in parallel
-    outputfiles = Parallel(n_jobs=cpu_count())(delayed(runSimulation)(get_simInit(paramDefs,kk,outputDir)) for kk in range(nSims))
+    outputfiles = Parallel(n_jobs=cpu_count()-1)(delayed(runSimulation)(get_simInit(paramDefs,kk,outputDir)) for kk in range(nSims))
     
     # non parallel verion
     # outputfiles = [runSimulation(get_simInit(paramDefs,kk)) for kk in range(1)]

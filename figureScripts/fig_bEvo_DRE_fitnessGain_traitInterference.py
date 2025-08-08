@@ -29,6 +29,20 @@ from evoLibraries.LotteryModel import LM_functions as lmfun
 # Get parameters/options
 # --------------------------------------------------------------------------
 
+def get_mc_model_intersections(mcModel):
+    # this function takes an mc model and computes the 
+    mcIntersect = []
+    
+    # select ve samples between min(vc,va) to vc=va
+    
+    # calculate list of intersection points
+    
+    # save the intersection points to the output struct
+    
+    return mcIntersect
+
+# --------------------------------------------------------------------------
+
 def create_traitInterferenceFig(figDataSet):
     # create_traitInterferenceFig() generates the main figure showing the 
     # degree of interference between the relative and absolute fitness traits.
@@ -105,13 +119,19 @@ def get_simData(evoSimFile):
     return simData
 
 
-def get_figData(figSetup,ii):
+def get_figData(figSetup):
+    # this function loops throught the various panel data files and calculates
+    # the required figure data
     
     # get list of files
-    
-    fileList = os.path.join(figSetup['outputsPath'],figSetup['simDatDir'],figSetup['dataList'][ii])
+    fileList = os.path.join(figSetup['outputsPath'],figSetup['simDatDir'],figSetup['dataList'])
     dataFiles = pd.read_csv(fileList)
+    
+    # this will return the number of seperate runs associated with 
+    # a particular sim run set
     nFiles = len(dataFiles)
+    
+    panelset = dataFiles['fig_panel'].
     
     # array to collect results in
     data = []
@@ -147,20 +167,15 @@ def main():
     figSetup['figSavePath'] = os.path.join(os.getcwd(),'figures','MainDoc')
     
     # filenames and paths for saving outputs
-    figSetup['saveFigFile'] = 'fig_bEvo_DRE_fitnessGain_traitInterference.pdf'
+    figSetup['saveFigFile'] = 'fig_bEvo_DRE_fitnessGain_traitInterference_veFitChng.pdf'
     figSetup['simDatDir']   = 'sim_bEvo_DRE_VeFitChng'
     
-    figSetup['dataList'] = []
-    figSetup['dataList'].append('simList_bEvo_DRE_fitnessGain_traitInterference_lowRho.csv')
-    # figSetup['dataList'].append('simList_bEvo_DRE_fitnessGain_traitInterference_medRho.csv')
-    # figSetup['dataList'].append('simList_bEvo_DRE_fitnessGain_traitInterference_highRho.csv')
+    # set the output files to load 
+    figSetup['dataList'] = 'simList_bEvo_DRE_fitnessGain_traitInterference_veFitChng.csv'
     
-    nFig = len(figSetup['dataList'])
-    figDatSet = []
-    
-    for ii in range(nFig):
-        # get the sim data from the file list
-        figDatSet.append(get_figData(figSetup,ii))
+    # get the sim data from the file list, function will carry out the calculations
+    # needed for plots and return them as a list for each figset
+    figDatSet=get_figData(figSetup)
         
     # create the figure
     create_traitInterferenceFig(figDatSet)

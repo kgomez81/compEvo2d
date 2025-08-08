@@ -318,12 +318,12 @@ def param_set_varyT():
     paramDefs['t_stop'   ] = []    # sim stopping time
     
     # max sim time
-    tMax = 3E7
+    tMax = 1E7
     
     # add the full set of simulations for the new figures with sampling design
     # each set will include sampled simulations from 10,20,...,100
     vef = [50, 75, 100]
-    Ttf = [100, 200, 500, 1000]
+    Ttf = [100, 500, 10000]
     
     kkMap = []
     for ii in range(len(vef)):
@@ -362,28 +362,28 @@ def main():
     # arrayResults = Parallel(n_jobs=cpu_count())
     #           ( delayed(_myFunction) ( tuple_params(kk) ) for kk in range(arraySize) )
 
-    ###################################################
-    #### PART I - ve variation and intersections ######
-    ###################################################
+    # ###################################################
+    # #### PART I - ve variation and intersections ######
+    # ###################################################
     
-    # dictionary to setup parameters for runs with ve 
-    paramDefs   = param_set_varyVe()
-    nSims       = len(paramDefs['paramFile'])
-    outputDir   = 'sim_bEvo_DRE_VeFitChng_NewTest'
+    # # dictionary to setup parameters for runs with ve 
+    # paramDefs   = param_set_varyVe()
+    # nSims       = len(paramDefs['paramFile'])
+    # outputDir   = 'sim_bEvo_DRE_VeFitChng_NewTest'
     
-    # carry out sim runs in parallel
-    outputfiles = Parallel(n_jobs=cpu_count()-1)(delayed(runSimulation)(get_simInit(paramDefs,kk,outputDir)) for kk in range(nSims))
+    # # carry out sim runs in parallel
+    # outputfiles = Parallel(n_jobs=cpu_count()-1)(delayed(runSimulation)(get_simInit(paramDefs,kk,outputDir)) for kk in range(nSims))
     
-    # non parallel verion
-    # outputfiles = [runSimulation(get_simInit(paramDefs,kk)) for kk in range(1)]
+    # # non parallel verion
+    # # outputfiles = [runSimulation(get_simInit(paramDefs,kk)) for kk in range(1)]
     
-    # add to the list the selected ve size
-    for ii in range(nSims):
-        outputfiles[ii] = [paramDefs['figPanel'][ii],paramDefs['veSize'][ii],paramDefs['TSize'][ii]] + outputfiles[ii]
+    # # add to the list the selected ve size
+    # for ii in range(nSims):
+    #     outputfiles[ii] = [paramDefs['figPanel'][ii],paramDefs['veSize'][ii],paramDefs['TSize'][ii]] + outputfiles[ii]
     
-    # save a list of the output files in the output directory
-    save_name = 'simList_bEvo_DRE_fitnessGain_traitInterference_veFitChng.csv'
-    write_outputfile_list(outputfiles,save_name)
+    # # save a list of the output files in the output directory
+    # save_name = 'simList_bEvo_DRE_fitnessGain_traitInterference_veFitChng.csv'
+    # write_outputfile_list(outputfiles,save_name)
     
     ###################################################
     #### PART II - T variation and intersections ######

@@ -700,6 +700,55 @@ def calculate_RateOfAdapt_estimates(evoSim):
             vaEstimates[ii] = sa/Tbar*tau
             
     return vaEstimates
+
+#------------------------------------------------------------------------------
+    
+def get_estimateRateOfAdaptFromSim(data,fitType,mcModel):
+    # calculate_RateOfAdapt_estimates() takes the data from the adaptive 
+    # events log from a simulation run and estimates rate of adaptation
+    # across the state space.
+    #
+    # Note: here we make the assumption that the index is the state space.
+    #       this could change if using dEvo model!
+    
+    # data from adaptive event log files should have following headers:
+    #
+    # fitness_state - abs or rel fitness state
+    # sojourn_time  - time spent in the fitness state
+    # sojourn_kappa - sojourn time adjustment 
+    # adapt_counter - counter for number of adaptive events (-1)
+    # crnt_abs_state - zero if abs log, and abs fitness state for rel log
+    #
+    
+    # process data to calculate the estimates as follows:
+    #   1. T_i = iterations spend in state at state k
+    #   2. T_bar_k = (1/n) * sum_(T_i for state k)
+    #   3. va_iter = sa_k / T_bar_k
+    #   4. va_gen = tau * va_iter
+    
+    # loop through the states with data
+    if (fitType == 'abs'):
+        fit_state_key = 'fitness_state'
+    elif (fitType == 'rel'):
+        fit_state_key = 'crnt_abs_fit'
+    
+    states = list(map(int,np.sort(np.unique(data[fit_state_key].values))))
+    idxStates = np.array(states)
+    vaEstimates = np.zeros(idxStates.shape)
+    
+    for ii in states:
+        
+        # query for the entries if state ii
+        tempData = data.query(fit_state_key + ' == '+str(ii)+' and sojourn_kappa < 0.4')
+        
+        # if date was found meeting the criteria, then calculate an estimate of v
+        if (len(tempData)>0):
+            Tbar = np.sum(tempData['sojourn_time'].values)/len(tempData)
+            sa = mcModel.sa_i[ii]
+            tau = 1/(mcModel.di[ii]-1)
+            vaEstimates[ii] = sa/Tbar*tau
+            
+    return [idxStates,vaEstimates]
     
 #------------------------------------------------------------------------------
 

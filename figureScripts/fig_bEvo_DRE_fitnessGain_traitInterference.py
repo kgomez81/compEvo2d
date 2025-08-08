@@ -29,20 +29,6 @@ from evoLibraries.LotteryModel import LM_functions as lmfun
 # Get parameters/options
 # --------------------------------------------------------------------------
 
-def get_mc_model_intersections(mcModel):
-    # this function takes an mc model and computes the 
-    mcIntersect = []
-    
-    # select ve samples between min(vc,va) to vc=va
-    
-    # calculate list of intersection points
-    
-    # save the intersection points to the output struct
-    
-    return mcIntersect
-
-# --------------------------------------------------------------------------
-
 def create_traitInterferenceFig(figDataSet):
     # create_traitInterferenceFig() generates the main figure showing the 
     # degree of interference between the relative and absolute fitness traits.
@@ -71,12 +57,26 @@ def create_traitInterferenceFig(figDataSet):
     
     return None
 
+# --------------------------------------------------------------------------
+
 def get_simData(evoSimFile):
-    # get_simData() collects mean state of run, along with the two 
-    # intersections for va=vc (no ve) and va=ve (no vc), and fitness
-    # from intersection
+    # get_simData() collects mean state of run for a given ve size. The 
+    # output is mean state (int) and the fitness increase associated with this
+    # state relative to the va=vc theoretical intersections
+    # 
+    # outputs include:
+    # - idxVbVc             # perfect interference
+    # - idxAvg              # sim est interference
+    # - biInt               # bi at va=vc intersection
+    # - biAvg               # bi at average abs state
+    # - dTerm               # d term of mc model for reference
+    # - fitChng_Int2Avg     # fit change va=vc to avg
     
-    # load evoSim 
+    
+    # get the evoSim object. We do it locally, becuase the evoSim object may
+    # not necessarily store the current working directory path, since the sim 
+    # runs sometimes occur on different machines and keep those paths with the 
+    # snapshot file.
     evoSim = figfun.get_evoSnapshot(evoSimFile)
     
     # load stat file with sampled data
@@ -86,77 +86,184 @@ def get_simData(evoSimFile):
     # get the average state
     bidx_avg = data['mean_b_idx'].values
     idxAvg = np.mean(bidx_avg)
-
-    # get the different vb=vc, vb=ve intersections
-    idxVbVe = np.max(evoSim.mcModel.get_va_ve_intersection_index())
-    idxVbVe = evoSim.mcModel.state_i[int(idxVbVe)]
     
+    # get the different vb=vc intersections
     idxVbVc = np.max(evoSim.mcModel.get_va_vc_intersection_index())
     idxVbVc = evoSim.mcModel.state_i[int(idxVbVc)]
     
-    
     # estimate fitness changes
     biInt = evoSim.mcModel.bi[int(idxVbVc)]
-    biEnv = evoSim.mcModel.bi[int(idxVbVe)]
     biAvg = evoSim.mcModel.bi[int(idxAvg)]
     dTerm = evoSim.mcModel.di[int(idxAvg)]
     
     fitChng_Int2Avg     = lmfun.get_b_SelectionCoeff(biInt,biAvg,dTerm)
-    fitChng_Int2Env     = lmfun.get_b_SelectionCoeff(biInt,biEnv,dTerm)
-    fitChng_Avg2Env     = lmfun.get_b_SelectionCoeff(biAvg,biEnv,dTerm)
-    
 
     # set data as outputs
     simData = []    
-    simData.append(idxAvg)      # sim est interference
-    simData.append(idxVbVe)     # no interference
-    simData.append(idxVbVc)     # perfect interference
-    
+    simData.append(idxVbVc)             # perfect interference
+    simData.append(idxAvg)              # sim est interference
+    simData.append(biInt)               # bi at va=vc intersection
+    simData.append(biAvg)               # bi at average abs state
+    simData.append(dTerm)               # d term of mc model for reference
     simData.append(fitChng_Int2Avg)     # fit change va=vc to avg
-    simData.append(fitChng_Int2Env)     # fit change va=vc to va=ve
-    simData.append(fitChng_Avg2Env)     # fit change avg to va=ve
     
     return simData
 
+# --------------------------------------------------------------------------
+
+def get_mcModelIntersect(evoSimFile):
+    # get_mcModelIntersect() takes an MC model and generates intersections 
+    # of ve with va values of the state space.
+    
+    # load evoSim object to ge tthe mcModel
+    evoSim = figfun.get_evoSnapshot(evoSimFile)    
+    
+    # first get va=vc intersection index
+    idxVbVc = np.max(evoSim.mcModel.get_va_vc_intersection_index())
+    
+    iSInt   = evoSim.mcModel.state_i[idxVbVc]
+    veInt   = evoSim.mcModel.va_i[idxVbVc]
+    biInt   = evoSim.mcModel.bi[idxVbVc]
+    dTerm   = evoSim.mcModel.di[idxVbVc]
+    
+    # now get all of the va's, bi above the intersection
+    ib = evoSim.mcModel.state_i [idxVbVc:]
+    bi = evoSim.mcModel.bi      [idxVbVc:]
+    va = evoSim.mcModel.va_i    [idxVbVc:]
+    
+    # clean up the data for only non negative va
+    ib = ib[va>0]
+    bi = bi[va>0]
+    va = va[va>0]
+    
+    # calculate the fitness increases along the possible va(=ve)
+    fitChng = np.zeros(va.shape)
+    vePerc  = np.zeros(va.shape)
+    
+    iInter   = iSInt * np.ones(va.shape)
+    bInter   = biInt * np.ones(va.shape)
+    vInter   = 100 * np.ones(va.shape)
+    fInter   = np.zeros(va.shape)
+    
+    for ii in range(va.shape[0]):
+        fitChng[ii] = lmfun.get_b_SelectionCoeff(biInt,bi[ii],dTerm)
+        vePerc[ii]  = va[ii]/veInt
+    
+    # set data as outputs
+    mcIntData = []    
+    mcIntData.append(ib)        # sim states associated with selected ve
+    mcIntData.append(bi)        # bi values associated with selected ve
+    mcIntData.append(va)        # actual values of ve
+    mcIntData.append(vePerc)    # ve as percent of va=vc thry value 
+    mcIntData.append(fitChng)   # fitness changes with shift to intersection
+    
+    # note: no fitness changes with perfect interference but these are being 
+    # added for convenience to generate the figure
+    mcIntData.append(iInter)    # intersection state
+    mcIntData.append(bInter)    # bi value at intersection
+    mcIntData.append(vInter)    # v value at intersection 
+    mcIntData.append(fInter)    # zeros because intersection doesn't change with ve
+
+    myKeys = ['ib','bi','vePerc','fitChng','i_star','b_star','v_star','f_star']
+    
+    simData = dict(zip(myKeys,mcIntData))
+    
+    return simData
+
+# --------------------------------------------------------------------------
+
+
+def get_effectiveVaVc(evoSimFile):
+    # get_effectiveVaVc() calculates estimates of va and vc from the adaptive 
+    # event log files.
+    
+    # load evoSim object to ge tthe mcModel
+    evoSim = figfun.get_evoSnapshot(evoSimFile)   
+    
+    # load abs log file and calculate the va estiamtes
+    absLogFile  = os.path.join( os.path.split(evoSimFile)[0], os.path.split(evoSim.get_adaptiveEventsLogFilename('abs'))[1] )
+    dataAbs     = pd.read_csv(absLogFile)
+    vaSimEst    = figfun.get_estimateRateOfAdaptFromSim(dataAbs,'abs',evoSim.mcModel)
+    
+    # load rel log file and calculate the vc estimates
+    relLogFile  = os.path.join( os.path.split(evoSimFile)[0], os.path.split(evoSim.get_adaptiveEventsLogFilename('rel'))[1] )
+    dataRel     = pd.read_csv(relLogFile)
+    vcSimEst    = figfun.get_estimateRateOfAdaptFromSim(dataRel,'rel',evoSim.mcModel)
+    
+    # save the estimates to a dictionary for plotting
+    simVaVcEst = dict({'vaEst': vaSimEst, 'vcEst': vcSimEst})
+    
+    return simVaVcEst
+
+# --------------------------------------------------------------------------
 
 def get_figData(figSetup):
-    # this function loops throught the various panel data files and calculates
-    # the required figure data
+    # get_figData() loops throught the various panel data files and calculates
+    # the required figure data. It requires a dictionary with the output
+    # directory and filenames where data is store for a simulation run.
     
     # get list of files
-    fileList = os.path.join(figSetup['outputsPath'],figSetup['simDatDir'],figSetup['dataList'])
+    workdir = os.path.join(figSetup['outputsPath'],figSetup['simDatDir'])
+    fileList = os.path.join(workdir,figSetup['dataList'])
     dataFiles = pd.read_csv(fileList)
     
     # this will return the number of seperate runs associated with 
     # a particular sim run set
     nFiles = len(dataFiles)
     
-    panelset = dataFiles['fig_panel'].
+    # this will get a list of the panels for reference, eg. ['A','B','C']
+    # the panels should be generated in order by the sim execution file.
+    panel_set = np.unique(dataFiles['fig_panel'].values)
     
-    # array to collect results in
-    data = []
-    
-    # loop through files and collection the data needed
+    # Create an array to collect simulation results in. The data will be stored
+    # as a dictionary consisting of [keys = Panels, [DataSet1,DataSet2]]
+    #
+    # 1. Panel will just be the char for the panel
+    # 2. DataSet will be a dictionary consisting of a couple of things:
+    #
+    #     - 1st Entry is array of va=ve (estimate) vs sa (relative to va=vc point)
+    #       Calculated from get_simData()
+    #
+    #     - 2nd Entry is array of max/min sa pairs from mc ve-va/vc intersections
+    #       Calculated from get_mcModelIntersect()
+    #
+    #     - 3rd Entry is array of effective va/vc values for given ve size
+    #       Calculated from get_mcModelIntersect()
+    #
+    figData = dict.fromkeys(panel_set)
+    for key in figData.keys():
+        figData[key] = [[],[],[]]
+        
+    # Now we loop through each file, get the data sets for entry 1 and entry 2.
+    #
+    # However, we note that entry 2 only needs to be calculate once, since the 
+    # MC model doesn't change across different ve sizes.
+    #
     for ii in range(nFiles):
-        # get the mean and median state of the run, as well as the other two
-        # intersection points: va=vc, va=ve, estimate rho
-        evoFile = os.path.join(figSetup['outputsPath'],figSetup['simDatDir'],os.path.split(dataFiles['sim_snapshot'][ii])[1]) 
-        print(evoFile)
-        data.append([float(dataFiles['ve_percent'][ii])] + get_simData(evoFile))
+        
+        # get the current evoSim object. The evoSim object has the mc model, 
+        # and output files needed for the figure data.
+        evoFile = os.path.join(workdir,dataFiles['sim_snapshot'][ii]) 
+        print("Processing: %s" % (evoFile))
+        
+        # get the current panel
+        crntKey = dataFiles['fig_panel'][ii]
+        
+        # calculate the 1st entry of data set for current file and append
+        # to respective dictionary entry for panel. This will be turned into 
+        # an array of data once all of the files have been processed.
+        figData[crntKey][0].append(get_simData(evoFile))
     
-    data = np.asarray(data)
-    
-    # after collecting the data, convert it into useful arrays for plotting
-    figData = dict()
-    figData['ve_perc'] = data[:,0]
-    figData['idx_avg'] = data[:,1]
-    figData['idx_int'] = data[:,2]
-    figData['idx_env'] = data[:,3]
-    figData['fit_int2avg'] = data[:,4]
-    figData['fit_int2env'] = data[:,5]
-    figData['fit_avg2env'] = data[:,6]
+        # check if the mc model still hasn't been populated for this panel
+        if (figData[crntKey][1] == []):
+            figData[crntKey][1].append(get_mcModelIntersect(evoFile))
+            
+        # calculate the third entry for va vc estimates
+        figData[crntKey][2].append(get_effectiveVaVc(evoFile))
     
     return figData
+
+# --------------------------------------------------------------------------
 
 def main():
     # main method to run the various simulation

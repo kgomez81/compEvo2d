@@ -752,6 +752,33 @@ def get_estimateRateOfAdaptFromSim(data,fitType,mcModel):
     
 #------------------------------------------------------------------------------
 
+def get_effectiveVaVc(evoSimFile):
+    # get_effectiveVaVc() calculates estimates of va and vc from the adaptive 
+    # event log files.
+    
+    # load evoSim object to ge tthe mcModel
+    evoSim = get_evoSnapshot(evoSimFile)   
+    
+    # load abs log file and calculate the va estiamtes
+    absLogFile  = os.path.join( os.path.split(evoSimFile)[0], os.path.split(evoSim.get_adaptiveEventsLogFilename('abs'))[1] )
+    dataAbs     = pd.read_csv(absLogFile)
+    vaSimEst    = get_estimateRateOfAdaptFromSim(dataAbs,'abs',evoSim.mcModel)
+    
+    # load rel log file and calculate the vc estimates
+    relLogFile  = os.path.join( os.path.split(evoSimFile)[0], os.path.split(evoSim.get_adaptiveEventsLogFilename('rel'))[1] )
+    dataRel     = pd.read_csv(relLogFile)
+    vcSimEst    = get_estimateRateOfAdaptFromSim(dataRel,'rel',evoSim.mcModel)
+    
+    # save the estimates to a dictionary for plotting. note that the data
+    # vaSimEst and vcSimEst will be lists with the state space in the first
+    # entry and the estimates in the second. state spaces that have not data
+    # will have zero as the estimate.
+    simVaVcEst = dict({'vaEst': vaSimEst, 'vcEst': vcSimEst})
+    
+    return simVaVcEst
+
+#------------------------------------------------------------------------------
+
 def plot_evoMcModel_withVaEst(evoSim,vaEst):
     # plot the MC model 
     
@@ -835,18 +862,21 @@ def plot_mcModel_fromInputFile(paramfile,modelType,absFitType):
     vdx   = mcModel.va_i[idxss]
     rho   = mcModel.calculate_evoRho()
     
+    
+    
     fig,ax = plt.subplots(1,1,figsize=[6,6])
     
     # MC model
     ax.scatter(mcModel.state_i, mcModel.va_i,c='blue',label='vb')
     ax.scatter(mcModel.state_i, mcModel.vc_i,c='red',label='vc')
+    
     ax.plot(mcModel.state_i, mcModel.ve_i,c='black',label='vE')
     ax.set_xlabel('absolute fitness state')
     ax.set_ylabel('rate of adaptation')
     ax.legend()
     
     idxlbl = ("i_ss=%d, rho=%.2f" % (idxss,rho))
-    ax.text(15,0*vdx,idxlbl, fontsize = 12)             
+    ax.text(15,0*vdx,idxlbl, fontsize = 12)                 
     
     return None
 

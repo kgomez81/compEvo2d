@@ -118,6 +118,7 @@ def getSimInit(init,outputDir):
     T_fraction              = init['TSize']/100.0
     
     # implement the equation above
+    # NOTE: you need to recalculate the model before setting this value
     simInit.params['se']    = v_fraction * va_intersect / (simInit.params['R'] * tau_intersect)
     
     # adjust Territory size

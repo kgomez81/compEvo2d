@@ -28,8 +28,6 @@ sys.path.insert(0, os.getcwd() + '\\..')
 # helper functions to manage data and generate plots
 import figFunctions as figfun
 
-from evoLibraries.LotteryModel import LM_functions as lmfun
-
 #%% ------------------------------------------------------------------------
 # Get parameters/options
 # --------------------------------------------------------------------------
@@ -63,9 +61,9 @@ def create_traitInterferenceFig(figDataSet,figSaveName):
         ax[ii].plot(figData['bEnv']['ve_perc'], figData['bEnv']['fit_chng'],c='blue' ,label='No Interference')
         
         # plot the fitness increase of the intersection va=vc curve
-        ax[ii].plot(figData['bInt']['ve_perc'], figData['bInt']['fit_chng'],c='red' ,label='Perfect Interference')
+        ax[ii].plot(figData['bInt']['ve_perc'], figData['bInt']['fit_chng'],c='red' ,label='Perfect Stalling')
         
-        ax[ii].set_ylabel('Fitness Increase')
+        ax[ii].set_ylabel('Change in Fitness')
         ax[ii].set_ylim(myYlims)
         ax[ii].set_xlim([0,100])
         ax[ii].set_xticks([10*ii for ii in range(0,11)])
@@ -94,8 +92,6 @@ def create_singleTraitInterferenceFig(figDataSet,figSaveName):
     # degree of interference between the relative and absolute fitness traits.
     # 
     
-    panels = list(figDataSet.keys())
-    
     fig,ax = plt.subplots(1,1,figsize=[7,7])
         
     figData = process_sim_data_for_plots(figDataSet['B'])
@@ -104,7 +100,7 @@ def create_singleTraitInterferenceFig(figDataSet,figSaveName):
     # plot the fitness increase of the average va for each ve level
     ax.scatter(figData['bAvg']['ve_perc'], figData['bAvg']['fit_chng'],c='black',marker='o',label='Imperfect Stalling')
     ax.plot(figData['bEnv']['ve_perc'], figData['bEnv']['fit_chng'],c='blue',linestyle='-.',label='No Interference')
-    ax.plot(figData['bInt']['ve_perc'], figData['bInt']['fit_chng'],c='red' ,linestyle='--',label='Intersection')
+    ax.plot(figData['bInt']['ve_perc'], figData['bInt']['fit_chng'],c='red' ,linestyle='--',label='Perfect Stalling')
     
     ax.set_ylabel('Change in Fitness (w.r.t Intersection)',fontsize=20,labelpad=8)
     ax.set_ylim(myYlims)
@@ -139,7 +135,6 @@ def process_sim_data_for_plots(figDataSet):
     #
     # 2. ve percent vs fitness change from attractor to ve
     #    
-    
     figData = {'bAvg':[],'bEnv':[],'bInt':[],'rho':[]}
     
     # Part 1 - Uses dict-1 of figDataSet, Sim average va with fitness increase
@@ -162,7 +157,7 @@ def process_sim_data_for_plots(figDataSet):
 # --------------------------------------------------------------------------
 
 def get_ylims(figData):
-    # simple function to get the ylim values
+    # simple function to get the ylim values for plots
     
     ymax = np.max(figData['bEnv']['fit_chng'])
     ymin = np.min(figData['bAvg']['fit_chng'])
@@ -171,106 +166,6 @@ def get_ylims(figData):
     ymin = np.sign(ymin)*np.ceil(np.abs(ymin)*10.0)/10.0
     
     return [ymin,ymax]
-
-# --------------------------------------------------------------------------
-
-def get_simData(evoSimFile,figData_crntPanel):
-    # get_simData() collects mean state of run for a given ve size. The 
-    # output is mean state (int) and the fitness increase associated with this
-    # state relative to the va=vc theoretical intersections
-    # 
-    # Outputs:
-    # i_avg     - idx at average bi
-    # b_avg     - average bi
-    # v_avg     - va at average bi
-    # ve_perc   - ve percent of va=vc value
-    # fit_chng  - fitness change from va=vc to average bi
-    
-    # Get the evoSim object
-    evoSim = figfun.get_evoSnapshot(evoSimFile)
-    
-    # load stat file with sampled data
-    statsFile = os.path.join( os.path.split(evoSimFile)[0], os.path.split(evoSim.outputStatsFile)[1] )
-    data = pd.read_csv(statsFile)
-    
-    # get the average state
-    i_avg = int(np.mean(data['mean_b_idx'].values))
-    
-    # get intersection and ve values
-    i_star = int(np.max(evoSim.mcModel.get_va_vc_intersection_index()))
-    v_star = evoSim.mcModel.va_i[i_star]
-    ve     =  evoSim.mcModel.ve_i[i_star]
-    
-    # estimate fitness changes
-    b_star      = evoSim.mcModel.bi[int(i_star)]
-    b_avg       = evoSim.mcModel.bi[int(i_avg)]
-    v_avg       = evoSim.mcModel.va_i[int(i_avg)]
-    ve_perc     = ve/v_star*100.0
-    dTerm       = evoSim.mcModel.di[int(i_star)]    
-    fit_chng    = lmfun.get_b_SelectionCoeff(b_star,b_avg,dTerm)
-
-    # group the new data
-    mykeys      = ['i_avg','b_avg','v_avg','ve_perc','fit_chng']
-    new_data    = [[i_avg],[b_avg],[v_avg],[ve_perc],[fit_chng]]
-    
-    if (figData_crntPanel==[]):
-        updateFigData = dict(zip(mykeys,new_data))
-    else:
-        for ikey, key in enumerate(mykeys):
-            figData_crntPanel[key].extend(new_data[ikey])
-        updateFigData = figData_crntPanel
-    
-    return updateFigData
-
-# --------------------------------------------------------------------------
-
-def get_mcModelIntersect(evoSimFile):
-    # get_mcModelIntersect() takes an MC model and generates intersections 
-    # of ve with va values of the state space.
-    #
-    # Outputs:
-    # ib        - idx at va=ve
-    # bi        - bi at va=vc
-    # ve        - ve at ve=va
-    # ve_perc   - ve as percent of va=vc  
-    # fit_chng  - fitness increase from va=vc to va=ve
-    
-    # load evoSim object to ge the mcModel
-    evoSim = figfun.get_evoSnapshot(evoSimFile)    
-    
-    # get va=vc and va=vb intersection indices
-    idxVbVc = int(np.max(evoSim.mcModel.get_va_vc_intersection_index()))
-    rho     = evoSim.mcModel.calculate_evoRho()
-    
-    # Store some reference values for calculations
-    b_star  = evoSim.mcModel.bi[idxVbVc]
-    v_star  = evoSim.mcModel.va_i[idxVbVc]
-    dTerm   = evoSim.mcModel.di[idxVbVc]
-    
-    # now get all of the va's, bi above the intersection
-    ib = evoSim.mcModel.state_i [idxVbVc:]
-    bi = evoSim.mcModel.bi      [idxVbVc:]
-    ve = evoSim.mcModel.va_i    [idxVbVc:]  # value of ve when ve=va
-    
-    # clean up the data for only non negative va
-    ib = ib[ve>0]
-    bi = bi[ve>0]
-    ve = ve[ve>0]
-    
-    # calculate the fitness increases along the possible va(=ve)
-    fit_chng = np.zeros(ve.shape)
-    ve_perc  = np.zeros(ve.shape)
-    
-    for ii in range(bi.shape[0]):
-        ve_perc[ii]  = ve[ii]/v_star*100.0
-        fit_chng[ii] = lmfun.get_b_SelectionCoeff(b_star,bi[ii],dTerm)
-    
-    # set data as outputs
-    myKeys      = ['ib','bi','ve','ve_perc','fit_chng','rho']
-    mcIntData   = [ ib , bi , ve , ve_perc , fit_chng , rho ]    
-    mcModelData = dict(zip(myKeys,mcIntData))
-    
-    return mcModelData
 
 # --------------------------------------------------------------------------
 
@@ -325,13 +220,12 @@ def get_figData(figSetup):
         
         # calculate the 1st entry of data set for current file and append
         # to respective dictionary entry for panel. 
-        figData[crntKey][0] = get_simData(evoFile,figData[crntKey][0])
+        figData[crntKey][0] = figfun.get_simData(evoFile,figData[crntKey][0])
     
         # check if the mc model still hasn't been populated for this panel
         # if it has, then skip appending the data
         if (figData[crntKey][1] == []):
-            figData[crntKey][1] = get_mcModelIntersect(evoFile)
-            
+            figData[crntKey][1] = figfun.get_mcModelVaVeIntersect(evoFile)
     
     return figData
 
@@ -350,7 +244,7 @@ def main():
     figSetup['figSavePath'] = os.path.join(os.getcwd(),'figures','MainDoc')
     
     # filenames and paths for saving outputs
-    figSetup['saveFigFile'] = 'fig_bEvo_DRE_fitnessGain_traitInterference_veFitChng.pdf'
+    figSetup['saveFigFile'] = 'fig_bEvo_DRE_traitInterference_fitnessGain.pdf'
     figSetup['simDatDir']   = 'sim_bEvo_DRE_VeFitChng_NewTest'
     figSetup['workDir']     = os.path.join(figSetup['outputsPath'],figSetup['simDatDir'])
     
@@ -394,10 +288,10 @@ def main():
             figDatSet = pickle.load(file)
             
     # create the figure
-    # create_traitInterferenceFig(figDatSet,os.path.join(figSetup['workDir'],figSetup['saveFigFile']))
+    create_traitInterferenceFig(figDatSet,os.path.join(figSetup['workDir'],figSetup['saveFigFile']))
     
     # create one figure with just the rho=1 case
-    create_singleTraitInterferenceFig(figDatSet,os.path.join(figSetup['workDir'],figSetup['saveFigFile']))
+    create_singleTraitInterferenceFig(figDatSet,os.path.join(figSetup['figSavePath'],figSetup['saveFigFile']))
     
 if __name__ == "__main__":
     main()

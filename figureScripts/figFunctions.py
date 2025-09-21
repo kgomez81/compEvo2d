@@ -22,7 +22,12 @@ from evoLibraries import evoObjects as evoObj
 from evoLibraries.MarkovChain import MC_factory as mcFac
 
 #%% ------------------------------------------------------------------------
-#                               Functions   
+############################################################################
+#                         Plot Helper Functions   
+############################################################################
+#
+# Small functions to prep data for plots, or adjust axes limits and labels
+#
 # --------------------------------------------------------------------------
 
 def getScatterData(X,Y,Z):
@@ -88,7 +93,500 @@ def get_emptyPlotAxisLaels(lbls):
     return emptyLbls
 
 #%% ------------------------------------------------------------------------
+##########################################################################
+#                  Sim data processing functions                         
+##########################################################################
+#
+# Set of functions below help process sim data for plots. They are grouped
+# here for re-use across multiple scripts.
+#
+# --------------------------------------------------------------------------
+
+def get_mcModel_VaVeIntersect(evoSimFile,priorMcModelData=None):
+    """
+    Returns va-ve intersection with associated b-term and states
+    inputs:
+      - evoSimfFile - file with simulation snapshot object
+      - priorMcModelData - prior data to append new data to (default None)
+    outputs: 
+      dict 
+      - ib: va=ve state
+      - bi: b-term of va=ve state
+      - ve: vE as percentage of va=vc
+      - fc: fitness difference from va=vc to va=ve
+      - ro: rho of mc model
+      - bs: b-term of attractor, va=vc
+      - vs: va at attractor
+      - ds: d-term at attractor (same at va=ve if d constant)
+    """
+    
+    # load evoSim object to ge the mcModel
+    evoSim = get_evoSnapshot(evoSimFile)    
+    
+    # get va=vc and va=vb intersection indices
+    ie = int(np.max(evoSim.mcModel.get_va_ve_intersection_index()))
+    ic = int(np.max(evoSim.mcModel.get_va_vc_intersection_index()))
+    ro = evoSim.mcModel.calculate_evoRho()
+    
+    # get state, v, bi for va=ve and va=vc 
+    ib = evoSim.mcModel.state_i[ie]  # ib=ie for b-evo models
+    bi = evoSim.mcModel.bi     [ie]
+    ve = evoSim.mcModel.va_i   [ie]  
+    
+    bs = evoSim.mcModel.bi     [ic]
+    ds = evoSim.mcModel.di     [ic]
+    vs = evoSim.mcModel.va_i   [ic]
+    
+    # ve=va as percent of attractor & fitness increases relative to latter
+    vp = 100.0 * ve / vs
+    fc = lmfun.get_b_SelectionCoeff(bs,bi,ds)
+    
+    # set data as outputs, each entry has to be a list to allow extension
+    mykeys      = ['ib','bi','ve','vp','fc','ro','bs','vs','ds']
+    mcIntData   = [[ib],[bi],[ve],[vp],[fc],[ro],[bs],[vs],[ds]]
+    
+    if (priorMcModelData==[]) or (priorMcModelData==None):
+        mcModelData = dict(zip(mykeys,mcIntData))
+    else:
+        for ikey, key in enumerate(mykeys):
+            priorMcModelData[key].extend(mcIntData[ikey])
+        mcModelData = priorMcModelData
+        
+    return mcModelData
+
+# --------------------------------------------------------------------------
+
+def get_mcModel_VaVeIntersect_curveFixedT(evoSimFile):
+    """
+    Returns curve data representing for va=ve intersections from varying ve.
+    inputs:
+     - evoSimFile - sim pickly snapshot
+    outputs: 
+     dict part 1 fixVals
+     - ro: rho value of the mc model
+     - bs: b-term at attractor
+     - vs: va at attractor
+     - ds: d-term at attractor
+    
+     dict part 2 arrVals
+     - ib: states at va=ve intersections, varying T
+     - bi: b-terms at va=ve intersections, varying T
+     - ve: intersection vE as T varies
+     - vp: intersection vE as percentage of va=va attractor, vary's with T
+     - fc: fitness change from change in intersection va=ve, due to change 
+           in T, relative to base va=ve value (T=100%)
+    """
+        
+    # load evoSim object to ge the mcModel
+    evoSim = get_evoSnapshot(evoSimFile)    
+    
+    # get va=vc and va=vb intersection indices
+    ic = int(np.max(evoSim.mcModel.get_va_vc_intersection_index()))
+    ro = evoSim.mcModel.calculate_evoRho()
+    
+    # Store some reference values for calculations
+    bs = evoSim.mcModel.bi[ic]
+    vs = evoSim.mcModel.va_i[ic]
+    ds = evoSim.mcModel.di[ic]
+    
+    # now get all of the va's, bi above the intersection
+    ib = evoSim.mcModel.state_i[ic:]
+    bi = evoSim.mcModel.bi     [ic:]
+    ve = evoSim.mcModel.va_i   [ic:]  # value of ve when ve=va
+    
+    # clean up the data for only non negative va
+    ib = ib[ve>0]
+    bi = bi[ve>0]
+    ve = ve[ve>0]
+    
+    # calculate fitness difference along ve(=va) relative to attractor, and 
+    # ve percentage of va(=vc) intersection.
+    fc = np.zeros(ve.shape)
+    vp = np.zeros(ve.shape)
+    
+    for ii in range(bi.shape[0]):
+        vp[ii] = 100.0 * ve[ii] / vs
+        fc[ii] = lmfun.get_b_SelectionCoeff(bs,bi[ii],ds)
+    
+    # define data for outputs
+    mykeysFix = ['ro','bs','vs','ds']
+    mcDataFix = [ ro , bs , vs , ds ]
+    
+    mykeysArr = ['ib','bi','ve','vp','fc']
+    mcDataArr = [ ib , bi , ve , vp , fc ]
+    
+    # should only be calculated once, per parameter set
+    return {'fixVals': dict(zip(mykeysFix,mcDataFix)),'arrVals': dict(zip(mykeysArr,mcDataArr))}
+
+# --------------------------------------------------------------------------
+
+def get_mcModel_VaVeIntersect_curveVaryT(evoSimFile,Tperc):
+    """
+    Returns curve data for va=ve from changing T 
+    inputs: 
+      - evoSimFile: file with simulation snapshot object 
+      - Tperc:      Increase in T by percentages, e.g. [100, ..., 1000], 
+                    as integer values
+    outputs:
+      dict - ['ib','bi','vp','fc']
+      - ib: state for va=ve intersection for curve defined by varying T
+      - bi: b-term for va=ve intersection for curve defined by varying T
+      - vp: vE as a percentage of va=vc intersection. Note latter changes
+            with adjustments to T
+      - fc: fitness change caused from shifting the va=ve intersection after
+            adjusting T. 
+    """
+    
+    # load evoSim object to get the mcModel with a starting vE value 
+    evoSim = get_evoSnapshot(evoSimFile)    
+    
+    # simInit struct as a baseline for new copies w/ adjusted territory sizes    
+    simInitRef = evoSim.simInit
+    
+    # store the base value of b-term for va=vE
+    ie = int(np.max(simInitRef.mcModel.get_va_ve_intersection_index()))
+    ic = int(np.max(simInitRef.mcModel.get_va_vc_intersection_index()))
+    
+    # reference b, d, vE, v-intersection, and T size for base model
+    biRef = simInitRef.mcModel.bi[ie]
+    diRef = simInitRef.mcModel.di[ie]
+    vERef = simInitRef.mcModel.va_i[ie]
+    
+    vIRef = simInitRef.mcModel.va_i[ic]
+    T0Ref = simInitRef.mcModel.params['T']
+
+    # create list to store computed values
+    ibVals = [ ie          ]
+    biVals = [ biRef       ]
+    veVals = [ vERef/vIRef ]
+    fcVals = [ 0           ]
+    
+    # now loop through all of the TvalsPerc and calculate a fitness change due
+    # to the increase of the territory size
+    for idx, Tp in enumerate(Tperc):
+        if idx == 0:
+            # first values have already been initialized
+            continue
+        else:
+            # Adjust Territory size recalculate MC model with changes 
+            #  Note: there might be an easier way to do this directly by just 
+            #        scaling the va and vc values directly, but T also alters 
+            #        pfix values, which would be adjusted in non-trivial way
+            simInitRef.params['T'] = (Tp/100.0) * T0Ref
+            simInitRef.recaculate_mcModel()
+            
+            # append the b-terms, ve percents, and fitness changes
+            ie = int(np.max(simInitRef.mcModel.get_va_ve_intersection_index()))
+            ic = int(np.max(simInitRef.mcModel.get_va_vc_intersection_index()))
+            
+            # calculate the current vE as percent of current intersection
+            vE_perc = simInitRef.mcModel.va_i[ie]/simInitRef.mcModel.va_i[ic]
+            bE_crnt = simInitRef.mcModel.bi[ie]
+            fc_crnt = lmfun.get_b_SelectionCoeff(biRef,biVals[-1],diRef)
+            
+            ibVals.append( ie      )
+            biVals.append( bE_crnt )
+            veVals.append( vE_perc )
+            fcVals.append( fc_crnt )
+    
+    # set data as outputs
+    mykeys      = ['ib','bi','vp','fc']
+    mcEnvData   = [ ibVals, biVals, veVals, fcVals ]
+    
+    # should only be calculated once, per parameter     
+    return dict(zip(mykeys,mcEnvData))
+
+# --------------------------------------------------------------------------
+def get_simData(evoSimFile,priorFigData):
+    """
+    Returns mean state for sim run, and comparison w/ theoretical va=vc
+    inputs:
+     - evoSimFile:   file with simulation snapshot object 
+     - priorFigData: prior data to append new data to (default None)
+    Outputs - Dictionary with fields:
+     - ia: average state 
+     - ba: b-term at average state
+     - vp: ve as percent of va=vc value for mc model
+     - fc: fitness difference attractor thry and average state
+     - bs: b-term at attractor
+     - ds: d-term at attractor
+    """
+    
+    # Get the evoSim object
+    evoSim = get_evoSnapshot(evoSimFile)
+    
+    # load stat file with sampled data (paths need to be adjusted)
+    statsFile = os.path.join( os.path.split(evoSimFile)[0], os.path.split(evoSim.outputStatsFile)[1] )
+    data      = pd.read_csv(statsFile)
+    
+    # get index of average state and attractor
+    ia = int(np.mean(data['mean_b_idx'].values))    
+    ic = int(np.max(evoSim.mcModel.get_va_vc_intersection_index()))
+    ro = evoSim.mcModel.calculate_evoRho()
+    
+    # calculate assocated terms
+    ba = evoSim.mcModel.bi[ia]
+    bs = evoSim.mcModel.bi[ic]
+    ds = evoSim.mcModel.di[ic]
+    
+    vs = evoSim.mcModel.va_i[ic]
+    ve = evoSim.mcModel.ve_i[ic]
+    vp = 100.0 * ve / vs
+    
+    # fitness difference from attractor to average state
+    fc = lmfun.get_b_SelectionCoeff(bs,ba,ds)
+
+    # group the new data
+    mykeys      = ['ia','ba','vp','fc','bs','ds','ro']
+    new_data    = [[ia],[ba],[vp],[fc],[bs],[ds],[ro]]
+    
+    if (priorFigData==[]):
+        figData = dict(zip(mykeys,new_data))
+    else:
+        for ikey, key in enumerate(mykeys):
+            priorFigData[key].extend(new_data[ikey])
+        figData = priorFigData
+    
+    return figData
+
+# --------------------------------------------------------------------------
+
+def get_rateOfEnvironmentalChange_samples(tIter,biFit,dterm,envJmp):
+    # function takes an array of realized fitness changes due the environment
+    # and creates estimates of the rate of environmental change.
+    #
+    # Assumptions: 
+    # 1. population is homogeneous in b-mutations, i.e. bmin=bmax, for all t
+    # 2. environmental changes occur at non-trivial rate.
+    # 3. no d-evolution
+    #
+    # Inputs:
+    # tIter - time in terms of model iterations
+    # biFit - b-fitness of population
+    # dterm - d-term of the population (assumed no mutations in d trait)
+    # envJmp- array with cumulative count of jumps from env change
+    
+    # first get the jumps in fitness from environment 
+    idx2 = np.where(np.diff(envJmp)>0)[0]+1  # index of jumps
+    
+    # now 0 with other index of jumps to get duration with no env changes
+    idx1     = np.where(np.diff(envJmp)>0)[0]+1
+    idx1[1:] = idx1[0:-1]
+    idx1[0]  = 0
+
+    # list of start to jump values
+    idxJmp = [idx1,idx2]
+
+    biJmp  = [biFit[idxJmp[0]],biFit[idxJmp[1]]]
+    tiJmp  = [tIter[idxJmp[0]],tIter[idxJmp[1]]]
+    nJmps  = len(idxJmp[0])
+    
+    # calculate tau (iterations per generation)
+    tau = 1.0/(dterm-1.0)
+    
+    # create array to store vE estimates
+    vEi = np.zeros(idxJmp[0].shape)
+    
+    # get vE estimates from breaks
+    for ii in range(nJmps):
+        # change in fitness
+        delta_si = lmfun.get_b_SelectionCoeff(biJmp[0][ii],biJmp[1][ii],dterm)
+        
+        # estiamte of rate of environmental change (time only), in generations
+        T_Ei     = (tiJmp[1][ii] - tiJmp[0][ii]) / tau
+        
+        # estimate of vE for current jump.
+        vEi[ii]  = delta_si/T_Ei
+        
+    return [vEi,idxJmp[1]]
+
+#------------------------------------------------------------------------------
+    
+def calculate_RateOfAdapt_estimates(evoSim):
+    """
+    Returns estimates for rate of adaptation from sim run logs
+    inputs:
+     - evoSim: simulation pickle snapshot
+    outputs:
+     - vaEstimates: array of estimates for va; states given by indices so that
+                    dimension of vaEstimates match MC model bi array.
+    """
+    
+    # initialize all estimates to zero
+    vaEstimates = np.zeros(evoSim.mcModel.va_i.shape)
+
+    # load the data from the output file, w/ headers
+    # fitness_state
+    # sojourn_time
+    # sojourn_kappa
+    # adapt_counter
+    data = pd.read_csv(evoSim.get_adaptiveEventsLogFilename())
+    
+    # process data to calculate the estimates as follows:
+    #   1. T_i = iterations spend in state at state k
+    #   2. T_bar_k = (1/n) * sum_(T_i for state k)
+    #   3. va_iter = sa_k / T_bar_k
+    #   4. va_gen = tau * va_iter
+    
+    # loop through the states with data
+    states = list(map(int,np.sort(np.unique(data['fitness_state'].values))))
+    for ii in states:
+        tempData = data.query('fitness_state == '+str(ii)+' and sojourn_kappa < 0.4')
+        # query for the entries if state ii
+        if (len(tempData)>0):
+            Tbar = np.sum(tempData['sojourn_time'].values)/len(tempData)
+            sa = evoSim.mcModel.sa_i[ii]
+            tau = 1/(evoSim.mcModel.di[ii]-1)
+            vaEstimates[ii] = sa/Tbar*tau
+            
+    return vaEstimates
+
+#------------------------------------------------------------------------------
+    
+def get_estimateRateOfAdaptFromSim(data,fitType,mcModel):
+    """
+    Return estimates for rate of adaptation w/ states.
+      Note: here we make the assumption that the index is the state space.
+            this could change if using dEvo model!
+    inputs:
+     - data: panda's data frame with sim log data.
+     - fitType: string to select abs or rel fitness estimates
+     - mcModel: MC model object
+    outputs:
+     dict
+     - ix: states with nonzero estimates for rate adaptation
+     - vx: rate of adaptation estimates; method inputs determine abs/rel type
+    """
+    
+    # data from adaptive event log files should have following headers:
+    #
+    # fitness_state - abs or rel fitness state
+    # sojourn_time  - time spent in the fitness state
+    # sojourn_kappa - sojourn time adjustment 
+    # adapt_counter - counter for number of adaptive events (-1)
+    # crnt_abs_state - zero if abs log, and abs fitness state for rel log
+    #
+    
+    # process data to calculate the estimates as follows:
+    #   1. T_i = iterations spend in state at state k
+    #   2. T_bar_k = (1/n) * sum_(T_i for state k)
+    #   3. va_iter = sa_k / T_bar_k
+    #   4. va_gen = tau * va_iter
+    
+    # loop through the states with data
+    if (fitType == 'abs'):
+        fit_state_key = 'fitness_state'
+    elif (fitType == 'rel'):
+        fit_state_key = 'crnt_abs_fit'
+    
+    states = list(map(int,np.sort(np.unique(data[fit_state_key].values))))
+    idxStates = np.array(states)
+    vaEstimates = np.zeros(idxStates.shape)
+    
+    for ii, state in enumerate(states):
+        
+        # query for the entries if state ii
+        tempData = data.query(fit_state_key + ' == '+str(state)+' and sojourn_kappa < 0.4')
+        
+        # if date was found meeting the criteria, then calculate an estimate of v
+        if (len(tempData)>0):
+            Tbar = np.sum(tempData['sojourn_time'].values)/len(tempData)
+            sa = mcModel.sa_i[state]
+            tau = 1/(mcModel.di[state]-1)
+            vaEstimates[ii] = sa/Tbar*tau
+            
+    # return dictionary with states and estimates
+    return {'ix': idxStates,'vx': vaEstimates}
+    
+#------------------------------------------------------------------------------
+
+def get_effectiveVaVc(evoSimFile):
+    # get_effectiveVaVc() calculates estimates of va and vc from the adaptive 
+    # event log files.
+    
+    # load evoSim object to ge tthe mcModel
+    evoSim = get_evoSnapshot(evoSimFile)   
+    
+    # load abs log file and calculate the va estiamtes
+    absLogFile  = os.path.join( os.path.split(evoSimFile)[0], os.path.split(evoSim.get_adaptiveEventsLogFilename('abs'))[1] )
+    dataAbs     = pd.read_csv(absLogFile)
+    vaSimEst    = get_estimateRateOfAdaptFromSim(dataAbs,'abs',evoSim.mcModel)
+    
+    # load rel log file and calculate the vc estimates
+    relLogFile  = os.path.join( os.path.split(evoSimFile)[0], os.path.split(evoSim.get_adaptiveEventsLogFilename('rel'))[1] )
+    dataRel     = pd.read_csv(relLogFile)
+    vcSimEst    = get_estimateRateOfAdaptFromSim(dataRel,'rel',evoSim.mcModel)
+    
+    # save the estimates to a dictionary for plotting. note that the data
+    # vaSimEst and vcSimEst will be lists with the state space in the first
+    # entry and the estimates in the second. state spaces that have not data
+    # will have zero as the estimate.
+    simVaVcEst = dict({'vaEst': vaSimEst, 'vcEst': vcSimEst})
+    
+    return simVaVcEst
+
+# --------------------------------------------------------------------------
+
+def get_evoSnapshot(evoSimSnapShotFile):
+    # simple method to load the Sim data
+    
+    # save the data to a pickle file
+    with open(evoSimSnapShotFile, 'rb') as file:
+        # Serialize and write the variable to the file
+        evoSim = pickle.load(file)
+            
+    return evoSim
+
+# --------------------------------------------------------------------------
+
+def save_evoSnapshot(evoSim):
+    # save evoSim object to location of outputs
+    
+    with open(evoSim.get_evoSimFilename(), 'wb') as file:
+        # Serialize and write the variable to the file
+        pickle.dump(evoSim, file)
+    
+    return None
+
+# --------------------------------------------------------------------------
+
+def get_mcModelFromEvoSim(evoSimSnapShotFile):
+    # save evoSim object to location of outputs
+    
+    # save the data to a pickle file
+    with open(evoSimSnapShotFile, 'rb') as file:
+        # Serialize and write the variable to the file
+        evoSim = pickle.load(file)
+            
+    return evoSim.mcModel
+
+# --------------------------------------------------------------------------
+
+def get_stateDataForHist(evoSimSnapShotFile):
+    # simple method to load the data for mean state to plot in histogram
+    
+    # save the data to a pickle file
+    with open(evoSimSnapShotFile, 'rb') as file:
+        # Serialize and write the variable to the file
+        evoSim = pickle.load(file)
+    
+    # load selection dynamics file
+    data = pd.read_csv(evoSim.outputStatsFile)
+    
+    # due to memory limitations we need to slightly resize the occurences
+    idxInt = np.floor(data['mean_b_idx'].values)
+    idxGrp = np.sort(np.unique(idxInt))
+    idxCnt = np.zeros(idxGrp.shape)
+    
+    for ii in range(len(idxGrp)):
+        idxCnt[ii] = np.sum(np.sign(idxInt[idxInt==idxGrp[ii]]))
+    
+    return [idxGrp,idxCnt]
+
+#%% ------------------------------------------------------------------------
+############################################################################
 #                           Plotting Functions   
+############################################################################
 # --------------------------------------------------------------------------
 
 def plot_2dWave(nij,bm,cm):
@@ -613,170 +1111,6 @@ def plot_environmentalChange(evoSim):
     ax22.legend()
     
     return None
-
-# --------------------------------------------------------------------------
-
-def get_rateOfEnvironmentalChange_samples(tIter,biFit,dterm,envJmp):
-    # function takes an array of realized fitness changes due the environment
-    # and creates estimates of the rate of environmental change.
-    #
-    # Assumptions: 
-    # 1. population is homogeneous in b-mutations, i.e. bmin=bmax, for all t
-    # 2. environmental changes occur at non-trivial rate.
-    # 3. no d-evolution
-    #
-    # Inputs:
-    # tIter - time in terms of model iterations
-    # biFit - b-fitness of population
-    # dterm - d-term of the population (assumed no mutations in d trait)
-    # envJmp- array with cumulative count of jumps from env change
-    
-    # first get the jumps in fitness from environment 
-    idx2 = np.where(np.diff(envJmp)>0)[0]+1  # index of jumps
-    
-    # now 0 with other index of jumps to get duration with no env changes
-    idx1     = np.where(np.diff(envJmp)>0)[0]+1
-    idx1[1:] = idx1[0:-1]
-    idx1[0]  = 0
-
-    # list of start to jump values
-    idxJmp = [idx1,idx2]
-
-    biJmp  = [biFit[idxJmp[0]],biFit[idxJmp[1]]]
-    tiJmp  = [tIter[idxJmp[0]],tIter[idxJmp[1]]]
-    nJmps  = len(idxJmp[0])
-    
-    # calculate tau (iterations per generation)
-    tau = 1.0/(dterm-1.0)
-    
-    # create array to store vE estimates
-    vEi = np.zeros(idxJmp[0].shape)
-    
-    # get vE estimates from breaks
-    for ii in range(nJmps):
-        # change in fitness
-        delta_si = lmfun.get_b_SelectionCoeff(biJmp[0][ii],biJmp[1][ii],dterm)
-        
-        # estiamte of rate of environmental change (time only), in generations
-        T_Ei     = (tiJmp[1][ii] - tiJmp[0][ii]) / tau
-        
-        # estimate of vE for current jump.
-        vEi[ii]  = delta_si/T_Ei
-        
-    return [vEi,idxJmp[1]]
-
-#------------------------------------------------------------------------------
-    
-def calculate_RateOfAdapt_estimates(evoSim):
-    # calculate_RateOfAdapt_estimates() takes the data from the adaptive 
-    # events log from a simulation run and estimates rate of adaptation
-    # across the state space.
-    
-    # initialize all estimates to zero
-    vaEstimates = np.zeros(evoSim.mcModel.va_i.shape)
-
-    # load the data from the output file, w/ headers
-    # fitness_state
-    # sojourn_time
-    # sojourn_kappa
-    # adapt_counter
-    data = pd.read_csv(evoSim.get_adaptiveEventsLogFilename())
-    
-    # process data to calculate the estimates as follows:
-    #   1. T_i = iterations spend in state at state k
-    #   2. T_bar_k = (1/n) * sum_(T_i for state k)
-    #   3. va_iter = sa_k / T_bar_k
-    #   4. va_gen = tau * va_iter
-    
-    # loop through the states with data
-    states = list(map(int,np.sort(np.unique(data['fitness_state'].values))))
-    for ii in states:
-        tempData = data.query('fitness_state == '+str(ii)+' and sojourn_kappa < 0.4')
-        # query for the entries if state ii
-        if (len(tempData)>0):
-            Tbar = np.sum(tempData['sojourn_time'].values)/len(tempData)
-            sa = evoSim.mcModel.sa_i[ii]
-            tau = 1/(evoSim.mcModel.di[ii]-1)
-            vaEstimates[ii] = sa/Tbar*tau
-            
-    return vaEstimates
-
-#------------------------------------------------------------------------------
-    
-def get_estimateRateOfAdaptFromSim(data,fitType,mcModel):
-    # calculate_RateOfAdapt_estimates() takes the data from the adaptive 
-    # events log from a simulation run and estimates rate of adaptation
-    # across the state space.
-    #
-    # Note: here we make the assumption that the index is the state space.
-    #       this could change if using dEvo model!
-    
-    # data from adaptive event log files should have following headers:
-    #
-    # fitness_state - abs or rel fitness state
-    # sojourn_time  - time spent in the fitness state
-    # sojourn_kappa - sojourn time adjustment 
-    # adapt_counter - counter for number of adaptive events (-1)
-    # crnt_abs_state - zero if abs log, and abs fitness state for rel log
-    #
-    
-    # process data to calculate the estimates as follows:
-    #   1. T_i = iterations spend in state at state k
-    #   2. T_bar_k = (1/n) * sum_(T_i for state k)
-    #   3. va_iter = sa_k / T_bar_k
-    #   4. va_gen = tau * va_iter
-    
-    # loop through the states with data
-    if (fitType == 'abs'):
-        fit_state_key = 'fitness_state'
-    elif (fitType == 'rel'):
-        fit_state_key = 'crnt_abs_fit'
-    
-    states = list(map(int,np.sort(np.unique(data[fit_state_key].values))))
-    idxStates = np.array(states)
-    vaEstimates = np.zeros(idxStates.shape)
-    
-    for ii in states:
-        
-        # query for the entries if state ii
-        tempData = data.query(fit_state_key + ' == '+str(ii)+' and sojourn_kappa < 0.4')
-        
-        # if date was found meeting the criteria, then calculate an estimate of v
-        if (len(tempData)>0):
-            Tbar = np.sum(tempData['sojourn_time'].values)/len(tempData)
-            sa = mcModel.sa_i[ii]
-            tau = 1/(mcModel.di[ii]-1)
-            vaEstimates[ii] = sa/Tbar*tau
-            
-    return [idxStates,vaEstimates]
-    
-#------------------------------------------------------------------------------
-
-def get_effectiveVaVc(evoSimFile):
-    # get_effectiveVaVc() calculates estimates of va and vc from the adaptive 
-    # event log files.
-    
-    # load evoSim object to ge tthe mcModel
-    evoSim = get_evoSnapshot(evoSimFile)   
-    
-    # load abs log file and calculate the va estiamtes
-    absLogFile  = os.path.join( os.path.split(evoSimFile)[0], os.path.split(evoSim.get_adaptiveEventsLogFilename('abs'))[1] )
-    dataAbs     = pd.read_csv(absLogFile)
-    vaSimEst    = get_estimateRateOfAdaptFromSim(dataAbs,'abs',evoSim.mcModel)
-    
-    # load rel log file and calculate the vc estimates
-    relLogFile  = os.path.join( os.path.split(evoSimFile)[0], os.path.split(evoSim.get_adaptiveEventsLogFilename('rel'))[1] )
-    dataRel     = pd.read_csv(relLogFile)
-    vcSimEst    = get_estimateRateOfAdaptFromSim(dataRel,'rel',evoSim.mcModel)
-    
-    # save the estimates to a dictionary for plotting. note that the data
-    # vaSimEst and vcSimEst will be lists with the state space in the first
-    # entry and the estimates in the second. state spaces that have not data
-    # will have zero as the estimate.
-    simVaVcEst = dict({'vaEst': vaSimEst, 'vcEst': vcSimEst})
-    
-    return simVaVcEst
-
 #------------------------------------------------------------------------------
 
 def plot_evoMcModel_withVaEst(evoSim,vaEst):
@@ -877,30 +1211,6 @@ def plot_mcModel_fromInputFile(paramfile,modelType,absFitType):
     
     idxlbl = ("i_ss=%d, rho=%.2f" % (idxss,rho))
     ax.text(15,0*vdx,idxlbl, fontsize = 12)                 
-    
-    return None
-
-
-# --------------------------------------------------------------------------
-
-def get_evoSnapshot(evoSimSnapShotFile):
-    # simple method to load the Sim data
-    
-    # save the data to a pickle file
-    with open(evoSimSnapShotFile, 'rb') as file:
-        # Serialize and write the variable to the file
-        evoSim = pickle.load(file)
-            
-    return evoSim
-
-# --------------------------------------------------------------------------
-
-def save_evoSnapshot(evoSim):
-    # save evoSim object to location of outputs
-    
-    with open(evoSim.get_evoSimFilename(), 'wb') as file:
-        # Serialize and write the variable to the file
-        pickle.dump(evoSim, file)
     
     return None
 

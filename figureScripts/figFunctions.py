@@ -282,7 +282,7 @@ def get_mcModel_VaVeIntersect_curveVaryT(evoSimFile,Tperc):
             # calculate the current vE as percent of current intersection
             vE_perc = simInitRef.mcModel.va_i[ie]/simInitRef.mcModel.va_i[ic]
             bE_crnt = simInitRef.mcModel.bi[ie]
-            fc_crnt = lmfun.get_b_SelectionCoeff(biRef,biVals[-1],diRef)
+            fc_crnt = lmfun.get_b_SelectionCoeff(biRef,bE_crnt,diRef)
             
             ibVals.append( ie      )
             biVals.append( bE_crnt )
@@ -563,7 +563,15 @@ def get_mcModelFromEvoSim(evoSimSnapShotFile):
 # --------------------------------------------------------------------------
 
 def get_stateDataForHist(evoSimSnapShotFile):
-    # simple method to load the data for mean state to plot in histogram
+    """
+    Returns states and weights indicating time spent in each state. 
+    inputs:
+        evoSimSnapShotFile - pickle file with evo simulation snapshot
+    outputs:
+        idxGrp - states with nonzero counts
+        idxCnt - count of iterations spent in each state to use as histogram weights
+    """
+    # 
     
     # save the data to a pickle file
     with open(evoSimSnapShotFile, 'rb') as file:
@@ -573,7 +581,8 @@ def get_stateDataForHist(evoSimSnapShotFile):
     # load selection dynamics file
     data = pd.read_csv(evoSim.outputStatsFile)
     
-    # due to memory limitations we need to slightly resize the occurences
+    # due to memory limitations we cannot use the data directly into histogram
+    # plots. Instead we count and used the total count as weights.
     idxInt = np.floor(data['mean_b_idx'].values)
     idxGrp = np.sort(np.unique(idxInt))
     idxCnt = np.zeros(idxGrp.shape)
@@ -581,7 +590,7 @@ def get_stateDataForHist(evoSimSnapShotFile):
     for ii in range(len(idxGrp)):
         idxCnt[ii] = np.sum(np.sign(idxInt[idxInt==idxGrp[ii]]))
     
-    return [idxGrp,idxCnt]
+    return {'states': idxGrp,'wghts': idxCnt}
 
 #%% ------------------------------------------------------------------------
 ############################################################################

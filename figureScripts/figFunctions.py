@@ -220,21 +220,27 @@ def get_mcModel_VaVeIntersect_curveFixedT(evoSimFile):
 
 # --------------------------------------------------------------------------
 
-def get_mcModel_VaVeIntersect_curveVaryT(evoSimFile,Tperc):
+def get_mcModel_VaVeIntersect_curveVaryT(evoSimFile,Tperc,pfixSolver=3):
     """
     Returns curve data for va=ve from changing T 
     inputs: 
       - evoSimFile: file with simulation snapshot object 
       - Tperc:      Increase in T by percentages, e.g. [100, ..., 1000], 
-                    as integer values
+                    as integer values, first value must be 100.
+      - pfixSolver: pfix solution method: 1. matrix soltn, 2. first step 
+                    analysis, 3. selection coeff (default)     
     outputs:
       dict - ['ib','bi','vp','fc']
       - ib: state for va=ve intersection for curve defined by varying T
       - bi: b-term for va=ve intersection for curve defined by varying T
       - vp: vE as a percentage of va=vc intersection. Note latter changes
             with adjustments to T
+      - tp: list of multiples of reference T for MC model calculations, these
+            are derived from Tperc list
+      - t0: T value of the reference MC model provided in evoSimFile
       - fc: fitness change caused from shifting the va=ve intersection after
             adjusting T. 
+      
     """
     
     # load evoSim object to get the mcModel with a starting vE value 
@@ -256,10 +262,11 @@ def get_mcModel_VaVeIntersect_curveVaryT(evoSimFile,Tperc):
     T0Ref = simInitRef.mcModel.params['T']
 
     # create list to store computed values
-    ibVals = [ ie          ]
-    biVals = [ biRef       ]
+    ibVals = [          ie ]
+    biVals = [       biRef ]
     veVals = [ vERef/vIRef ]
-    fcVals = [ 0           ]
+    TpVals = [           1 ]
+    fcVals = [           0 ]
     
     # now loop through all of the TvalsPerc and calculate a fitness change due
     # to the increase of the territory size
@@ -273,6 +280,7 @@ def get_mcModel_VaVeIntersect_curveVaryT(evoSimFile,Tperc):
             #        scaling the va and vc values directly, but T also alters 
             #        pfix values, which would be adjusted in non-trivial way
             simInitRef.params['T'] = (Tp/100.0) * T0Ref
+            simInitRef.params['pfixSolver'] = pfixSolver
             simInitRef.recaculate_mcModel()
             
             # append the b-terms, ve percents, and fitness changes
@@ -284,14 +292,15 @@ def get_mcModel_VaVeIntersect_curveVaryT(evoSimFile,Tperc):
             bE_crnt = simInitRef.mcModel.bi[ie]
             fc_crnt = lmfun.get_b_SelectionCoeff(biRef,bE_crnt,diRef)
             
-            ibVals.append( ie      )
-            biVals.append( bE_crnt )
-            veVals.append( vE_perc )
-            fcVals.append( fc_crnt )
+            ibVals.append( ie       )
+            biVals.append( bE_crnt  )
+            veVals.append( vE_perc  )
+            TpVals.append( Tp/100   )
+            fcVals.append( fc_crnt  )
     
     # set data as outputs
-    mykeys      = ['ib','bi','vp','fc']
-    mcEnvData   = [ ibVals, biVals, veVals, fcVals ]
+    mykeys      = ['ib','bi','vp','tp','t0','fc']
+    mcEnvData   = [ ibVals, biVals, veVals, TpVals, T0Ref, fcVals]
     
     # should only be calculated once, per parameter     
     return dict(zip(mykeys,mcEnvData))

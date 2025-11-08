@@ -241,7 +241,7 @@ def main():
     # inputsPath  = os.path.join(os.getcwd(),'inputs')
     figSetup = dict()
     figSetup['outputsPath'] = os.path.join(os.getcwd(),'outputs')
-    figSetup['figSavePath'] = os.path.join(os.getcwd(),'figures','MainDoc')
+    figSetup['figSavePath'] = os.path.join(os.getcwd(),'figures','Supplement')
     
     # filenames and paths for saving outputs
     figSetup['saveFigFile'] = 'fig_bEvo_DRE_traitInterference_fitnessGain.pdf'

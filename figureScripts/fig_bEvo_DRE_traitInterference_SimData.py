@@ -348,7 +348,39 @@ def param_set_varyT():
     paramDefs['start_i']    .extend([145                    for kk in range(nMap)])
     paramDefs['t_stop']     .extend([tMax                   for kk in range(nMap)])
     paramDefs['TSize']      .extend([str(Ttf[kkMap[kk][1]]) for kk in range(nMap)])
-     
+    
+    ##############################
+    # Rho < 1 sample set
+    ##############################
+    # These runs take much longer because rho > 1 parameter sets 
+    # often have low va conditions, so significantly more iterations
+    # are needed to get the same number of sample sojourn times 
+    
+    # define input file paths setups
+    paramDefs['paramFile']  .extend(['04B'                  for kk in range(nMap)])
+    paramDefs['figNumber']  .extend(['5'                    for kk in range(nMap)])
+    paramDefs['figPanel']   .extend(['A'                    for kk in range(nMap)])
+    paramDefs['veSize']     .extend([str(vef[kkMap[kk][0]]) for kk in range(nMap)])
+    paramDefs['start_i']    .extend([95                     for kk in range(nMap)])
+    paramDefs['t_stop']     .extend([tMax                   for kk in range(nMap)])
+    paramDefs['TSize']      .extend([str(Ttf[kkMap[kk][1]]) for kk in range(nMap)])
+
+    ##############################
+    # Rho > 1 sample set
+    ##############################
+    # These runs take much longer because rho > 1 parameter sets 
+    # often have low va conditions, so significantly more iterations
+    # are needed to get the same number of sample sojourn times 
+    
+    # define input file paths setups
+    paramDefs['paramFile']  .extend(['03A'                  for kk in range(nMap)])
+    paramDefs['figNumber']  .extend(['5'                    for kk in range(nMap)])
+    paramDefs['figPanel']   .extend(['C'                    for kk in range(nMap)])
+    paramDefs['veSize']     .extend([str(vef[kkMap[kk][0]]) for kk in range(nMap)])
+    paramDefs['start_i']    .extend([75                     for kk in range(nMap)])
+    paramDefs['t_stop']     .extend([tMax                   for kk in range(nMap)])
+    paramDefs['TSize']      .extend([str(Ttf[kkMap[kk][1]]) for kk in range(nMap)])
+    
     return paramDefs
 
 # --------------------------------------------------------------------------
@@ -367,47 +399,50 @@ def main():
     #### PART I - ve variation and intersections ######
     ###################################################
     
-    # dictionary to setup parameters for runs with ve 
-    paramDefs   = param_set_varyVe()
-    nSims       = len(paramDefs['paramFile'])
-    outputDir   = 'sim_bEvo_DRE_VeFitChng_NewTest'
-    
-    # carry out sim runs in parallel
-    outputfiles = Parallel(n_jobs=cpu_count()-1)(delayed(runSimulation)(get_simInit(paramDefs,kk,outputDir)) for kk in range(nSims))
-    
-    # non parallel verion
-    # outputfiles = [runSimulation(get_simInit(paramDefs,kk)) for kk in range(1)]
-    
-    # add to the list the selected ve size
-    for ii in range(nSims):
-        outputfiles[ii] = [paramDefs['figPanel'][ii],paramDefs['veSize'][ii],paramDefs['TSize'][ii]] + outputfiles[ii]
-    
-    # save a list of the output files in the output directory
-    save_name = 'simList_bEvo_DRE_fitnessGain_traitInterference_veFitChng.csv'
-    write_outputfile_list(outputfiles,save_name)
+    if (False):
+        # dictionary to setup parameters for runs with ve 
+        paramDefs   = param_set_varyVe()
+        nSims       = len(paramDefs['paramFile'])
+        outputDir   = 'sim_bEvo_DRE_VeFitChng_NewTest'
+        
+        # carry out sim runs in parallel
+        outputfiles = Parallel(n_jobs=cpu_count()-1)(delayed(runSimulation)(get_simInit(paramDefs,kk,outputDir)) for kk in range(nSims))
+        
+        # non parallel verion
+        # outputfiles = [runSimulation(get_simInit(paramDefs,kk)) for kk in range(1)]
+        
+        # add to the list the selected ve size
+        for ii in range(nSims):
+            outputfiles[ii] = [paramDefs['figPanel'][ii],paramDefs['veSize'][ii],paramDefs['TSize'][ii]] + outputfiles[ii]
+        
+        # save a list of the output files in the output directory
+        save_name = 'simList_bEvo_DRE_fitnessGain_traitInterference_veFitChng.csv'
+        write_outputfile_list(outputfiles,save_name)
     
     ###################################################
     #### PART II - T variation and intersections ######
     ###################################################
     
-    # dictionary to setup parameters for runs with ve 
-    paramDefs   = param_set_varyT()
-    nSims       = len(paramDefs['paramFile'])
-    outputDir   = 'sim_bEvo_DRE_TFitChng_NewTest'
+    if (False):
+        # dictionary to setup parameters for runs with ve 
+        paramDefs   = param_set_varyT()
+        nSims       = len(paramDefs['paramFile'])
+        outputDir   = 'sim_bEvo_DRE_TFitChng_NewTest'
+        
+        # carry out sim runs in parallel
+        outputfiles = Parallel(n_jobs=cpu_count()-1)(delayed(runSimulation)(get_simInit(paramDefs,kk,outputDir)) for kk in range(nSims))
+        
+        # non parallel verion
+        # outputfiles = [runSimulation(get_simInit(paramDefs,kk)) for kk in range(1)]
+        
+        # add to the list the selected ve size
+        for ii in range(nSims):
+            outputfiles[ii] = [paramDefs['figPanel'][ii],paramDefs['veSize'][ii],paramDefs['TSize'][ii]] + outputfiles[ii]
+        
+        # save a list of the output files in the output directory
+        save_name = 'simList_bEvo_DRE_fitnessGain_traitInterference_TFitChng.csv'
+        write_outputfile_list(outputfiles,save_name)
     
-    # carry out sim runs in parallel
-    outputfiles = Parallel(n_jobs=cpu_count()-1)(delayed(runSimulation)(get_simInit(paramDefs,kk,outputDir)) for kk in range(nSims))
-    
-    # non parallel verion
-    # outputfiles = [runSimulation(get_simInit(paramDefs,kk)) for kk in range(1)]
-    
-    # add to the list the selected ve size
-    for ii in range(nSims):
-        outputfiles[ii] = [paramDefs['figPanel'][ii],paramDefs['veSize'][ii],paramDefs['TSize'][ii]] + outputfiles[ii]
-    
-    # save a list of the output files in the output directory
-    save_name = 'simList_bEvo_DRE_fitnessGain_traitInterference_TFitChng.csv'
-    write_outputfile_list(outputfiles,save_name)
     
 if __name__ == "__main__":
     main()

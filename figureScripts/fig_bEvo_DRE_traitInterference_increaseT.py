@@ -12,7 +12,6 @@ are compared with rho estimates.
 # --------------------------------------------------------------------------
 
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 
 import pandas as pd
 import numpy as np
@@ -32,6 +31,78 @@ from evoLibraries.LotteryModel import LM_functions as lmfun
 # Get parameters/options
 # --------------------------------------------------------------------------
 
+def get_ylims(figData,yaxisType=None):
+    # simple function to get the ylim values
+    # - figData_key is dictionary with data for current key (i.e. set of data
+    #   with same ve0, varying T-percent changes)
+    
+    keys = list(figData.keys())
+    
+    if yaxisType==None:
+        subkeys = ['fit_chng_avg','fit_chng_env','fit_chng_int','fit_chng_crv']
+        ymax = 0
+        ymin = 0
+        
+        for key in keys:
+            for subkey in subkeys:
+                ymax = np.max([ymax, np.max(figData[key][subkey])])
+                ymin = np.min([ymin, np.min(figData[key][subkey])])
+        
+        # expecting to round to max .01 value, both min and max, and we 
+        # want steps of 0.02
+        ymax = np.ceil(ymax*100.0)/100.0
+        nTicMax = int(ymax/0.02)+1
+        
+        ymin = np.sign(ymin)*np.ceil(np.abs(ymin)*100.0)/100.0
+        nTicMin = int(np.abs(ymin)/0.02)+1 
+        
+        # tick spacing select
+        if abs(nTicMax - nTicMin) < 12:
+            tick_spacing = 0.02
+        else:
+            tick_spacing = 0.1
+            nTicMax = int(np.ceil(nTicMax*0.2))
+            nTicMin = int(np.ceil(nTicMin*0.2))
+    else:
+        subkeys = ['fit_chng_avg','fit_chng_int']
+        ymax = 0
+        ymin = 0
+        
+        for key in keys:
+            for subkey in subkeys:
+                ymax = np.max([ymax, 100*np.max(get_listDiv(figData[key][subkey],figData[key]['fit_chng_env']))])
+                ymin = np.min([ymin, 100*np.min(get_listDiv(figData[key][subkey],figData[key]['fit_chng_env']))])
+        
+        # expecting to round to max .01 value, both min and max, and we 
+        # want steps of 0.02
+        ymax = np.ceil(ymax)+10
+        nTicMax = int(ymax/10)+1
+        
+        ymin = np.sign(ymin)*np.ceil(np.abs(ymin))-5
+        nTicMin = int(np.abs(ymin)/10)+1 
+        
+        # tick spacing select
+        if abs(nTicMax - nTicMin) < 12:
+            tick_spacing = 10
+        else:
+            tick_spacing = 20
+            nTicMax = int(np.ceil(nTicMax*0.5))
+            nTicMin = int(np.ceil(nTicMin*0.5))
+            
+    yLimSet = {}
+    yLimSet['Ylim'] = [ymin,ymax]
+    yLimSet['Ytic'] = [tick_spacing*ii for ii in range(-nTicMin,nTicMax)]
+    if yaxisType=='percChng':
+        yLimSet['Ylblv'] = [str(round(yval,1))+'%' for yval in yLimSet['Ytic']]
+    else:
+        yLimSet['Ylblv'] = [str(round(yval,1)) for yval in yLimSet['Ytic']]
+    yLimSet['Ylble'] = ['' for yval in yLimSet['Ytic']]
+    yLimSet['Ypanl'] = ymax-0.06*(ymax-ymin)
+    
+    return yLimSet
+
+# --------------------------------------------------------------------------
+
 def create_fitnessGainVsTincrFig(figDataSet,figSaveName,xAxisType):
     """
     Generates plot showing fitness increase vs increases to T
@@ -39,26 +110,42 @@ def create_fitnessGainVsTincrFig(figDataSet,figSaveName,xAxisType):
         - figDataSet, contains all simulation and mc model data
         - figSaveName
         - xAxisType, string indicating vE percent or log(T/T0) x-axis
+        - figkey, 
     Outputs:
         - figure showing fitness increases/decreases vs percent change in T
     """ 
 
-    # get list of keys and setup things for a color map
+    # get list of keys, expected to be A for Lo Rho, B for Me Rho, and C for Hi Rho
     vp0     = list(figDataSet.keys())
-    nv      = len(vp0)
     
-    # collect the data
-    figData = process_sim_data_for_plots(figDataSet,0)
+    # collect the data, for both keys
+    figData = process_sim_data_for_plots(figDataSet,'fitChngPlts')
     
+    # calculate an offset for the panel labels.
+    if (figSaveName.find('LoRho') >= 0):
+        pnlOffset = 0
+        xaxisLabel = False
+        ywinsize = 4.5
+    elif (figSaveName.find('MeRho') >= 0):
+        pnlOffset = 3
+        xaxisLabel = False
+        ywinsize = 4.5
+    else:
+        pnlOffset = 6
+        xaxisLabel = True
+        ywinsize = 4.9
+        
     # setup the figure and color map
-    fig,ax  = plt.subplots(1,3,figsize=[14,5])   
+    fig,ax  = plt.subplots(1,3,figsize=[14,ywinsize])   
     
     # set common y-lims and ticks
-    Ylim = [-0.005,0.185]
-    Ytic = [0.02*ii for ii in range(0,10)]
-    Ylblv= [str(round(yval*10,1)) for yval in Ytic]
-    Ylble = ['' for ii in range(10)]
-    
+    yLimSet = get_ylims(figData)
+    Ylim  = yLimSet['Ylim']
+    Ytic  = yLimSet['Ytic']
+    Ylblv = yLimSet['Ylblv']
+    Ylble = yLimSet['Ylble']
+    Ypanl = yLimSet['Ypanl']
+        
     # loop through keys and add each subplot
     for idx, key in enumerate(vp0):
         
@@ -67,16 +154,23 @@ def create_fitnessGainVsTincrFig(figDataSet,figSaveName,xAxisType):
         if xAxisType == 'vaxis':
             
             # xtick settings (change this if sim parameters change)
+            # NOTE: this is fine for the current selection of T sampling, but 
+            #       would need to change with Tperc in sim runs
             xticDat = {'vals':{}, 'lbls': {}}
             xticDat['vals'][0] = [35+5*ii for ii in range(4)]
             xticDat['vals'][1] = [55+5*ii for ii in range(5)]
             xticDat['vals'][2] = [70+10*ii for ii in range(4)]
-            for ii in range(3):
-                xticDat['lbls'][ii] = ["%s%%"%(val) for val in xticDat['vals'][ii]]
-                
+            
+            if xaxisLabel:
+                for ii in range(3):
+                    xticDat['lbls'][ii] = ["%s%%"%(val) for val in xticDat['vals'][ii]]
+            else:
+                for ii in range(3):
+                    xticDat['lbls'][ii] = ['' for val in xticDat['vals'][ii]]
+                    
             # plot the fitness increase of the average va for each ve level
             ax[idxf].scatter(figData[key]['ve_perc_init'], figData[key]['fit_chng_avg'],color='black',marker='o',label='Imperfect Interference')
-            ax[idxf].scatter(figData[key]['ve_perc_init'], figData[key]['fit_chng_env'],color='blue',marker='o',facecolors='none')
+            # ax[idxf].scatter(figData[key]['ve_perc_init'], figData[key]['fit_chng_env'],color='blue',marker='o',facecolors='none')
             ax[idxf].scatter(figData[key]['ve_perc_init'], figData[key]['fit_chng_int'],color='red',marker='o',facecolors='none',label='Perfect Interference')
             ax[idxf].plot(figData[key]['ve_perc_crv'], figData[key]['fit_chng_crv'],c='blue',linestyle='-',label='No Interference')
         
@@ -84,10 +178,14 @@ def create_fitnessGainVsTincrFig(figDataSet,figSaveName,xAxisType):
             
             xdata = [1,5,100]
             xticDat = {'vals':{}, 'lbls': {}}
+
             for ii in range(3):
                 xticDat['vals'][ii] = [np.log10(val) for val in xdata]
-                xticDat['lbls'][ii] = ["%dT"%(val) for val in xdata]
-            
+                if xaxisLabel:
+                    xticDat['lbls'][ii] = ["%dT"%(val) for val in xdata]
+                else:
+                    xticDat['lbls'][ii] = ['' for val in xdata]
+                    
             # plot the fitness increase of the average va for each T level
             ax[idxf].scatter(figData[key]['T_perc_chng'], figData[key]['fit_chng_avg'],color='black',marker='o',label='Imperfect Interference')
             # ax[idxf].scatter(figData[key]['T_perc_chng'], figData[key]['fit_chng_env'],color='blue',marker='o',facecolors='none')
@@ -108,24 +206,174 @@ def create_fitnessGainVsTincrFig(figDataSet,figSaveName,xAxisType):
         xmin = np.min(ax[idxf].get_xlim())
         xmax = np.max(ax[idxf].get_xlim())
         
-        if (idxf==2):
+        if (idxf==2) and (figSaveName.find('LoRho') >= 0):
             ax[idxf].legend(fontsize=16)
-            
-        ax[idxf].text(xmin+0.01*(xmax-xmin),0.175,"(%s)"%(chr(65+idxf)),fontsize=16)
+        
+        ax[idxf].text(xmin+0.01*(xmax-xmin),Ypanl,"(%s)"%(chr(65+pnlOffset+idxf)),fontsize=16)
 
     # ax.text(1,-0.16,r'$T=T_0 \times 1,5,100$',fontsize=20)    
     
-    if xAxisType == 'vaxis':
+    if xAxisType == 'vaxis' and xaxisLabel:
         fig.supxlabel(r'$v_E/v_a^*$',y=0.05,fontsize=16)
-    else:
+    elif xaxisLabel:
         fig.supxlabel(r'Multiples of Reference T ($log_{10}$)',y=0.05,fontsize=16)
         
     fig.supylabel('Change in Fitness',x=0.01,fontsize=16)
     plt.subplots_adjust(wspace=0.05,hspace=0.05)
     plt.tight_layout()
     
-    figSaveName = figSaveName.replace('.pdf','_rho1.pdf')
     fig.savefig(figSaveName,bbox_inches='tight')
+    
+    return None
+
+# --------------------------------------------------------------------------
+
+def get_listDiv(xl,yl,zerodiv=1,factor=1):
+    
+    zl = []
+    for x,y in zip(xl,yl):
+        if abs(y)>0:
+            zl.append(factor*x/y)
+        elif(abs(x) > 0):
+            zl.append(np.nan)
+        else:
+            zl.append(factor*zerodiv)
+    
+    return zl
+
+# --------------------------------------------------------------------------
+
+def create_percFitnessGainVsTincrFig(figDataSet,figSaveName,xAxisType):
+    """
+    Generates plot showing fitness increase vs increases to T
+    Inputs:
+        - figDataSet, contains all simulation and mc model data
+        - figSaveName
+        - xAxisType, string indicating vE percent or log(T/T0) x-axis
+        - figkey, 
+    Outputs:
+        - figure showing fitness increases/decreases vs percent change in T
+    """ 
+
+    # get list of keys, expected to be A for Lo Rho, B for Me Rho, and C for Hi Rho
+    vp0     = list(figDataSet.keys())
+    
+    # collect the data, for both keys
+    figData = process_sim_data_for_plots(figDataSet,'fitChngPlts')
+    
+    # calculate an offset for the panel labels.
+    if (figSaveName.find('LoRho') >= 0):
+        pnlOffset = 0
+        xaxisLabel = False
+        ywinsize = 4.5
+    elif (figSaveName.find('MeRho') >= 0):
+        pnlOffset = 3
+        xaxisLabel = False
+        ywinsize = 4.5
+    else:
+        pnlOffset = 6
+        xaxisLabel = True
+        ywinsize = 4.9
+        
+    # setup the figure and color map
+    fig,ax  = plt.subplots(1,3,figsize=[14,ywinsize])   
+    
+    # set common y-lims and ticks
+    yLimSet = get_ylims(figData,'percChng')
+    Ylim  = yLimSet['Ylim']
+    Ytic  = yLimSet['Ytic']
+    Ylblv = yLimSet['Ylblv']
+    Ylble = yLimSet['Ylble']
+    Ypanl = yLimSet['Ypanl']
+        
+    # loop through keys and add each subplot
+    for idx, key in enumerate(vp0):
+        
+        idxf = 2-idx # switch the order
+        
+        if xAxisType == 'vaxis':
+            
+            # xtick settings (change this if sim parameters change)
+            # NOTE: this is fine for the current selection of T sampling, but 
+            #       would need to change with Tperc in sim runs
+            xticDat = {'vals':{}, 'lbls': {}}
+            xticDat['vals'][0] = [35+5*ii for ii in range(4)]
+            xticDat['vals'][1] = [55+5*ii for ii in range(5)]
+            xticDat['vals'][2] = [70+10*ii for ii in range(4)]
+            
+            if xaxisLabel:
+                for ii in range(3):
+                    xticDat['lbls'][ii] = ["%s%%"%(val) for val in xticDat['vals'][ii]]
+            else:
+                for ii in range(3):
+                    xticDat['lbls'][ii] = ['' for val in xticDat['vals'][ii]]
+                    
+            # plot the fitness increase of the average va for each ve level
+            fit_chng_avg_per = get_listDiv(figData[key]['fit_chng_avg'],figData[key]['fit_chng_env'],0,100)
+            fit_chng_int_per = get_listDiv(figData[key]['fit_chng_int'],figData[key]['fit_chng_env'],0,100)
+            fit_chng_crv_100 = 100*np.ones(figData[key]['fit_chng_crv'].shape)
+            
+            ax[idxf].scatter(figData[key]['ve_perc_init'], fit_chng_avg_per,color='black',marker='o',label='Imperfect Interference')
+            ax[idxf].scatter(figData[key]['ve_perc_init'], fit_chng_int_per,color='red',marker='o',facecolors='none',label='Perfect Interference')
+            ax[idxf].plot(figData[key]['ve_perc_crv'], fit_chng_crv_100,c='blue',linestyle='-',label='No Interference')
+        
+        else:
+            
+            xdata = [1,5,100]
+            xticDat = {'vals':{}, 'lbls': {}}
+
+            for ii in range(3):
+                xticDat['vals'][ii] = [np.log10(val) for val in xdata]
+                if xaxisLabel:
+                    xticDat['lbls'][ii] = ["%dT"%(val) for val in xdata]
+                else:
+                    xticDat['lbls'][ii] = ['' for val in xdata]
+                    
+            # plot the fitness increase of the average va for each T level
+            fit_chng_avg_per = get_listDiv(figData[key]['fit_chng_avg'],figData[key]['fit_chng_env'],0,100)
+            fit_chng_int_per = get_listDiv(figData[key]['fit_chng_int'],figData[key]['fit_chng_env'],0,100)
+            fit_chng_crv_100 = 100*np.ones(figData[key]['fit_chng_crv'].shape)
+            
+            print(figData[key]['T_perc_chng'])
+            print(figData[key]['fit_chng_avg'])
+            print(figData[key]['fit_chng_env'])
+            print(fit_chng_avg_per)
+            ax[idxf].scatter(figData[key]['T_perc_chng'], fit_chng_avg_per,color='black',marker='o',label='Imperfect Interference')
+            # ax[idxf].scatter(figData[key]['T_perc_chng'], figData[key]['fit_chng_env'],color='blue',marker='o',facecolors='none')
+            ax[idxf].scatter(figData[key]['T_perc_chng'], fit_chng_int_per,color='red',marker='o',facecolors='none',label='Perfect Interference')
+            ax[idxf].plot(figData[key]['T_perc_crv'], fit_chng_crv_100,c='blue',linestyle='-',marker='.',label='No Interference')
+            ax[idxf].grid(True)
+        
+        ax[idxf].set_ylim(Ylim)    
+        ax[idxf].set_yticks(Ytic)
+        if (idxf==0):
+            ax[idxf].set_yticklabels(Ylblv,fontsize=14)
+        else:
+            ax[idxf].set_yticklabels(Ylble,fontsize=14)
+        
+        
+        ax[idxf].set_xticks(xticDat['vals'][idx])
+        ax[idxf].set_xticklabels(xticDat['lbls'][idx],fontsize=14)
+        xmin = np.min(ax[idxf].get_xlim())
+        xmax = np.max(ax[idxf].get_xlim())
+        
+        if (idxf==2) and (figSaveName.find('LoRho') >= 0):
+            ax[idxf].legend(fontsize=16,loc='upper right')
+        
+        ax[idxf].text(xmin+0.01*(xmax-xmin),Ypanl,"(%s)"%(chr(65+pnlOffset+idxf)),fontsize=16)
+
+    # ax.text(1,-0.16,r'$T=T_0 \times 1,5,100$',fontsize=20)    
+    
+    if xAxisType == 'vaxis' and xaxisLabel:
+        fig.supxlabel(r'$v_E/v_a^*$',y=0.05,fontsize=16)
+    elif xaxisLabel:
+        fig.supxlabel(r'Multiples of Reference T ($log_{10}$)',y=0.05,fontsize=16)
+        
+    fig.supylabel('Percent Fitness Change',x=0.01,fontsize=16)
+    plt.subplots_adjust(wspace=0.05,hspace=0.05)
+    plt.tight_layout()
+    
+    fig.savefig(figSaveName.replace('.png','_percChng.png'),bbox_inches='tight')
     
     return None
 
@@ -227,7 +475,7 @@ def process_sim_data_for_plots(figDataSet,fig_type):
     # get list of plot types, determined by starting ve/v*, for default T0
     plot_types = list(figDataSet.keys())
     
-    if fig_type == 0:
+    if fig_type == 'fitChngPlts':
         # CASE: fitness increase plots
         
         # We organize figData by the plot types, i.e.init vE = 50%, 75%, ...
@@ -346,24 +594,6 @@ def process_sim_mc_plots(figDataSet):
 
 # --------------------------------------------------------------------------
 
-def get_ylims(figData):
-    # simple function to get the ylim values
-    
-    keys = list(figData.keys())
-    ymax = 0
-    ymin = 0
-    
-    for key in keys:
-        ymax = np.max([ymax, np.max(figData[key]['fit_chng'])])
-        ymin = np.min([ymin, np.min(figData[key]['fit_chng'])])
-    
-    ymax = np.ceil(ymax*10.0)/10.0
-    ymin = np.sign(ymin)*np.ceil(np.abs(ymin)*10.0)/10.0
-    
-    return [ymin,ymax]
-
-# --------------------------------------------------------------------------
-
 def get_T_sampling(T_perc_arry,nSample,Tscale=None):
     # we use a log scale to determine sampling of T percentages
     
@@ -381,7 +611,7 @@ def get_T_sampling(T_perc_arry,nSample,Tscale=None):
 
 # --------------------------------------------------------------------------
 
-def get_figData(figSetup):
+def get_figData(figSetup,panelkey):
     # get_figData() loops throught the various panel data files and calculates
     # the required figure data. It requires a dictionary with the output
     # directory and filenames where data is store for a simulation run.
@@ -390,6 +620,7 @@ def get_figData(figSetup):
     # for a group of simulations runs of this figure set.
     fileList = os.path.join(figSetup['workDir'],figSetup['dataList'])
     dataFiles = pd.read_csv(fileList)
+    dataFiles = dataFiles[dataFiles['fig_panel']==panelkey]
     
     # Number of runs in current sim run set, iterating percentage changes in T,
     # with different starting percentages of vE.
@@ -425,11 +656,11 @@ def get_figData(figSetup):
         
         # get the current evoSim object. The evoSim object has the mc model, 
         # and output files needed for the figure data.
-        evoFile = os.path.join(figSetup['workDir'],dataFiles['sim_snapshot'][ii]) 
+        evoFile = os.path.join(figSetup['workDir'],dataFiles['sim_snapshot'].iloc[ii]) 
         print("Processing: %s" % (evoFile))
         
         # get the current panel info and save the T-percent change 
-        crntKey   = dataFiles['ve_percent'][ii]
+        crntKey   = dataFiles['ve_percent'].iloc[ii]
         
         # ---------------------------
         # Data Collection
@@ -441,9 +672,9 @@ def get_figData(figSetup):
         # Usage: figDataSet[key][datakey][idx]
         #
         if figData[crntKey]['T_perc'] == []:
-            figData[crntKey]['T_perc'] = [dataFiles['T_percent'][ii]]
+            figData[crntKey]['T_perc'] = [dataFiles['T_percent'].iloc[ii]]
         else:
-            figData[crntKey]['T_perc'].append(dataFiles['T_percent'][ii])
+            figData[crntKey]['T_perc'].append(dataFiles['T_percent'].iloc[ii])
         
         # 1. Returns arrays to calculate fitness changes vs T percent change
         # for the average state
@@ -484,7 +715,7 @@ def get_figData(figSetup):
         #
         # Usage: figDataSet[key][datakey][varky] 
         # 
-        if (figData[crntKey]['mc_curves']==[]) and (dataFiles['T_percent'][ii] == 100):
+        if (figData[crntKey]['mc_curves']==[]) and (dataFiles['T_percent'].iloc[ii] == 100):
             pfixSolve = 3    # Use sel. coeff as pfix solution of v's
             figData[crntKey]['mc_curves'] = figfun.get_mcModel_VaVeIntersect_curveVaryT(evoFile,TvalsPerc,pfixSolve)
         
@@ -549,6 +780,7 @@ def main():
     # reprocessing the data again.
     figSetup['dataFile'] = figSetup['dataList'].replace('.csv', '_saveDat.pickle')
     figSetup['saveData'] = os.path.join(figSetup['workDir'],figSetup['dataFile']) 
+    figSetup['panelDef'] = {'A':'LoRho','B':'MeRho','C':'HiRho'}
 
     
     ###############################################################
@@ -560,29 +792,39 @@ def main():
     # Note: the first time we process the data, we save it in the outputs 
     #       directory. If the the file exist, then use the save file, otherwise
     #       process the data.
-    if not (os.path.exists(figSetup['saveData'])):
-        # start timer
-        tic = time.time()
+    
+    # first read the data list and get the set of fig panels
+    dataFiles = pd.read_csv(os.path.join(figSetup['workDir'],figSetup['dataList']))
+    panel_set = list(np.unique(dataFiles['fig_panel'].values))
+    
+    for panelkey in panel_set:
         
-        # get the date for the figure
-        figDatSet = get_figData(figSetup)
+        savePickleData = figSetup['saveData'].replace('.pickle',f'_pnl{panelkey}.pickle')
+        if not (os.path.exists(savePickleData)):
+            # start timer
+            tic = time.time()
             
-        # save the data to a pickle file
-        with open(figSetup['saveData'], 'wb') as file:
-            # Serialize and write the variable to the file
-            pickle.dump(figDatSet, file)
-            
-        print(time.time()-tic)
-
-    else:
-        # load mcModel data
-        with open(figSetup['saveData'], 'rb') as file:
-            # Serialize and write the variable to the file
-            figDatSet = pickle.load(file)
-            
-    # create the figure
-    saveFigFilename = os.path.join(figSetup['figSavePath'],figSetup['saveFigFile'])
-    create_fitnessGainVsTincrFig(figDatSet,saveFigFilename,'taxis')
+            # get the date for the figure
+            figDatSet = get_figData(figSetup,panelkey)
+                
+            # save the data to a pickle file
+            with open(savePickleData, 'wb') as file:
+                # Serialize and write the variable to the file
+                pickle.dump(figDatSet, file)
+                
+            print(time.time()-tic)
+    
+        else:
+            # load mcModel data
+            with open(savePickleData, 'rb') as file:
+                # Serialize and write the variable to the file
+                figDatSet = pickle.load(file)
+                
+        # create the figure
+        saveFigFilename = os.path.join(figSetup['figSavePath'],figSetup['saveFigFile'])
+        saveFigFilename = saveFigFilename.replace('.pdf',"_%s.pdf" % (figSetup['panelDef'][panelkey]))
+        # create_fitnessGainVsTincrFig(figDatSet,saveFigFilename,'taxis')
+        create_percFitnessGainVsTincrFig(figDatSet,saveFigFilename,'taxis')
     
 if __name__ == "__main__":
     main()

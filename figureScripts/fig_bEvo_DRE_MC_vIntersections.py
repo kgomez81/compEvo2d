@@ -203,8 +203,8 @@ wdthRel = 0.05*vEq2
 ax2.plot([iEq2,iEq2],[0,vEq2],c="black",linewidth=2,linestyle='--')
 ax2.arrow(xAbs, yAbs, dxAbs, dyAbs, length_includes_head=True, \
           width = wdthAbs ,head_width= arrw_hgt_1*wdthAbs, head_length=arrw_hlngt1, color='blue')
-ax2.arrow(xRel, yRel, dxRel, dyRel, length_includes_head=True, \
-          width = wdthRel ,head_width= arrw_hgt_2*wdthRel, head_length=arrw_hlngt2, color='red')
+ax2.arrow(xAbs, yRel, dxAbs, dyAbs, length_includes_head=True, \
+          width = wdthRel ,head_width= arrw_hgt_1*wdthRel, head_length=arrw_hlngt1, color='red')
 ax2.text(15,0.29e-4,r'(B)', fontsize = 22)
 
 plt.show()

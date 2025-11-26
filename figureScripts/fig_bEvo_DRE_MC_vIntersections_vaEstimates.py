@@ -86,6 +86,39 @@ else:
 # --------------------------------------------------------------------------
 
 
+###############################################################
+########### Run the simulations / load simulation data ########
+###############################################################
+# get the sim data from the file list, function will carry out the calculations
+# needed for plots and return them as a list for each figset.
+#
+# Note: the first time we process the data, we save it in the outputs 
+#       directory. If the the file exist, then use the save file, otherwise
+#       process the data.
+if not (os.path.exists(figSetup['saveData'])):
+    # start timer
+    tic = time.time()
+    
+    # get the date for the figure
+    figDatSet = get_figData(figSetup)
+        
+    # save the data to a pickle file
+    with open(figSetup['saveData'], 'wb') as file:
+        # Serialize and write the variable to the file
+        pickle.dump(figDatSet, file)
+        
+    print(time.time()-tic)
+
+else:
+    # load mcModel data
+    with open(figSetup['saveData'], 'rb') as file:
+        # Serialize and write the variable to the file
+        figDatSet = pickle.load(file)
+        
+# create the figure
+saveFigFilename = os.path.join(figSetup['figSavePath'],figSetup['saveFigFile'])
+create_fitnessGainVsTincrFig(figDatSet,saveFigFilename,'taxis')
+
 
             
 #%% ------------------------------------------------------------------------

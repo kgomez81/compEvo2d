@@ -334,10 +334,6 @@ def create_percFitnessGainVsTincrFig(figDataSet,figSaveName,xAxisType):
             fit_chng_int_per = get_listDiv(figData[key]['fit_chng_int'],figData[key]['fit_chng_env'],0,100)
             fit_chng_crv_100 = 100*np.ones(figData[key]['fit_chng_crv'].shape)
             
-            print(figData[key]['T_perc_chng'])
-            print(figData[key]['fit_chng_avg'])
-            print(figData[key]['fit_chng_env'])
-            print(fit_chng_avg_per)
             ax[idxf].scatter(figData[key]['T_perc_chng'], fit_chng_avg_per,color='black',marker='o',label='Imperfect Interference')
             # ax[idxf].scatter(figData[key]['T_perc_chng'], figData[key]['fit_chng_env'],color='blue',marker='o',facecolors='none')
             ax[idxf].scatter(figData[key]['T_perc_chng'], fit_chng_int_per,color='red',marker='o',facecolors='none',label='Perfect Interference')

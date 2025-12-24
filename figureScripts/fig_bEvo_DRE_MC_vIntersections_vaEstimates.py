@@ -23,6 +23,9 @@ sys.path.insert(0, os.getcwd() + '\\..')
 from evoLibraries.MarkovChain import MC_factory as mcFac
 from matplotlib.lines import Line2D
 
+# helper functions to manage data and generate plots
+import figFunctions as figfun
+
 #%% ------------------------------------------------------------------------
 # Get parameters/options
 # --------------------------------------------------------------------------
@@ -30,6 +33,7 @@ from matplotlib.lines import Line2D
 # filepaths for loading and saving outputs
 inputsPath  = os.path.join(os.getcwd(),'inputs')
 outputsPath = os.path.join(os.getcwd(),'outputs')
+simOutputs  = os.path.join(os.getcwd(),'outputs','sim_bEvo_DRE_Fig1')
 figSavePath = os.path.join(os.getcwd(),'figures','MainDoc')
 
 # filenames and paths for saving outputs
@@ -38,6 +42,8 @@ figDatDir   = 'fig_bEvo_DRE_MC_vInt_pfix1'
 paramFile   = ['evoExp_DRE_bEvo_01_parameters.csv','evoExp_DRE_bEvo_02_parameters.csv']
 paramTag    = ['param_01_DRE_bEvo','param_02_DRE_bEvo']
 saveDatFile = [''.join(('_'.join((figDatDir,pTag)),'.pickle')) for pTag in paramTag]
+simFiles    = ['sim_Fig2A_EnvLim_snpsht_param_01_DRE_bEvo_EnvLim_20250720_170758_evoSim.pickle',
+               'sim_Fig2B_ComLim_snpsht_param_02_DRE_bEvo_ComLim_20250720_184331_evoSim.pickle']
 
 # set paths to generate output files for tracking progress of loop/parloop
 mcModelOutputPath   = os.path.join(outputsPath,figDatDir) 
@@ -85,42 +91,12 @@ else:
 # Load the sim data
 # --------------------------------------------------------------------------
 
-
-###############################################################
-########### Run the simulations / load simulation data ########
-###############################################################
-# get the sim data from the file list, function will carry out the calculations
-# needed for plots and return them as a list for each figset.
-#
-# Note: the first time we process the data, we save it in the outputs 
-#       directory. If the the file exist, then use the save file, otherwise
-#       process the data.
-if not (os.path.exists(figSetup['saveData'])):
-    # start timer
-    tic = time.time()
+# Process the simulation outputs to get the histogram data
+evoHistDataSets = []
+for simFile in simFiles:
+    simFilePath = os.path.join(simOutputs,simFile)
+    evoHistDataSets.append(figfun.get_stateDataForHist(simFilePath))    
     
-    # get the date for the figure
-    figDatSet = get_figData(figSetup)
-        
-    # save the data to a pickle file
-    with open(figSetup['saveData'], 'wb') as file:
-        # Serialize and write the variable to the file
-        pickle.dump(figDatSet, file)
-        
-    print(time.time()-tic)
-
-else:
-    # load mcModel data
-    with open(figSetup['saveData'], 'rb') as file:
-        # Serialize and write the variable to the file
-        figDatSet = pickle.load(file)
-        
-# create the figure
-saveFigFilename = os.path.join(figSetup['figSavePath'],figSetup['saveFigFile'])
-create_fitnessGainVsTincrFig(figDatSet,saveFigFilename,'taxis')
-
-
-            
 #%% ------------------------------------------------------------------------
 # generate figures
 # --------------------------------------------------------------------------
@@ -137,7 +113,7 @@ ax1.scatter(mcModels[0].state_i, \
             mcModels[0].va_i,color="blue",s=8,label=r'$v_b$')
 ax1.scatter(mcModels[0].state_i, \
             mcModels[0].vc_i,color="red",s=8,label=r'$v_c$')
-
+    
 # axes and label adjustements
 iMax = mcModels[0].get_iMax()
 ax1.set_xlim(2,iMax)
@@ -192,6 +168,11 @@ T_vals_strLgd   = [r'$v_E$',r'$v_b$',r'$v_c$']
 custom_lines = [Line2D([0], [0], linestyle=myLineStyles[ii], color=myColors[ii], lw=2) for ii in range(len( T_vals_strLgd ))]
 ax1.legend(custom_lines,T_vals_strLgd,fontsize = 20)
 
+# add the histogram data
+ax1t = ax1.twinx()
+ax1t.hist(evoHistDataSets[0]['states'],weights=evoHistDataSets[0]['wghts'],alpha = 0.5, color= 'k')
+ax1t.set_yticks([])
+
 # --------------------------------------------------------------------------
 #                               Figure - Panel (B)
 # --------------------------------------------------------------------------
@@ -201,6 +182,8 @@ ax2.scatter(mcModels[1].state_i, \
             mcModels[1].va_i,color="blue",s=8,label=r'$v_b$')
 ax2.scatter(mcModels[1].state_i, \
             mcModels[1].vc_i,color="red",s=8,label=r'$v_c$')
+
+    
 
 # axes and label adjustements
 iMax = mcModels[1].get_iMax()
@@ -245,9 +228,14 @@ wdthRel = 0.05*vEq2
 ax2.plot([iEq2,iEq2],[0,vEq2],c="black",linewidth=2,linestyle='--')
 ax2.arrow(xAbs, yAbs, dxAbs, dyAbs, length_includes_head=True, \
           width = wdthAbs ,head_width= arrw_hgt_1*wdthAbs, head_length=arrw_hlngt1, color='blue')
-ax2.arrow(xRel, yRel, dxRel, dyRel, length_includes_head=True, \
-          width = wdthRel ,head_width= arrw_hgt_2*wdthRel, head_length=arrw_hlngt2, color='red')
+ax2.arrow(xAbs, yRel, dxAbs, dyAbs, length_includes_head=True, \
+          width = wdthRel ,head_width= arrw_hgt_1*wdthRel, head_length=arrw_hlngt1, color='red')
 ax2.text(15,0.29e-4,r'(B)', fontsize = 22)
+
+# add the histogram data
+ax2t = ax2.twinx()
+ax2t.hist(evoHistDataSets[1]['states'],weights=evoHistDataSets[1]['wghts'],alpha = 0.5, color= 'k')
+ax2t.set_yticks([])
 
 plt.show()
 plt.tight_layout()

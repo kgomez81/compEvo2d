@@ -323,7 +323,8 @@ def param_set_varyT():
     
     # add the full set of simulations for the new figures with sampling design
     # each set will include sampled simulations from 10,20,...,100
-    vef = [50, 75, 100]
+    # vef = [25, 50, 75, 100]
+    vef = [25]
     Ttf = [100, 500, 10000]
     
     kkMap = []
@@ -423,7 +424,7 @@ def main():
     #### PART II - T variation and intersections ######
     ###################################################
     
-    if (False):
+    if (True):
         # dictionary to setup parameters for runs with ve 
         paramDefs   = param_set_varyT()
         nSims       = len(paramDefs['paramFile'])
@@ -440,7 +441,8 @@ def main():
             outputfiles[ii] = [paramDefs['figPanel'][ii],paramDefs['veSize'][ii],paramDefs['TSize'][ii]] + outputfiles[ii]
         
         # save a list of the output files in the output directory
-        save_name = 'simList_bEvo_DRE_fitnessGain_traitInterference_TFitChng.csv'
+        # save_name = 'simList_bEvo_DRE_fitnessGain_traitInterference_TFitChng.csv'
+        save_name = 'simList_bEvo_DRE_fitnessGain_traitInterference_TFitChng_25perc.csv'
         write_outputfile_list(outputfiles,save_name)
     
     

@@ -90,14 +90,68 @@ def get_T_sampling(T_perc_arry,nSample,Tscale=None):
 # Plotting functions
 # --------------------------------------------------------------------------
 
+def get_scaleAndTicks_Percent(valmin,valmax,valname,scaleType=None):
+    """
+    Function generates tics and labels, but is specialized for axis with
+    percentages.
+    
+    inputs:
+        valmin = minimum value of data set (expect percentage 0-1 type)
+        valmax = maximum value of data set (expect percentage 0-1 type)
+        valname = name of axis to group with plotting parameters
+        scaleType = percent scale type, either 'bound' or 'multiples'
+    outputs:
+        valset = dictionary with tics and labels, along with scaling for labels
+    """
+    # notes: for the two types scales, we want the following setup
+    # 1. for bounded, we want to choose either 5, 10, 25 percent increments
+    #    depending on how many tics we get with each. Ideally, we'd want 3-5
+    #    tics
+    # 2. for the unbounded, we want tics based on multiples of 1
+    
+    valset = dict.fromkeys(['bnds','tics','lbls','scale','name'])
+    
+    if (scaleType == 'bound') or (scaleType == None):
+        # these are the desired tic spacings
+        ticset = [0.05,0.10,0.25]
+        
+        # select the choice that grants about 3 tics
+        ticcnt = list(map(lambda x: (valmax-valmin)/x,ticset))
+        ticopt = np.argmin(map(lambda x: abs(x-3),ticcnt))
+        ntic   = np.ceil(ticcnt[ticopt])
+        dtic   = ticset[ticopt]
+        
+        # find the first tick
+        tic1 = valmin - np.mod(valmin,dtic)
+        tics = [tic1+ii*dtic for ii in range(ntic)]
+        tlbl = [("%d" % (tic)) for tic in tics]
+        
+    elif (scaleType == 'multiples'):
+        # for this type, we hard code tics
+        ticmult = [1,5,100]
+        tics = [np.log10(tic) for tic in ticmult]
+        tlbs = [str(tic)+'T' for tic in ticmult]
+    
+    # add info to tic dictionary
+    valset['bnds'] = [np.min(tics),np.max(tics)]
+    valset['tics'] = tics
+    valset['lbls'] = tlbl
+    valset['name'] = valname
+    
+    return valset
+
+# --------------------------------------------------------------------------
+
 def get_scaleAndTicks(valmin,valmax,valname,ntic=None):
     """
     function to select a plotting scale
     inputs:
         valmin = minimum value of data set
         valmax = maximum value of data set
+        valname = name of axis to group with plotting parameters
+        ntic = desired number of ticks (-1)
     outputs:
-        valset = dictionary with details for how to select a scale
+        valset = dictionary with tics and labels, along with scaling for labels
     """ 
     valset = dict.fromkeys(['bnds','tics','lbls','scale','name'])
     
@@ -165,21 +219,30 @@ def get_xlims(figData,xAxisType):
                 xmax = np.max([xmax, np.max(figData[key][subkey][xdat])])
                 xmin = np.min([xmin, np.min(figData[key][subkey][xdat])])
         
-        # now use the min/max across the panel data to define tics for 
-        # that axis, and also pass the name of the variable group 
-        if (xAxisType == 'vaxis'):
-            xname = ''
-        elif (xAxisType == 'taxis'):
-            xname = 'Change in Fitness (Perc.)'
-        yLimPar[key] = get_scaleAndTicks(ymin,ymax,yname,ntic=5)
+    # now use the min/max across the panel data to define tics for 
+    # that axis, and also pass the name of the variable group 
+    
+    fig.supxlabel(r,y=0.05,fontsize=16)
+    fig.supxlabel(r,y=0.05,fontsize=16)
+    
+    if (xAxisType == 'vaxis'):
+        xname = '$v_E/v_a^*$'
+        xLimPar = get_scaleAndTicks_Percent(xmin,xmax,xname)
+    elif (xAxisType == 'taxis'):
+        xname = 'Multiples of Reference T ($log_{10}$)'
+        xLimPar = get_scaleAndTicks_Percent(xmin,xmax,xname)
         
-    # xtick settings (change this if sim parameters change)
-    # NOTE: this is fine for the current selection of T sampling, but 
-    #       would need to change with Tperc in sim runs
-    xticDat = {'vals':{}, 'lbls': {}}
-    xticDat['vals'][0] = [35+5*ii for ii in range(4)]
-    xticDat['vals'][1] = [55+5*ii for ii in range(5)]
-    xticDat['vals'][2] = [70+10*ii for ii in range(4)]
+    yLimPar[key] = get_scaleAndTicks(xmin,xmax,yname,ntic=5)
+    
+    # OLD SETTINGS FOR PRIOR VERSION OF PLOT
+    # # xtick settings (change this if sim parameters change)
+    # # NOTE: this is fine for the current selection of T sampling, but 
+    # #       would need to change with Tperc in sim runs
+    # xticDat = {'vals':{}, 'lbls': {}}
+    # xticDat['vals'][0] = [35+5*ii for ii in range(4)]
+    # xticDat['vals'][1] = [55+5*ii for ii in range(5)]
+    # xticDat['vals'][2] = [70+10*ii for ii in range(4)]
+    
     return None
 
 # --------------------------------------------------------------------------

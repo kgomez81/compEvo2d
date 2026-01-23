@@ -31,25 +31,6 @@ from evoLibraries.LotteryModel import LM_functions as lmfun
 # Small supporting functions
 # --------------------------------------------------------------------------
 
-def get_listDiv(xl,yl,zerodiv=1,factor=1):
-    """
-    Todo: delete this, we should be using arrays for plots
-    
-    simple function to divide elements of a two lists
-    """
-    zl = []
-    for x,y in zip(xl,yl):
-        if abs(y)>0:
-            zl.append(factor*x/y)
-        elif(abs(x) > 0):
-            zl.append(np.nan)
-        else:
-            zl.append(factor*zerodiv)
-    
-    return zl
-
-# --------------------------------------------------------------------------
-
 def get_sortedSimRuns_ByTvals(sim_t_vals):
     """
     Sort runs based on T-percent values specified for a simulation run
@@ -90,7 +71,7 @@ def get_T_sampling(T_perc_arry,nSample,Tscale=None):
 # Plotting functions
 # --------------------------------------------------------------------------
 
-def get_scaleAndTicks_Percent(valmin,valmax,valname,scaleType=None):
+def get_scaleAndTicks_Percent(valmin,valmax,axisType=None):
     """
     Function generates tics and labels, but is specialized for axis with
     percentages.
@@ -110,8 +91,8 @@ def get_scaleAndTicks_Percent(valmin,valmax,valname,scaleType=None):
     # 2. for the unbounded, we want tics based on multiples of 1
     
     valset = dict.fromkeys(['bnds','tics','lbls','scale','name'])
-    
-    if (scaleType == 'bound') or (scaleType == None):
+        
+    if (axisType == 'vaxis') or (axisType == None):
         # these are the desired tic spacings
         ticset = [0.05,0.10,0.25]
         
@@ -125,12 +106,14 @@ def get_scaleAndTicks_Percent(valmin,valmax,valname,scaleType=None):
         tic1 = valmin - np.mod(valmin,dtic)
         tics = [tic1+ii*dtic for ii in range(ntic)]
         tlbl = [("%d" % (tic)) for tic in tics]
+        valname = '$v_E/v_a^*$'
         
-    elif (scaleType == 'multiples'):
+    elif (axisType == 'taxis') or (axisType == None):
         # for this type, we hard code tics
         ticmult = [1,5,100]
         tics = [np.log10(tic) for tic in ticmult]
-        tlbs = [str(tic)+'T' for tic in ticmult]
+        tlbl = [str(tic)+'T' for tic in ticmult]
+        valname = 'Multiples of Reference T ($log_{10}$)'
     
     # add info to tic dictionary
     valset['bnds'] = [np.min(tics),np.max(tics)]
@@ -204,36 +187,6 @@ def get_xlims(figData,xAxisType):
         dictionary with panel x-axis limits, ticks, and labels 
     """
     
-    xLimPar = dict.fromkeys(figData.keys())
-    xDatLbls = get_axisDataNames('x', xAxisType)
-    
-    # loop through the panels and generate the y-axis settings
-    for key in list(figData.keys()):
-        
-        # Find the min and maximum values across a panel group
-        xmax = 0
-        xmin = 0
-    
-        for subkey in list(figData[key].keys()):
-            for xdat in xDatLbls:
-                xmax = np.max([xmax, np.max(figData[key][subkey][xdat])])
-                xmin = np.min([xmin, np.min(figData[key][subkey][xdat])])
-        
-    # now use the min/max across the panel data to define tics for 
-    # that axis, and also pass the name of the variable group 
-    
-    fig.supxlabel(r,y=0.05,fontsize=16)
-    fig.supxlabel(r,y=0.05,fontsize=16)
-    
-    if (xAxisType == 'vaxis'):
-        xname = '$v_E/v_a^*$'
-        xLimPar = get_scaleAndTicks_Percent(xmin,xmax,xname)
-    elif (xAxisType == 'taxis'):
-        xname = 'Multiples of Reference T ($log_{10}$)'
-        xLimPar = get_scaleAndTicks_Percent(xmin,xmax,xname)
-        
-    yLimPar[key] = get_scaleAndTicks(xmin,xmax,yname,ntic=5)
-    
     # OLD SETTINGS FOR PRIOR VERSION OF PLOT
     # # xtick settings (change this if sim parameters change)
     # # NOTE: this is fine for the current selection of T sampling, but 
@@ -243,7 +196,38 @@ def get_xlims(figData,xAxisType):
     # xticDat['vals'][1] = [55+5*ii for ii in range(5)]
     # xticDat['vals'][2] = [70+10*ii for ii in range(4)]
     
-    return None
+    # get keys and subkeys of figData
+    keys    = list(figData.keys())
+    subkeys = list(figData[keys[0]].keys())
+    
+    xLimPar = dict.fromkeys(subkeys)
+    xDatLbls = get_axisDataNames('x', xAxisType)
+    
+    # loop through the vE sets for each panel and generate the x-axis settings
+    for subkey in subkeys:
+        
+        # Find the min and maximum values across a panel group
+        xmax = 0
+        xmin = 0
+    
+        for key in keys:
+            for xdat in xDatLbls:
+                xmax = np.max([xmax, np.max(figData[key][subkey][xdat])])
+                xmin = np.min([xmin, np.min(figData[key][subkey][xdat])])
+        
+        # now use the min/max across the panel data to define tics for 
+        # that axis, and also pass the name of the variable group 
+        if (xAxisType == 'vaxis'):
+            xname = '$v_E/v_a^*$'
+            xLimPar[subkey] = get_scaleAndTicks_Percent(xmin,xmax,xname,xAxisType)
+        elif (xAxisType == 'taxis'):
+            xname = 'Multiples of Reference T ($log_{10}$)'
+            xLimPar[subkey] = get_scaleAndTicks_Percent(xmin,xmax,xname,xAxisType)
+            
+        # add vE value for annotations
+        xLimPar[subkey]['vE0'] = "%d%%" %str(subkey)
+    
+    return xLimPar
 
 # --------------------------------------------------------------------------
 
@@ -260,17 +244,21 @@ def get_ylims(figData,yAxisType):
         dictionary with panel y-axis limits, ticks, and labels 
     """
     
-    yLimPar = dict.fromkeys(figData.keys())
+    # get keys and subkeys of figData
+    keys    = list(figData.keys())
+    subkeys = list(figData[keys[0]].keys())
+    
+    yLimPar = dict.fromkeys(keys)
     yDatLbls = get_axisDataNames('y', yAxisType)
     
     # loop through the panels and generate the y-axis settings
-    for key in list(figData.keys()):
+    for key in keys:
         
         # Find the min and maximum values across a panel group
         ymax = 0
         ymin = 0
     
-        for subkey in list(figData[key].keys()):
+        for subkey in subkeys:
             for ydat in yDatLbls:
                 ymax = np.max([ymax, np.max(figData[key][subkey][ydat])])
                 ymin = np.min([ymin, np.min(figData[key][subkey][ydat])])
@@ -282,6 +270,10 @@ def get_ylims(figData,yAxisType):
         elif (yAxisType == 'fit_change_perc'):
             yname = 'Change in Fitness (Perc.)'
         yLimPar[key] = get_scaleAndTicks(ymin,ymax,yname,ntic=5)
+        
+        # add rho for annotations
+        mc_model = figData[key][subkeys[0]]['mc_model'][0]
+        yLimPar[key]['rho'] = "%.2f" % (mc_model.calculate_evoRho())
                 
     return yLimPar
 
@@ -332,6 +324,34 @@ def get_axisDataNames(axis=None, axisType=None):
     
     return dataNames
 
+# --------------------------------------------------------------------------
+
+def get_annotationCoordinates(xbnds,ybnds,atype):
+    """
+    Function to calculate the placement of annotations in panels
+    """
+    
+    if atype == 'rho':
+        yval = 0.95*np.diff(ybnds) + ybnds[0]
+        xval = 0.75*np.diff(xbnds) + xbnds[0]
+    elif atype == 'vE':
+        yval = 0.88*np.diff(ybnds) + ybnds[0]
+        xval = 0.75*np.diff(xbnds) + xbnds[0]
+    elif atype == 'pnl':
+        yval = 0.95*np.diff(ybnds) + ybnds[0]
+        xval = 0.03*np.diff(xbnds) + xbnds[0]
+    
+    return [xval,yval]
+
+# --------------------------------------------------------------------------
+
+def get_panelChar(idx,idy):
+    """
+    Function to get a panel desigation for plots
+    """    
+    
+    return chr(65 + 3*idy + idx)
+
 #%% ------------------------------------------------------------------------
 # Plotting functions
 # --------------------------------------------------------------------------
@@ -371,32 +391,9 @@ def plot_fitnessGainVsTincr(figDataSet,figSaveName,xAxisType=None,yAxisType=None
     
     # Select params for plots 
     myFig['axes'] = {'x':None,'y':None}
+    myFig['axes']['x'] = get_xlims(figData,xAxisType)
+    myFig['axes']['y'] = get_ylims(figData,yAxisType)
     
-    # get 
-    
-    # calculate an offset for the panel labels.
-    if (figSaveName.find('LoRho') >= 0):
-        pnlOffset = 0
-        xaxisLabel = False
-    elif (figSaveName.find('MeRho') >= 0):
-        pnlOffset = 3
-        xaxisLabel = False
-        ywinsize = 4.5
-    else:
-        pnlOffset = 6
-        xaxisLabel = True
-        ywinsize = 4.9
-    
-    # set common y-lims and ticks
-    yLimSet = get_ylims(figData)
-    Ylim  = yLimSet['Ylim']
-    Ytic  = yLimSet['Ytic']
-    Ylblv = yLimSet['Ylblv']
-    Ylble = yLimSet['Ylble']
-    Ypanl = yLimSet['Ypanl']
-    
-    
-        
     # ---------------------------------------------------------------------
     # Part III - generate the figure
     # ---------------------------------------------------------------------
@@ -413,41 +410,51 @@ def plot_fitnessGainVsTincr(figDataSet,figSaveName,xAxisType=None,yAxisType=None
             ax[idx,idy].scatter(figData[key]['ve_perc_init'], figData[key]['fit_chng_int'],color='red',marker='o',facecolors='none',label='Perfect Interference')
             ax[idx,idy].plot(figData[key]['ve_perc_crv'], figData[key]['fit_chng_crv'],c='blue',linestyle='-',label='No Interference')
             
-            for ii in range(3):
-                xticDat['lbls'][ii] = ["%s%%"%(val) for val in xticDat['vals'][ii]]
-        
-            for ii in range(3):
-                xticDat['lbls'][ii] = ['' for val in xticDat['vals'][ii]]
-                    
-            
-            xdata = [1,5,100]
-            xticDat = {'vals':{}, 'lbls': {}}
-
+            # get flags for tics and legends
+            plotflags = get_xlim_ylim_flags(idx,idy)
             
             # set the y-axis parameters
-            ax[idx,idy].set_xlim        (myFig['params']['y'][idy]['ylim'])    
-            ax[idx,idy].set_xticks      (myFig['params']['y'][idy]['ytic'])
-            ax[idx,idy].set_xticklabels (myFig['params']['y'][idy]['ylbl'],fontsize=14)
+            ax[idx,idy].set_xlim        (myFig['axes']['y'][idy]['bnds'])    
+            ax[idx,idy].set_xticks      (myFig['axes']['y'][idy]['tics'])
+            if (plotflags['x']):
+                ax[idx,idy].set_xticklabels (myFig['axes']['y'][idy]['lbls'],fontsize=14)
             
             # set the x-axis parameters
-            ax[idx,idy].set_ylim        (myFig['params']['y'][idy]['ylim'])    
-            ax[idx,idy].set_yticks      (myFig['params']['y'][idy]['ytic'])
-            ax[idx,idy].set_yticklabels (myFig['params']['y'][idy]['ylbl'],fontsize=14)
+            ax[idx,idy].set_ylim        (myFig['axes']['y'][idy]['bnds'])    
+            ax[idx,idy].set_yticks      (myFig['axes']['y'][idy]['tics'])
+            if (plotflags['y']):
+                ax[idx,idy].set_yticklabels (myFig['axes']['y'][idy]['lbls'],fontsize=14)
             
             # add legend if needed
-            ax[idx,idxy].legend(fontsize=16)
+            if (plotflags['lgd']):
+                ax[idx,idy].legend(fontsize=16)
             
-            # set annotations
-            ax[idx,idy].text(xmin+0.01*(xmax-xmin),Ypanl,"(%s)"%(chr(65+pnlOffset+idxf)),fontsize=16)
+            # add annotations
+            xbnds = myFig['axes']['y'][idy]['bnds']
+            ybnds = myFig['axes']['y'][idy]['bnds']
+            
+            # set panel, rho and vE init
+            xypos = get_annotationCoordinates(xbnds,ybnds,'rho')
+            annot = "(%s)" % (get_panelChar(idx,idy))
+            ax[idx,idy].text(xypos[0],xypos[1],annot,fontsize=16)
+            
+            # set rho 
+            xypos = get_annotationCoordinates(xbnds,ybnds,'rho')
+            annot = "%s=%f" %(r'$\rho$',myFig['axes']['y'][key]['rho'])
+            ax[idx,idy].text(xypos[0],xypos[1],annot,fontsize=16)
+            
+            # set vE init
+            xypos = get_annotationCoordinates(xbnds,ybnds,'vE0')
+            annot = "%s=%f" %(r'$\rho$',myFig['axes']['y'][subkey]['vE0'])
+            ax[idx,idy].text(xypos[0],xypos[1],annot,fontsize=16)
+            
     
-            
-            if xAxisType == 'vaxis' and xaxisLabel:
-                fig.supxlabel(r'$v_E/v_a^*$',y=0.05,fontsize=16)
-            elif xaxisLabel:
-                fig.supxlabel(r'Multiples of Reference T ($log_{10}$)',y=0.05,fontsize=16)
     
     # set axis super labels
-    fig.supxlabel(r'$v_E/v_a^*$',y=0.05,fontsize=16)
+    if xAxisType == 'vaxis':
+        fig.supxlabel(r'$v_E/v_a^*$',y=0.05,fontsize=16)
+    else:
+        fig.supxlabel(r'Multiples of Reference T ($log_{10}$)',y=0.05,fontsize=16)
     fig.supylabel('Change in Fitness',x=0.01,fontsize=16)
     
     plt.subplots_adjust(wspace=0.05,hspace=0.05)
@@ -556,8 +563,10 @@ def get_simDataForPlots(figDataSet,fig_type):
 # --------------------------------------------------------------------------
 
 def get_simDataForMcPlots(figDataSet):
-    # function use to extract the specific sim data needed for the plot. Here
-    # we organize the data retreived from get_figData. This is the data needed
+    """
+    function use to extract the specific sim data needed for the plot. Here
+    we organize the data retreived from get_figData. This is the data needed
+    """
     
     figData = {'mcMod': {'abs':[],'rel':[],'env':[]},'vEst':{'abs':[],'rel':[]},'mcHist':[],'params':[]}
     

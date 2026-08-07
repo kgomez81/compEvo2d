@@ -323,8 +323,7 @@ def param_set_varyT():
     
     # add the full set of simulations for the new figures with sampling design
     # each set will include sampled simulations from 10,20,...,100
-    # vef = [25, 50, 75, 100]
-    vef = [70,60,40,30]
+    vef = [25, 30, 40, 50, 60, 70, 75, 100]
     Ttf = [100, 500, 10000]
     
     kkMap = []

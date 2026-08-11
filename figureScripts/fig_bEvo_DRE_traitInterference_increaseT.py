@@ -115,7 +115,8 @@ def get_scaleAndTicks_Percent(valmin,valmax,axisType=None):
         valname = 'Multiples of Reference T ($log_{10}$)'
     
     # add info to tic dictionary
-    valset['bnds'] = [np.min(tics),np.max(tics)]
+    dbnds = 0.02*(max(tics) - min(tics))
+    valset['bnds'] = [np.min(tics)-dbnds,np.max(tics)+dbnds]
     valset['tics'] = tics
     valset['lbls'] = tlbl
     valset['name'] = valname
@@ -270,7 +271,7 @@ def get_ylims(figData,yAxisType):
         yLimPar[key] = get_scaleAndTicks(ymin,ymax,yname,ntic=5)
         
         # add rho for annotations
-        mc_model = figData[key][subkeys[0]]['mc_model']
+        mc_model = figData[key][subkeys[0]]['mc_models']
         yLimPar[key]['rho'] = "%.2f" % (mc_model.calculate_evoRho())
                 
     return yLimPar
@@ -289,7 +290,7 @@ def get_xlim_ylim_flags(idx,idy):
         - dictionary with x/y entries for specific cases 
     """
     
-    return {'x':(idx==2),'y':(idy==0),'lgd': (idx==0) and (idy==2)}
+    return {'x':(idx==2),'y':(idy==0),'lgd': (idx==2) and (idy==2)}
 
 # --------------------------------------------------------------------------
 
@@ -330,14 +331,17 @@ def get_annotationCoordinates(xbnds,ybnds,atype):
     """
     
     if atype == 'rho':
-        yval = 0.95*np.diff(ybnds) + ybnds[0]
-        xval = 0.60*np.diff(xbnds) + xbnds[0]
+        yval = 0.93*np.diff(ybnds) + ybnds[0]
+        xval = 0.35*np.diff(xbnds) + xbnds[0]
     elif atype == 'vE0':
-        yval = 0.88*np.diff(ybnds) + ybnds[0]
-        xval = 0.60*np.diff(xbnds) + xbnds[0]
+        yval = 0.86*np.diff(ybnds) + ybnds[0]
+        xval = 0.35*np.diff(xbnds) + xbnds[0]
     elif atype == 'pnl':
-        yval = 0.95*np.diff(ybnds) + ybnds[0]
+        yval = 0.93*np.diff(ybnds) + ybnds[0]
         xval = 0.03*np.diff(xbnds) + xbnds[0]
+    elif atype == 'scl':
+        yval =  0.97*np.diff(ybnds) + ybnds[0]
+        xval = -0.12*np.diff(xbnds) + xbnds[0]
     
     return [xval,yval]
 
@@ -349,6 +353,41 @@ def get_panelChar(idx,idy):
     """    
     
     return chr(65 + idy + 3*idx)
+
+# --------------------------------------------------------------------------
+
+def get_scaleAnnot(scale):
+    """
+    Simple function to get an annotation string that will provide the scale 
+    of tics in a plot.
+    """
+    
+    sclint = int(abs(np.log10(scale)))
+    sclsgn = np.sign(np.log10(scale))
+    
+    if sclsgn >= 0:
+        scaleAnnot = rf'$\times 10^{sclint}$'
+    else:
+        if sclint == 1:
+            scaleAnnot = r'$\times 10^{-1}$'
+        elif sclint == 2:
+            scaleAnnot = r'$\times 10^{-2}$'
+        elif sclint == 3:
+            scaleAnnot = r'$\times 10^{-3}$'
+        elif sclint == 4:
+            scaleAnnot = r'$\times 10^{-4}$'
+        elif sclint == 5:
+            scaleAnnot = r'$\times 10^{-5}$'
+        elif sclint == 6:
+            scaleAnnot = r'$\times 10^{-6}$'
+        elif sclint == 7:
+            scaleAnnot = r'$\times 10^{-7}$'
+        elif sclint == 8:
+            scaleAnnot = r'$\times 10^{-8}$'
+        elif sclint == 9:
+            scaleAnnot = r'$\times 10^{-9}$'
+    
+    return scaleAnnot
 
 #%% ------------------------------------------------------------------------
 # Plotting functions
@@ -411,9 +450,9 @@ def plot_fitnessGainVsTincr(figDataSet,figSaveName,xAxisType=None,yAxisType=None
             xdat = myFig['data']['x']
             ydat = myFig['data']['y']
             
-            ax[idx,idy].scatter(figData[key][subkey][xdat[0]], figData[key][subkey][ydat[0]],color='black',marker='o',label='Imperfect Interference')
-            ax[idx,idy].scatter(figData[key][subkey][xdat[1]], figData[key][subkey][ydat[1]],color='red',marker='o',facecolors='none',label='Perfect Interference')
-            ax[idx,idy].plot(figData[key][subkey][xdat[2]], figData[key][subkey][ydat[2]],c='blue',linestyle='-',marker='o',markersize='2',label='No Interference')
+            ax[idx,idy].scatter(figData[key][subkey][xdat[1]], figData[key][subkey][ydat[1]],color='black',marker='o',facecolors='black',label='Perfect Interference')
+            ax[idx,idy].scatter(figData[key][subkey][xdat[0]], figData[key][subkey][ydat[0]],color='black',marker='o',facecolors='white',label='Imperfect Interference')
+            ax[idx,idy].scatter(figData[key][subkey][xdat[2]], figData[key][subkey][ydat[2]],color='grey',marker='o',facecolors='grey',edgecolor='None',label='No Interference')
             
             # bnds also needed for annotations)
             xbnds = myFig['axes']['x'][subkey]['bnds']
@@ -444,10 +483,16 @@ def plot_fitnessGainVsTincr(figDataSet,figSaveName,xAxisType=None,yAxisType=None
             if (plotflags['lgd']):
                 ax[idx,idy].legend(fontsize=16,loc='center right')
             
-            # set panel, rho and vE init
+            # set panel
             xypos = get_annotationCoordinates(xbnds,ybnds,'pnl')
             annot = "(%s)" % (get_panelChar(idx,idy))
             ax[idx,idy].text(xypos[0],xypos[1],annot,fontsize=16)
+            
+            # set scale
+            # if (plotflags['y']):
+            #     xypos = get_annotationCoordinates(xbnds,ybnds,'scl')
+            #     annot = get_scaleAnnot(myFig['axes']['y'][key]['scale'])
+            #     ax[idx,idy].text(xypos[0],xypos[1],annot,fontsize=12)
             
             # set rho 
             xypos = get_annotationCoordinates(xbnds,ybnds,'rho')
@@ -475,6 +520,123 @@ def plot_fitnessGainVsTincr(figDataSet,figSaveName,xAxisType=None,yAxisType=None
     # ---------------------------------------------------------------------
     
     plt.tight_layout()
+    fig.savefig(figSaveName,bbox_inches='tight')
+    
+    return None
+
+# --------------------------------------------------------------------------
+
+def plot_fitnessGainVsTincr_subPanel(figDataSet,figSaveName,xAxisType=None,yAxisType=None,panel=(0,0)):
+    """
+    Generates the plot showing fitness increase vs increases to T for only 
+    the select panel. 
+    
+    Note: this is a distinct version due to limitations in generalizing 
+          formatting elements for the grid version.
+          
+    Inputs:
+        - figDataSet, contains all simulation and mc model data
+        - figSaveName
+        - xAxisType, string indicating vE percent or log(T/T0) x-axis
+                     either: 'vaxis' or 'taxis'
+        - yAxisType, string indicating fitness change or percent for y-axis 
+                     either: 'fit_chng' or 'fit_chng_perc'
+        - panel,     2-tuple with indices selecting the panel to plot
+    Outputs:
+        - figure showing fitness increases/decreases vs percent change in T
+          for the selected panel
+    """ 
+    
+    # Create main dictionary to store figure parameters
+    myFig = dict.fromkeys(['data','axes'])
+    
+    # ---------------------------------------------------------------------     
+    # Part I - process the simulation data 
+    # ---------------------------------------------------------------------
+    
+    # Extract the sim and mc model data for the figure, and save the key, subkey
+    # references of the panel
+    figData = get_simDataForPlots(figDataSet,'fitChngPlts',panel)
+    key     = list(figData.keys())[0]
+    subkey  = list(figData[key].keys())[0]
+    
+    # Select data to plot, which will be used in loops
+    myFig['data'] = {'x':None,'y':None}
+    myFig['data']['x'] = get_axisDataNames('x',xAxisType)
+    myFig['data']['y'] = get_axisDataNames('y',yAxisType)
+        
+    # ---------------------------------------------------------------------
+    # Part II - get the figure/panel parameters and select data
+    # ---------------------------------------------------------------------
+    
+    # Select params for plots 
+    myFig['axes'] = {'x':None,'y':None}
+    myFig['axes']['x'] = get_xlims(figData,xAxisType)
+    myFig['axes']['y'] = get_ylims(figData,yAxisType)
+    
+    # ---------------------------------------------------------------------
+    # Part III - generate the figure
+    # ---------------------------------------------------------------------
+    
+    # setup the figure for each of the panels
+    fig,ax  = plt.subplots(1,1,figsize=[5,5])   
+    
+    # plot horizontal line for reference 
+    ax.plot(myFig['axes']['x'][subkey]['bnds'], [0]*len(myFig['axes']['x'][subkey]['bnds']) ,c='black',linestyle='--')
+    
+    # get the data names
+    xdat = myFig['data']['x']
+    ydat = myFig['data']['y']
+    
+    
+    ax.scatter(figData[key][subkey][xdat[1]], figData[key][subkey][ydat[1]],color='black',marker='o',facecolors='black',label='Perfect Interference')
+    ax.scatter(figData[key][subkey][xdat[0]], figData[key][subkey][ydat[0]],color='black',marker='o',facecolors='white',label='Imperfect Interference')
+    ax.scatter(figData[key][subkey][xdat[2]], figData[key][subkey][ydat[2]],color='grey',marker='o',facecolors='grey',edgecolor='None',label='No Interference')
+    
+    # bnds also needed for annotations)
+    xbnds = myFig['axes']['x'][subkey]['bnds']
+    ybnds = myFig['axes']['y'][key]['bnds']
+    
+    # set the x-axis parameters
+    ax.set_xticks      (myFig['axes']['x'][subkey]['tics'])
+    ax.set_xticklabels (myFig['axes']['x'][subkey]['lbls'],fontsize=14)
+    ax.set_xlim        (myFig['axes']['x'][subkey]['bnds'])    
+    
+    # set the x-axis parameters
+    customYtics     = [ii*myFig['axes']['y'][key]['scale'] for ii in range(6)]
+    customYticlbls  = [str(ii) for ii in range(6)]
+    
+    # ax.set_yticks      (myFig['axes']['y'][key]['tics'])
+    # ax.set_yticklabels (myFig['axes']['y'][key]['lbls'],fontsize=14)
+    ax.set_yticks      (customYtics)
+    ax.set_yticklabels (customYticlbls,fontsize=14)
+    ax.set_ylim        (myFig['axes']['y'][key]['bnds'])    
+    
+    # add legend if needed
+    ax.legend(fontsize=14,loc='upper left')
+    
+    # set scale annotation 
+    xypos = get_annotationCoordinates(xbnds,ybnds,'scl')
+    annot = get_scaleAnnot(myFig['axes']['y'][key]['scale'])
+    # ax.text(xypos[0],xypos[1],annot,fontsize=10)
+            
+    # set axis labels
+    if xAxisType == 'vaxis':
+        ax.set_xlabel(r'$v_E/v_a^*$',y=-0.01,fontsize=16)
+    else:
+        ax.set_xlabel(r'Multiples of Reference T ($log_{10}$)',y=0.01,fontsize=16)
+    ax.set_ylabel('Change in Fitness',x=0.01,fontsize=16)
+    
+    # ---------------------------------------------------------------------
+    # Part IV - Save the figure
+    # ---------------------------------------------------------------------
+    
+    plt.tight_layout()
+    
+    pnl = "%s" % get_panelChar(panel[0],panel[1])
+    figSaveName = figSaveName.replace('.pdf',f'_subpanel_{pnl}.pdf')
+    figSaveName = figSaveName.replace('Supplement','MainDoc')
+    
     fig.savefig(figSaveName,bbox_inches='tight')
     
     return None
@@ -542,13 +704,43 @@ def plot_McModels(figDataMc,savename):
 # Sim Data Functions 
 # --------------------------------------------------------------------------
 
-def get_simDataForPlots(figDataSet,fig_type):
+def genarate_figDataDict(figDataSet,panel=None):
+    """
+    Helper function to generate a dictionary that will store either all of the 
+    collected simulation data (None case), or data only for a selected panel
+    
+    Inputs:
+        - figDataSet, struct with all processed sim and mc model data
+        - panel,      indices for panel to collect specifi sim data 
+    Outputs:
+        - figData, empty dictionary with required keys, subkeys for storing
+                   processed sim data to plot.
+    """
+    
+    if panel == None:
+        
+        figData = dict.fromkeys(figDataSet.keys())
+        for key in figDataSet.keys():
+            figData[key] = dict.fromkeys(figDataSet[key].keys())
+    else:
+        pkey    = list(figDataSet.keys())[panel[0]]
+        psubkey = list(figDataSet[pkey].keys())[panel[1]]
+        
+        figData         = dict.fromkeys([pkey])
+        figData[pkey]   = dict.fromkeys([psubkey])
+        
+    return figData
+
+# --------------------------------------------------------------------------
+
+def get_simDataForPlots(figDataSet,fig_type,panel=None):
     """
     Extracts and organizes sim and mc model data for the plots of fig_type. 
     
     Inputs:
         - figDataSet, struct with all processed sim and mc model data
-        - fig_type, indicator for data selection
+        - fig_type,   indicator for data selection
+        - panel,      indices for panel to collect specifi sim data 
     Outputs:
         - figData, dictionary with data organized to plot of main figures 
           showing changes in fitness due to changes in T at various values 
@@ -561,13 +753,15 @@ def get_simDataForPlots(figDataSet,fig_type):
                 'fit_chng_avg_perc','fit_chng_env_perc','fit_chng_int_perc',
                 've_perc_crv','T_perc_crv','fit_chng_crv','fit_chng_crv_perc']
     
-    # build up the nested dictionary with plot data
-    figData = {}
-    
-    for key in list(figDataSet.keys()):
-        figData[key] = dict.fromkeys(figDataSet[key].keys())
+    # first create dictionary needed to store selected sim data
+    #  - we either get all data all (None case) 
+    #  - or select just the panels needed
+    figData = genarate_figDataDict(figDataSet,panel)
         
-        for subkey in list(figDataSet[key].keys()):
+    # no loop through keys and package the data
+    for key in figData.keys():
+        
+        for subkey in figData[key].keys():
             
             # Get the init v0, which will be the max vp for the given subkey
             vp0 = np.max(figDataSet[key][subkey]['sim_avg']['vp'])
@@ -594,15 +788,15 @@ def get_simDataForPlots(figDataSet,fig_type):
             be0 = figDataSet[key][subkey]['mc_int_pts']['bi'][id0]  # b-term at va=ve
             bs0 = figDataSet[key][subkey]['mc_int_pts']['bs'][id0]  # b-term at va=vc
             
-            for idx in figIdx[1:]:
+            for ii in figIdx[1:]:
                 
                 # Part 1 - get the current b-erms
-                ba1 = figDataSet[key][subkey]['sim_avg']['ba'][idx]
-                be1 = figDataSet[key][subkey]['mc_int_pts']['bi'][idx]
-                bs1 = figDataSet[key][subkey]['mc_int_pts']['bs'][idx]
+                ba1 = figDataSet[key][subkey]['sim_avg']['ba'][ii]
+                be1 = figDataSet[key][subkey]['mc_int_pts']['bi'][ii]
+                bs1 = figDataSet[key][subkey]['mc_int_pts']['bs'][ii]
                 
-                vpi.append(figDataSet[key][subkey]['sim_avg']['vp'][idx])
-                tpc.append(np.log10(figDataSet[key][subkey]['T_perc'][idx]/100))
+                vpi.append(figDataSet[key][subkey]['sim_avg']['vp'][ii])
+                tpc.append(np.log10(figDataSet[key][subkey]['T_perc'][ii]/100))
                 
                 fca.append(lmfun.get_b_SelectionCoeff(ba0,ba1,di0))
                 fce.append(lmfun.get_b_SelectionCoeff(be0,be1,di0))
@@ -612,7 +806,7 @@ def get_simDataForPlots(figDataSet,fig_type):
                 fcep.append(100*fce[-1]/fce[-1])
                 fcip.append(100*fci[-1]/fce[-1])
                 
-            # store the values 
+            
             figData[key][subkey] = dict.fromkeys(dataKeys)
                 
             figData[key][subkey]['ve_perc_init'] = np.asarray(vpi)
@@ -634,48 +828,58 @@ def get_simDataForPlots(figDataSet,fig_type):
             
             # keep a copy of the mc model for the first T=100
             figData[key][subkey]['mc_models'] = figDataSet[key][subkey]['mc_model'][0]
+
     
     return figData
 
 # --------------------------------------------------------------------------
 
-def get_simDataForMcPlots(figDataSet):
+def get_simDataForMcPlots(figDataSet,panel=None):
     """
     Function to extract the specific sim data needed for the MC plots. Here
     we organize the data retreived from get_GroupedfigData, and build up the
-    MC model data to get plots each of the runs.
+    MC model data to get plots each of the runs. 
+    
+    This an alternate to the function get_simDataForPlots(). Both return 
+    figData, but this one is specialized for producing the mc model plots
+    
+    Inputs:
+        - figDataSet, struct with all processed sim and mc model data
+        - panel, 2-tuple with panel indices of data to selectively extract
+    Outputs:
+        - figData,  contains all of the mc model plotting data
     """
     
-    
-    figData = dict.fromkeys(figDataSet.keys())
-    
-    for key in figDataSet.keys():
+    # first create dictionary needed to store selected sim data
+    figData = genarate_figDataDict(figDataSet,panel)
         
-        figData[key] = dict.fromkeys(figDataSet[key].keys())
+    # now loop through data and extract only what is needed, based on how we 
+    # created the dictionary
+    for key in figData.keys():
         
-        for subkey in figDataSet[key].keys():
-            
+        for subkey in figData[key].keys():
+
             figData[key][subkey] = dict.fromkeys(figDataSet[key][subkey]['T_perc'])
             
-            for idx, tval in enumerate(figData[key][subkey].keys()):
+            for ii, tval in enumerate(figData[key][subkey].keys()):
             
                 # create output dictionary
                 figData[key][subkey][tval] = {'mcMod': {'abs':[],'rel':[],'env':[]},'vEst':{'abs':[],'rel':[]},'mcHist':[],'rho':[]}
     
                 # get the current mc model and store the state space
-                crntMcModel = figDataSet[key][subkey]['mc_model'][idx]
+                crntMcModel = figDataSet[key][subkey]['mc_model'][ii]
                 figData[key][subkey][tval]['mcMod']['abs'] = {'ib': crntMcModel.state_i, 'v': crntMcModel.va_i}
                 figData[key][subkey][tval]['mcMod']['rel'] = {'ib': crntMcModel.state_i, 'v': crntMcModel.vc_i}
                 figData[key][subkey][tval]['mcMod']['env'] = {'ib': crntMcModel.state_i, 'v': crntMcModel.ve_i}
                 
                 # gather the v estimates from the simuation data
-                figData[key][subkey][tval]['vEst']['abs'] = {'ib': figDataSet[key][subkey]['v_est'][idx]['vaEst']['ix'], 
-                                                             'v': figDataSet[key][subkey]['v_est'][idx]['vaEst']['vx']}
-                figData[key][subkey][tval]['vEst']['rel'] = {'ib': figDataSet[key][subkey]['v_est'][idx]['vcEst']['ix'], 
-                                                             'v': figDataSet[key][subkey]['v_est'][idx]['vcEst']['vx']}
+                figData[key][subkey][tval]['vEst']['abs'] = {'ib': figDataSet[key][subkey]['v_est'][ii]['vaEst']['ix'], 
+                                                             'v': figDataSet[key][subkey]['v_est'][ii]['vaEst']['vx']}
+                figData[key][subkey][tval]['vEst']['rel'] = {'ib': figDataSet[key][subkey]['v_est'][ii]['vcEst']['ix'], 
+                                                             'v': figDataSet[key][subkey]['v_est'][ii]['vcEst']['vx']}
                 
                 # histogram data
-                figData[key][subkey][tval]['mcHist'] = figDataSet[key][subkey]['hist_data'][idx]
+                figData[key][subkey][tval]['mcHist'] = figDataSet[key][subkey]['hist_data'][ii]
                 
                 # mc Model parameters
                 figData[key][subkey][tval]['rho'] = crntMcModel.calculate_evoRho()
@@ -840,7 +1044,7 @@ def main():
     # inputsPath  = os.path.join(os.getcwd(),'inputs')
     figSetup = dict()
     figSetup['outputsPath'] = os.path.join(os.getcwd(),'outputs')
-    figSetup['figSavePath'] = os.path.join(os.getcwd(),'figures','MainDoc')
+    figSetup['figSavePath'] = os.path.join(os.getcwd(),'figures','Supplement')
     
     # filenames and paths for saving outputs
     figSetup['saveFigFile'] = 'fig_bEvo_DRE_traitInterference_increaseT.pdf'
@@ -902,9 +1106,11 @@ def main():
                 
     # create the figure (3x3 panels for all data)
     saveFigFilename = os.path.join(figSetup['figSavePath'],figSetup['saveFigFile'])
-    # plot_fitnessGainVsTincr(figDataSet,saveFigFilename,xAxisType='taxis',yAxisType='fit_chng')
+    plot_fitnessGainVsTincr(figDataSet,saveFigFilename,xAxisType='taxis',yAxisType='fit_chng')
     
-    plot_allMcModels(figDataSet,figSetup['figSavePath'],figSetup['saveFigFile'])
+    plot_fitnessGainVsTincr_subPanel(figDataSet,saveFigFilename,xAxisType='taxis',yAxisType='fit_chng',panel=(2,1))
+    
+    # plot_allMcModels(figDataSet,figSetup['figSavePath'],figSetup['saveFigFile'])
     
 if __name__ == "__main__":
     main()

@@ -450,9 +450,9 @@ def plot_fitnessGainVsTincr(figDataSet,figSaveName,xAxisType=None,yAxisType=None
             xdat = myFig['data']['x']
             ydat = myFig['data']['y']
             
+            ax[idx,idy].scatter(figData[key][subkey][xdat[2]], figData[key][subkey][ydat[2]],color='black',marker='o',facecolors='white',label='No Interference')
+            ax[idx,idy].scatter(figData[key][subkey][xdat[0]], figData[key][subkey][ydat[0]],color='black',marker='o',facecolors='grey',edgecolors='grey',label='Imperfect Interference')
             ax[idx,idy].scatter(figData[key][subkey][xdat[1]], figData[key][subkey][ydat[1]],color='black',marker='o',facecolors='black',label='Perfect Interference')
-            ax[idx,idy].scatter(figData[key][subkey][xdat[0]], figData[key][subkey][ydat[0]],color='black',marker='o',facecolors='white',label='Imperfect Interference')
-            ax[idx,idy].scatter(figData[key][subkey][xdat[2]], figData[key][subkey][ydat[2]],color='grey',marker='o',facecolors='grey',edgecolor='None',label='No Interference')
             
             # bnds also needed for annotations)
             xbnds = myFig['axes']['x'][subkey]['bnds']
@@ -588,10 +588,9 @@ def plot_fitnessGainVsTincr_subPanel(figDataSet,figSaveName,xAxisType=None,yAxis
     xdat = myFig['data']['x']
     ydat = myFig['data']['y']
     
-    
+    ax.scatter(figData[key][subkey][xdat[2]], figData[key][subkey][ydat[2]],color='black',marker='o',facecolors='white',label='No Interference')
+    ax.scatter(figData[key][subkey][xdat[0]], figData[key][subkey][ydat[0]],color='grey',marker='o',facecolors='grey',edgecolors='grey',label='Imperfect Interference')
     ax.scatter(figData[key][subkey][xdat[1]], figData[key][subkey][ydat[1]],color='black',marker='o',facecolors='black',label='Perfect Interference')
-    ax.scatter(figData[key][subkey][xdat[0]], figData[key][subkey][ydat[0]],color='black',marker='o',facecolors='white',label='Imperfect Interference')
-    ax.scatter(figData[key][subkey][xdat[2]], figData[key][subkey][ydat[2]],color='grey',marker='o',facecolors='grey',edgecolor='None',label='No Interference')
     
     # bnds also needed for annotations)
     xbnds = myFig['axes']['x'][subkey]['bnds']
